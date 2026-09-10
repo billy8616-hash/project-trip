@@ -1,0 +1,40 @@
+/* =========================================================================
+   SocialRail — 좌측 세로 소셜 아이콘 열
+   ========================================================================= */
+
+.rail {
+  position: absolute;
+  left: clamp(14px, 2.5vw, 34px);
+  bottom: clamp(24px, 6vh, 56px);
+  z-index: 15;
+
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  color: var(--text-dim);
+  transition: color 0.16s ease, background 0.16s ease;
+}
+
+.link:hover {
+  color: var(--text-white);
+  background: rgba(255, 255, 255, 0.14);
+}
+
+/* 좁은 화면에서는 소셜 레일 숨김 */
+@media (max-width: 560px) {
+  .rail {
+    display: none;
+  }
+}

@@ -1,0 +1,70 @@
+@import url('https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Gowun+Dodum&family=Poor+Story&display=swap');
+
+:root {
+  --paper: #f7ecd4;
+  --paper-deep: #ead6ab;
+  --ink: #382b1f;
+  --ink-soft: #635143;
+  --muted: #7a6754;
+  --teal: #4f9a9a;
+  --teal-deep: #2f7477;
+  --coral: #d96d57;
+  --mustard: #e9ae44;
+  --sage: #88b49f;
+  --blue: #6797b4;
+  --font-title: 'Poor Story', 'Gaegu', 'Comic Sans MS', system-ui, sans-serif;
+  --font-hand: 'Gaegu', 'Gowun Dodum', system-ui, sans-serif;
+  --font-label: 'Gowun Dodum', 'Gaegu', system-ui, sans-serif;
+  font-family: var(--font-hand);
+  color: var(--ink);
+  background: var(--paper);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-width: 320px;
+  min-height: 100%;
+  scroll-behavior: smooth;
+}
+
+body,
+#root {
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(circle at 18% 18%, rgba(255, 252, 241, 0.9), transparent 34%),
+    radial-gradient(circle at 80% 6%, rgba(136, 180, 159, 0.2), transparent 24%),
+    radial-gradient(circle at 85% 84%, rgba(217, 109, 87, 0.13), transparent 28%),
+    linear-gradient(135deg, #f8efd9 0%, #f4e3bd 100%);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+::selection {
+  background: rgba(233, 174, 68, 0.55);
+}

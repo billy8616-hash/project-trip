@@ -1,0 +1,58 @@
+/* =========================================================================
+   RouteMap — 인라인 SVG 경로 지도
+   ========================================================================= */
+
+.map {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 16px;
+}
+
+.bg {
+  fill: rgba(255, 255, 255, 0.05);
+  stroke: var(--glass-border);
+  stroke-width: 1;
+}
+
+.grid {
+  stroke: rgba(255, 255, 255, 0.06);
+  stroke-width: 1;
+}
+
+.route {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 2 9;
+}
+
+.pin {
+  fill: var(--accent);
+  stroke: #0d2b2d;
+  stroke-width: 2;
+}
+
+.pinNum {
+  fill: #0d2b2d;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.compass circle {
+  fill: rgba(14, 22, 38, 0.7);
+  stroke: var(--glass-border);
+  stroke-width: 1;
+}
+
+.compass text {
+  fill: var(--text-dim);
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.compass path {
+  fill: var(--accent);
+}

@@ -1,0 +1,98 @@
+.cheom {
+  padding: 24px 30px 26px;
+  transform: rotate(-0.6deg);
+}
+
+.cheom__body {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) clamp(150px, 24%, 240px);
+  align-items: center;
+  gap: 16px;
+  min-height: 300px;
+}
+
+/* ---- 왼쪽 텍스트 ---- */
+.cheom__text {
+  align-self: center;
+  padding-left: 6px;
+}
+
+.cheom__title {
+  margin: 0 0 14px;
+  font-family: var(--font-script);
+  font-weight: 700;
+  font-size: clamp(24px, 3.3vw, 42px);
+  line-height: 0.95;
+  letter-spacing: 0.01em;
+  color: var(--blue);
+  -webkit-text-stroke: 1.4px var(--ink);
+  paint-order: stroke fill;
+  transform: rotate(-2deg);
+}
+
+.cheom__script {
+  margin: 0;
+  font-family: var(--font-script);
+  font-size: clamp(18px, 2.3vw, 28px);
+  font-weight: 600;
+  font-style: italic;
+  line-height: 1.15;
+  color: var(--ink);
+  transform: rotate(-1deg);
+}
+
+/* ---- 오른쪽: 단어 스택 + 첨성대 ---- */
+.cheom__aside {
+  position: relative;
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: 6px;
+  padding-bottom: 4px;
+}
+
+.cheom__tower {
+  display: block;
+  width: clamp(96px, 13vw, 150px);
+  margin-top: 6px;
+  color: var(--ink);
+  overflow: visible;
+}
+
+/* ---- 흩뿌린 단어 ---- */
+.cheom__word {
+  margin: 0;
+  font-family: var(--font-script);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+  white-space: nowrap;
+  pointer-events: none;
+  line-height: 1;
+}
+
+.cheom__word--astro  { margin-top: 16px; font-size: clamp(16px, 1.9vw, 22px); transform: rotate(-3deg); }
+.cheom__word--ancient { align-self: flex-end; font-size: clamp(17px, 2vw, 24px); transform: rotate(3deg); }
+.cheom__word--stars   { align-self: flex-end; font-size: clamp(17px, 2vw, 24px); transform: rotate(2deg); }
+.cheom__word--gazing  { align-self: flex-end; font-size: clamp(17px, 2vw, 24px); color: var(--blue-word); transform: rotate(2deg); }
+.cheom__word--mem     { align-self: flex-end; margin-top: 6px; font-size: clamp(14px, 1.7vw, 20px); color: var(--blue-word); transform: rotate(-3deg); }
+
+.cheom__dots {
+  letter-spacing: 0.14em;
+  font-size: 0.8em;
+}
+
+.cheom__star { position: absolute; color: var(--ink); pointer-events: none; }
+.cheom__star--a { top: 0;    left: 30%; }
+.cheom__star--b { top: 44px; left: 16%; }
+.cheom__star--c { bottom: 24px; left: 2%; }
+
+@media (max-width: 560px) {
+  .cheom__body { grid-template-columns: 1fr; }
+  .cheom__aside { align-items: center; }
+  .cheom__word { align-self: center !important; }
+}

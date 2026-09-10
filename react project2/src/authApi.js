@@ -3,14 +3,21 @@
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || ''
 
 async function request(path, options = {}) {
-  const response = await fetch(`${apiBaseUrl}${path}`, {
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-    credentials: 'include',
-    ...options,
-  })
+  let response
+  try {
+    response = await fetch(`${apiBaseUrl}${path}`, {
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+      credentials: 'include',
+      ...options,
+    })
+  } catch {
+    // fetch 자체가 실패 = 인증 API 서버에 연결하지 못함
+    throw new Error('인증 서버에 연결하지 못했어요. 개발 서버(npm run dev)가 실행 중인지 확인해주세요.')
+  }
+
   const data = await response.json().catch(() => ({}))
 
   if (!response.ok) {

@@ -1,0 +1,21 @@
+/* 손그림 종이 카드 공통 프레임.
+   얇은 잉크 테두리 + 살짝 뒤틀린 모서리 + 옅은 그림자. */
+.card {
+  position: relative;
+  background: rgba(255, 251, 240, 0.4);
+  border: 2.5px solid var(--ink);
+  border-radius: 5px 7px 6px 8px;
+  box-shadow:
+    2px 3px 0 rgba(44, 38, 32, 0.1),
+    0 0 0 1px rgba(44, 38, 32, 0.08);
+}
+
+/* 안쪽에 한 줄 더 — 손으로 두 번 그은 느낌 */
+.card::after {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  border: 1px solid rgba(44, 38, 32, 0.28);
+  border-radius: 4px;
+  pointer-events: none;
+}

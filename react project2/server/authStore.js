@@ -1,32 +1,39 @@
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
-import { dirname, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { pbkdf2Sync, randomBytes, timingSafeEqual } from 'node:crypto'
+import { prisma } from './db.js'
 
-const __dirname = dirname(fileURLToPath(import.meta.url))
-const dataFile = join(__dirname, 'data', 'users.json')
 const hashIterations = 120000
 const hashLength = 64
 const hashDigest = 'sha512'
 
-async function ensureDataFile() {
-  await mkdir(dirname(dataFile), { recursive: true })
-  try {
-    await readFile(dataFile, 'utf8')
-  } catch {
-    await writeFile(dataFile, '[]', 'utf8')
-  }
-}
-
 export async function readUsers() {
-  await ensureDataFile()
-  const raw = await readFile(dataFile, 'utf8')
-  return JSON.parse(raw)
+  return prisma.user.findMany({
+    orderBy: { createdAt: 'asc' },
+  })
 }
 
 export async function writeUsers(users) {
-  await ensureDataFile()
-  await writeFile(dataFile, `${JSON.stringify(users, null, 2)}\n`, 'utf8')
+  await prisma.$transaction([
+    prisma.user.deleteMany(),
+    prisma.user.createMany({ data: users }),
+  ])
+}
+
+export async function findUserByEmail(email) {
+  return prisma.user.findUnique({
+    where: { email },
+  })
+}
+
+export async function findUserById(id) {
+  return prisma.user.findUnique({
+    where: { id },
+  })
+}
+
+export async function createUser(user) {
+  return prisma.user.create({
+    data: user,
+  })
 }
 
 export function publicUser(user) {
@@ -38,7 +45,7 @@ export function publicUser(user) {
     birthdate: user.birthdate ?? null,
     gender: user.gender ?? null,
     phone: user.phone ?? null,
-    createdAt: user.createdAt,
+    createdAt: user.createdAt instanceof Date ? user.createdAt.toISOString() : user.createdAt,
   }
 }
 

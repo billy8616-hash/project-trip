@@ -1,0 +1,14 @@
+node_modules
+dist
+dist-ssr
+*.local
+.vite
+
+# editor / OS
+.DS_Store
+.idea
+*.log
+
+# 백엔드 SQLite DB
+server/app.db
+server/*.db

@@ -1,0 +1,37 @@
+.amap {
+  padding: 20px 22px 24px;
+  transform: rotate(0.5deg);
+}
+
+.amap__title {
+  margin: 0 0 10px;
+  font-family: var(--font-hand-sc);
+  font-size: clamp(18px, 2.2vw, 26px);
+  letter-spacing: 0.05em;
+  color: var(--ink);
+}
+
+.amap__figure {
+  position: relative;
+}
+
+.amap__svg {
+  display: block;
+  width: 100%;
+  color: var(--ink);
+  overflow: visible;
+}
+
+.amap__pin {
+  position: absolute;
+  font-family: var(--font-hand);
+  font-size: clamp(13px, 1.5vw, 17px);
+  line-height: 1.05;
+  color: var(--ink);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.amap__pin--gyeongju { top: 30%; right: 18%; }
+.amap__pin--busan    { top: 70%; right: 22%; }
+.amap__pin--jeju     { bottom: 4%; left: 12%; text-align: center; }

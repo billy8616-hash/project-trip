@@ -1,0 +1,43 @@
+/* =========================================================================
+   AboutBlock — 좌하단 소개 텍스트
+   ========================================================================= */
+
+.about {
+  max-width: 460px;
+  margin-top: clamp(24px, 6vh, 56px);
+}
+
+@media (max-width: 560px) {
+  .about {
+    max-width: 100%;
+  }
+}
+
+.head {
+  margin: 0 0 12px;
+  font-family: var(--font-display);
+  font-size: clamp(15px, 1.6vw, 18px);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-white);
+}
+
+.body {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.9;
+  color: var(--text-dim);
+}
+
+.more {
+  margin-left: 8px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text-white);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}

@@ -1,0 +1,183 @@
+/* =========================================================================
+   GlassNav — 상단 글래스모피즘 내비게이션
+   ========================================================================= */
+
+.nav {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: clamp(16px, 3vw, 40px);
+  height: var(--nav-h);
+  padding: 0 var(--page-pad);
+  max-width: var(--page-max);
+  margin: 0 auto;
+}
+
+/* --- 로고 --- */
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-white);
+  text-decoration: none;
+}
+
+.brandName {
+  font-family: var(--font-display);
+  font-size: clamp(20px, 2.2vw, 26px);
+  letter-spacing: 0.02em;
+}
+
+/* --- 메뉴를 감싼 반투명 유리 알약 --- */
+.pill {
+  display: flex;
+  align-items: center;
+  gap: clamp(6px, 1.6vw, 22px);
+  margin: 0 auto;
+  padding: 8px clamp(12px, 2vw, 26px);
+  border: 1px solid var(--glass-border);
+  border-radius: 999px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  box-shadow: 0 8px 30px rgba(10, 16, 28, 0.18);
+}
+
+/* 드롭다운을 품는 래퍼 (패널이 이 기준으로 절대배치된다) */
+.menuItem {
+  position: relative;
+  display: inline-flex;
+}
+
+.item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-white);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  transition: background 0.16s ease;
+}
+
+.item:hover,
+.itemActive {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.caret {
+  opacity: 0.75;
+  transition: transform 0.16s ease;
+}
+
+.caretUp {
+  transform: rotate(180deg);
+}
+
+/* --- 우측: 로그인 / 회원가입 / 닉네임 / 로그아웃 --- */
+.right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.hello {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+/* 텍스트형 버튼 (회원가입 / 로그아웃) */
+.linkBtn,
+.ghost {
+  padding: 8px 6px;
+  border: 0;
+  background: none;
+  color: var(--text-white);
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.linkBtn:hover,
+.ghost:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* 테두리형 로그인 버튼 */
+.loginBtn {
+  min-height: 38px;
+  padding: 0 18px;
+  border: 1.5px solid var(--glass-border);
+  border-radius: 999px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  color: var(--text-white);
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+  transition: background 0.16s ease;
+}
+
+.loginBtn:hover {
+  background: var(--glass-bg-strong);
+}
+
+/* --- 햄버거 --- */
+.burger {
+  flex-shrink: 0;
+  display: inline-flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  width: 44px;
+  height: 44px;
+  padding: 0 11px;
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  background: var(--glass-bg-strong);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+}
+
+.burger span {
+  display: block;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--text-white);
+}
+
+/* =========================================================================
+   반응형
+   ========================================================================= */
+
+/* 태블릿 이하: 유리 알약 메뉴 숨기고 로고 / 우측만 */
+@media (max-width: 1040px) {
+  .pill {
+    display: none;
+  }
+
+  .nav {
+    justify-content: space-between;
+  }
+}
+
+/* 좁은 화면: "회원가입" 텍스트와 닉네임은 숨기고 로그인/로그아웃 버튼만 남김 */
+@media (max-width: 560px) {
+  .linkBtn,
+  .hello {
+    display: none;
+  }
+}

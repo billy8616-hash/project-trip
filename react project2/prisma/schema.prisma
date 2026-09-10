@@ -1,0 +1,77 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  name         String
+  birthdate    String
+  gender       String?
+  phone        String?
+  passwordHash String
+  createdAt    DateTime @default(now())
+}
+
+// 로그인 사용자가 "내 여행"에 저장해 둔 여행 동선 스냅샷.
+// payload 는 다시 계획하기·읽기 전용 일정 표시에 필요한 정보를 담은 JSON 문자열
+// ({ meta: { destination, journeyTheme, budget, transport, tripStartDate, tripEndDate, duration, dayStartTime, mustVisit }, days: [[{ name, assignedSlot }]] }).
+model SavedCourse {
+  id        String   @id @default(uuid())
+  userId    String
+  title     String
+  city      String
+  dayCount  Int      @default(1)
+  payload   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+// TourAPI/카카오 로컬에서 가져온 장소 원본 + Claude가 생성한 추천이유/주의사항/테마 태그 캐시.
+// 같은 장소를 다시 조회할 때 외부 API/LLM을 재호출하지 않기 위한 캐시 테이블.
+model PlaceCache {
+  id          String   @id // "tour-<contentid>" 또는 "kakao-<id>"
+  source      String // "tourapi" | "kakao"
+  cityKey     String // destinationCatalog 도시명
+  name        String
+  address     String
+  lat         Float
+  lng         Float
+  slot        String // 대표 슬롯 (slots[0]). SLOT_DEFAULTS 조회 등 단일 값이 필요할 때 사용.
+  slots       String @default("[]") // 어울리는 시간대 전체. JSON 배열, 예: ["오전","오후 카페"]
+  category    String @default("") // TourAPI 분류코드(cat3/cat2, 예 "A05020900") 또는 카카오 category_name. 체류시간 추정에 쓴다.
+  stay        String
+  time        String
+  parking     String? // TourAPI detailIntro2 의 주차 안내 텍스트. 없으면 null (맛집·카페 등).
+
+  // 영업시간·휴무일 (TourAPI detailIntro2 의 usetime/restdate 계열 필드). 카카오 장소는 데이터가 없어 전부 null.
+  openHoursText  String? // 이용시간 안내 원문 (예: "09:00~18:00", "상시개방").
+  closedDayText  String? // 쉬는날 안내 원문 (예: "매주 월요일", "연중무휴").
+  opensAt        Int? // openHoursText 를 파싱한 여는 시각. 자정 기준 분 (540 = 09:00). 파싱 실패 시 null.
+  closesAt       Int? // 파싱한 닫는 시각. 자정 기준 분 (1080 = 18:00). 자정을 넘기면 1440 이상.
+  alwaysOpen     Boolean @default(false) // "상시개방" · "24시간" 처럼 항상 여는 곳.
+  closedWeekdays String? // 정기 휴무 요일. JSON 숫자 배열, 0=일 ~ 6=토 (예: "[1]" = 월요일 휴무). 없으면 "[]".
+
+  // 비용: TourAPI usefee(입장료 텍스트) 또는 Google priceLevel 로 채운다. 예산대와 대조해 코스에 반영.
+  feeText  String @default("") // 표시용 원문/문구 (예: "무료", "성인 3,000원", "보통").
+  costTier String @default("") // free | low | mid | high | "" (판단 불가).
+
+  // 대중교통 접근성 (카카오 로컬 SW8 카테고리 검색으로 구한 최근접 지하철역).
+  transitStation   String? // 가장 가까운 지하철역 이름. 반경 내 없으면 null.
+  transitDistanceM Int? // 그 역까지 직선거리(m). 없으면 null.
+  transitScore     String? // good | ok | far | none
+  reason      String
+  caution     String
+  themes      String // JSON 배열 문자열, 예: ["step","view"]
+  budgetTiers String // JSON 배열 문자열, 예: ["저예산","보통"]
+  createdAt   DateTime @default(now())
+
+  @@index([cityKey])
+}

@@ -1,0 +1,153 @@
+/* =========================================================================
+   HeroSection — 풀스크린 배경 사진 + 오버레이 + 콘텐츠 배치
+   ========================================================================= */
+
+.hero {
+  position: relative;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+/* --- 배경 사진 --------------------------------------------------------- */
+.photo {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  /* 사진 위에 대체 그라데이션을 깔아, 사진이 안 떠도 자연스럽게 보이도록 */
+  background-image: var(--hero-image), var(--hero-fallback);
+  background-size: cover, cover;
+  background-position: center, center;
+  background-repeat: no-repeat;
+}
+
+/* --- 어두운 막 ------------------------------------------------------- */
+.overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: var(--hero-overlay);
+}
+
+/* --- 콘텐츠 래퍼 ---------------------------------------------------- */
+.inner {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  max-width: var(--page-max);
+  margin: 0 auto;
+  padding: calc(var(--nav-h) + clamp(24px, 5vh, 64px)) var(--page-pad)
+    clamp(28px, 6vh, 64px);
+}
+
+/* --- 가운데 무대: 메인 카피 ↔ 위저드 가로 슬라이드 ---------------- */
+.stage {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: center;
+  gap: clamp(24px, 5vw, 72px);
+}
+
+/* 슬라이드가 밖으로 넘치는 부분을 잘라 준다 (문구/위저드가 옆에서 스윽) */
+.slider {
+  width: 100%;
+  overflow: hidden;
+}
+
+.slideTrack {
+  display: flex;
+  align-items: center;
+  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.slide {
+  flex: 0 0 100%;
+  min-width: 100%;
+}
+
+/* --- 왼쪽 메인 카피 ------------------------------------------------- */
+.copy {
+  max-width: 560px;
+}
+
+.kicker {
+  margin: 0 0 10px;
+  font-family: var(--font-display);
+  font-size: clamp(15px, 1.6vw, 19px);
+  letter-spacing: 0.14em;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  text-shadow: 0 2px 14px rgba(10, 16, 28, 0.5);
+}
+
+.title {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  font-family: var(--font-display);
+  font-weight: 400;
+  line-height: 1.08;
+  font-size: clamp(40px, 6.4vw, 78px);
+  text-shadow: 0 4px 24px rgba(10, 16, 28, 0.45);
+}
+
+.titleEm {
+  color: var(--accent);
+  font-style: italic;
+}
+
+.cta {
+  margin-top: clamp(22px, 4vh, 40px);
+  min-height: 54px;
+  padding: 0 36px;
+  border: 1.5px solid var(--glass-border);
+  border-radius: 999px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  color: var(--text-white);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  transition: background 0.18s ease, transform 0.18s ease;
+}
+
+.cta:hover {
+  background: var(--glass-bg-strong);
+  transform: translateY(-2px);
+}
+
+/* =========================================================================
+   반응형
+   ========================================================================= */
+
+/* 태블릿: 좌우 2단 → 세로 1단 */
+@media (max-width: 900px) {
+  .stage {
+    /* minmax(0, …) 로 해야 긴 텍스트가 트랙을 밀어내며 가로 넘침이 생기지 않는다 */
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+    gap: clamp(32px, 8vh, 56px);
+    padding-top: clamp(12px, 4vh, 32px);
+  }
+
+  .copy {
+    max-width: none;
+  }
+}
+
+/* 모바일: 좌측 소셜 레일이 사라지므로 좌우 여백 축소 */
+@media (max-width: 560px) {
+  .inner {
+    padding-left: clamp(18px, 6vw, 28px);
+    padding-right: clamp(18px, 6vw, 28px);
+  }
+
+  .title {
+    font-size: clamp(34px, 11vw, 48px);
+  }
+}

@@ -1,0 +1,43 @@
+/* =========================================================================
+   SearchBar — 둥근 반투명 검색바
+   ========================================================================= */
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: min(440px, 100%);
+  margin-bottom: clamp(28px, 7vh, 88px);
+  padding: 0 22px;
+  height: 52px;
+  border: 1.5px solid var(--glass-border);
+  border-radius: 999px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+}
+
+.icon {
+  flex-shrink: 0;
+  color: var(--text-dim);
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--text-white);
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.input::placeholder {
+  color: var(--text-faint);
+}
+
+/* 검색창 기본 X 버튼 숨기기 (크롬) */
+.input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+}

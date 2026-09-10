@@ -1,0 +1,104 @@
+.hero {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(28px, 5vw, 60px);
+  padding-top: 10px;
+}
+
+/* ---- 공통 블록 ---- */
+.gearblock {
+  position: relative;
+  padding: 18px 10px 10px;
+}
+
+.gearblock__art {
+  display: block;
+  width: 100%;
+  color: var(--ink);
+  overflow: visible;
+}
+
+.gearblock__art--camera {
+  max-width: 400px;
+  margin-left: 6%;
+}
+
+.gearblock__art--pack {
+  max-width: 300px;
+  margin-left: 16%;
+}
+
+/* ---- 포스터 캡션 (CAMERA / BACKPACK) ---- */
+.poster {
+  font-family: var(--font-poster);
+  font-weight: 400;
+  margin: 0;
+  line-height: 0.9;
+  letter-spacing: 0.02em;
+  color: var(--blue-fill);
+  -webkit-text-stroke: 2px var(--ink);
+  paint-order: stroke fill;
+  text-shadow: 3px 3px 0 rgba(44, 38, 32, 0.15);
+}
+
+.poster--camera {
+  font-size: clamp(40px, 7vw, 74px);
+  transform: rotate(-4deg);
+  margin-left: 8%;
+}
+
+.poster--pack {
+  font-size: clamp(38px, 6.4vw, 66px);
+  transform: rotate(-5deg);
+  margin-left: 2%;
+}
+
+/* ---- 흩어진 손글씨 단어 ---- */
+.scrawl {
+  position: absolute;
+  font-family: var(--font-script);
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.scrawl--click1 { top: 46px; left: 0; font-size: 30px; transform: rotate(-8deg); }
+.scrawl--mem1  { top: 4px;  right: 4%;  font-size: 22px; transform: rotate(4deg); color: var(--blue-word); }
+.scrawl--mem2  { bottom: 34px; left: -2%; font-size: 20px; transform: rotate(-6deg); color: var(--blue-word); }
+.scrawl--adv1  { bottom: 10px; right: 18%; font-size: 22px; transform: rotate(3deg); }
+
+.scrawl--click2 { top: 96px; left: -2%; font-size: 30px; transform: rotate(-10deg); }
+.scrawl--adv2  { bottom: 24px; left: 2%; font-size: 22px; transform: rotate(4deg); }
+.scrawl--mem3  { bottom: 0; right: 8%; font-size: 22px; transform: rotate(-3deg); color: var(--blue-word); }
+
+/* ---- 작은 장식 (미니 카메라 / 별) ---- */
+.deco {
+  position: absolute;
+  color: var(--ink);
+  pointer-events: none;
+}
+
+.deco--cam-a { width: 34px; top: 84px;  right: 12%; transform: rotate(6deg); }
+.deco--cam-b { width: 28px; bottom: 6px; left: 42%; transform: rotate(-8deg); }
+.deco--cam-c { width: 30px; top: 120px; right: 6%; transform: rotate(8deg); }
+.deco--cam-d { width: 26px; bottom: 8px; left: 24%; transform: rotate(-6deg); }
+
+.deco--star-a { top: 30px;  right: 24%; }
+.deco--star-b { bottom: 60px; right: 2%; }
+.deco--star-c { top: 150px; left: 4%; }
+
+@media (max-width: 860px) {
+  .gearblock__art--camera,
+  .gearblock__art--pack { margin-left: 0; }
+}
+
+@media (max-width: 560px) {
+  .scrawl { font-size: 18px !important; }
+  .scrawl--mem1 { right: 0; }
+  .scrawl--mem3 { right: 2%; }
+  .deco--cam-a { right: 2%; }
+  .poster--camera, .poster--pack { margin-left: 0; }
+}

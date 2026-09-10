@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>발길따라 발표 자료</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 18mm 16mm;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      color: #172033;
+      background: #fffaf0;
+      font-family: "Malgun Gothic", "맑은 고딕", Arial, sans-serif;
+      line-height: 1.62;
+    }
+
+    .cover {
+      min-height: 245mm;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 16mm 10mm;
+      border: 2px solid #233a5a;
+      background:
+        linear-gradient(135deg, rgba(255, 245, 224, 0.92), rgba(232, 244, 236, 0.92)),
+        radial-gradient(circle at 18% 18%, #ffc977, transparent 30%),
+        radial-gradient(circle at 80% 78%, #8fc6dc, transparent 32%);
+    }
+
+    .eyebrow {
+      margin: 0 0 8px;
+      color: #a7631d;
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: 0;
+    }
+
+    h1 {
+      margin: 0;
+      color: #10243d;
+      font-size: 38px;
+      line-height: 1.24;
+    }
+
+    .subtitle {
+      margin: 18px 0 0;
+      max-width: 620px;
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .meta {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-top: 34px;
+    }
+
+    .meta div,
+    .box,
+    .script {
+      border: 1px solid rgba(20, 38, 62, 0.16);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.78);
+    }
+
+    .meta div {
+      padding: 12px;
+    }
+
+    .meta b {
+      display: block;
+      color: #c77722;
+      font-size: 13px;
+    }
+
+    .page {
+      page-break-before: always;
+    }
+
+    h2 {
+      margin: 0 0 12px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid #233a5a;
+      color: #10243d;
+      font-size: 24px;
+    }
+
+    h3 {
+      margin: 18px 0 8px;
+      color: #233a5a;
+      font-size: 17px;
+    }
+
+    p {
+      margin: 0 0 10px;
+    }
+
+    ul,
+    ol {
+      margin: 8px 0 14px 22px;
+      padding: 0;
+    }
+
+    li {
+      margin: 5px 0;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .box {
+      padding: 13px 15px;
+    }
+
+    .box b {
+      color: #a7631d;
+    }
+
+    .script {
+      padding: 15px 17px;
+      background: #ffffff;
+    }
+
+    .script p {
+      margin-bottom: 12px;
+    }
+
+    .tag {
+      display: inline-block;
+      margin: 0 6px 7px 0;
+      padding: 5px 9px;
+      border-radius: 999px;
+      color: #10243d;
+      background: #f2dfbd;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .small {
+      color: #5c6878;
+      font-size: 13px;
+    }
+
+    .footer {
+      margin-top: 18px;
+      color: #68758a;
+      font-size: 12px;
+      text-align: right;
+    }
+  </style>
+</head>
+<body>
+  <section class="cover">
+    <p class="eyebrow">React 프로젝트 발표 자료</p>
+    <h1>발길따라<br>취향 기반 국내 여행 코스 추천 서비스</h1>
+    <p class="subtitle">
+      사용자의 목적지, 여행 테마, 예산, 이동수단, 여행 스타일을 바탕으로 국내 여행 동선을 추천하고
+      지도와 일정표로 보여주는 웹 애플리케이션입니다.
+    </p>
+    <div class="meta">
+      <div><b>프로젝트</b>react project2</div>
+      <div><b>프론트엔드</b>Vite + React</div>
+      <div><b>백엔드</b>Express 인증 API</div>
+    </div>
+  </section>
+
+  <section class="page">
+    <h2>1. 프로젝트 소개</h2>
+    <div class="script">
+      <p>
+        안녕하세요. 제가 만든 프로젝트는 <b>발길따라</b>라는 국내 여행 코스 추천 서비스입니다.
+        여행을 갈 때 어디를 가야 할지, 어떤 순서로 이동해야 할지 고민하는 경우가 많아서,
+        사용자의 조건에 맞춰 하루 여행 코스를 추천해주는 서비스를 만들었습니다.
+      </p>
+      <p>
+        사용자는 목적지, 여행 테마, 예산, 이동수단, 여행 스타일을 선택할 수 있고,
+        앱은 그 조건에 맞춰 오전, 점심, 오후, 저녁 순서의 여행 코스를 보여줍니다.
+      </p>
+    </div>
+
+    <h3>핵심 문제</h3>
+    <ul>
+      <li>여행지를 정해도 세부 코스를 짜는 데 시간이 오래 걸립니다.</li>
+      <li>이동 순서와 소요 시간을 함께 고려하기 어렵습니다.</li>
+      <li>예산, 취향, 이동수단에 따라 적합한 장소가 달라집니다.</li>
+    </ul>
+
+    <h3>해결 방향</h3>
+    <div>
+      <span class="tag">목적지 선택</span>
+      <span class="tag">테마 기반 추천</span>
+      <span class="tag">예산 반영</span>
+      <span class="tag">지도 경로 표시</span>
+      <span class="tag">일정 수정</span>
+      <span class="tag">회원 기능</span>
+    </div>
+  </section>
+
+  <section class="page">
+    <h2>2. 주요 기능</h2>
+    <div class="grid">
+      <div class="box">
+        <b>여행지 선택</b>
+        <p>서울, 제주, 경주, 부산 등 국내 여행지를 선택하거나 직접 입력할 수 있습니다.</p>
+      </div>
+      <div class="box">
+        <b>여행 테마 선택</b>
+        <p>발길따라, 감성따라, SNS따라, 풍경따라, 맛집따라 중 하나를 선택합니다.</p>
+      </div>
+      <div class="box">
+        <b>조건 기반 코스 생성</b>
+        <p>도시별 장소 데이터에 테마와 예산 태그를 붙여 조건에 맞는 장소를 고릅니다.</p>
+      </div>
+      <div class="box">
+        <b>지도와 이동시간</b>
+        <p>Google Maps API와 Directions API를 사용해 지도 위에 동선과 구간별 시간을 표시합니다.</p>
+      </div>
+      <div class="box">
+        <b>일정 타임라인</b>
+        <p>추천 코스를 시간대별 카드로 보여주고, 드래그로 순서를 바꿀 수 있습니다.</p>
+      </div>
+      <div class="box">
+        <b>회원가입과 로그인</b>
+        <p>Express API로 계정을 만들고, 비밀번호 해시와 쿠키 기반 토큰으로 로그인 상태를 관리합니다.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="page">
+    <h2>3. 구현 구조 설명</h2>
+    <h3>프론트엔드</h3>
+    <ul>
+      <li><b>App.jsx</b>: 메인 화면, 목적지/테마/예산 선택, 코스 생성, 지도, 일정표를 담당합니다.</li>
+      <li><b>SignupScreen.jsx</b>: 회원가입 전용 화면입니다.</li>
+      <li><b>authApi.js</b>: 프론트엔드에서 로그인, 회원가입, 로그아웃 API를 호출하는 파일입니다.</li>
+      <li><b>index.css</b>: 전체 화면 스타일, 다크모드, 카드 UI, 지도/타임라인 레이아웃을 담당합니다.</li>
+    </ul>
+
+    <h3>백엔드</h3>
+    <ul>
+      <li><b>server/app.js</b>: Express 기반 인증 API입니다.</li>
+      <li><b>server/authStore.js</b>: 사용자 데이터를 읽고 쓰며 비밀번호 해시를 처리합니다.</li>
+      <li><b>vite.config.js</b>: Vite 개발 서버에 Express API를 미들웨어로 연결합니다.</li>
+    </ul>
+
+    <h3>추천 로직</h3>
+    <p>
+      도시별 장소 데이터에는 시간대, 테마, 예산 정보가 포함되어 있습니다.
+      <b>buildCourse</b> 함수는 사용자가 고른 조건과 필수 방문 키워드를 점수화해서
+      오전, 점심, 오후, 저녁에 들어갈 장소를 선택합니다.
+    </p>
+  </section>
+
+  <section class="page">
+    <h2>4. 시연 순서</h2>
+    <ol>
+      <li>메인 화면에서 서비스 이름과 목적을 소개합니다.</li>
+      <li>목적지를 선택하거나 직접 입력합니다.</li>
+      <li>여행 테마를 선택합니다.</li>
+      <li>예산을 선택합니다.</li>
+      <li>추천 코스 화면에서 지도, 장소 목록, 상세 정보를 보여줍니다.</li>
+      <li>타임라인에서 장소 카드를 이동하거나 새 장소를 추가합니다.</li>
+      <li>회원가입 또는 로그인 기능을 설명합니다.</li>
+      <li>앞으로의 기획을 발표합니다.</li>
+    </ol>
+
+    <h3>시연 멘트 예시</h3>
+    <div class="script">
+      <p>
+        먼저 사용자는 가고 싶은 국내 여행지를 고릅니다. 이후 여행의 분위기에 맞는 테마와 예산을 선택하면,
+        앱이 조건에 맞는 장소를 시간대별로 추천합니다.
+      </p>
+      <p>
+        추천 결과에서는 지도 위에 이동 동선이 표시되고, 각 장소의 추천 이유와 주의사항도 확인할 수 있습니다.
+        또한 사용자가 직접 일정을 수정할 수 있어서 실제 여행 계획에 맞게 조정할 수 있습니다.
+      </p>
+    </div>
+  </section>
+
+  <section class="page">
+    <h2>5. 앞으로의 기획</h2>
+    <div class="grid">
+      <div class="box">
+        <b>실제 관광 데이터 연동</b>
+        <p>현재는 직접 구성한 장소 데이터를 사용하지만, 앞으로는 관광지 API나 맛집 API와 연결해 추천 범위를 넓히겠습니다.</p>
+      </div>
+      <div class="box">
+        <b>날씨 기반 추천</b>
+        <p>비 오는 날에는 실내 장소, 맑은 날에는 야외 산책 코스를 추천하는 방식으로 개선하겠습니다.</p>
+      </div>
+      <div class="box">
+        <b>서버 저장 기능</b>
+        <p>현재 일정표는 localStorage에 저장되지만, 이후에는 사용자 계정별로 서버 DB에 저장하도록 확장하겠습니다.</p>
+      </div>
+      <div class="box">
+        <b>공유와 협업</b>
+        <p>친구나 가족과 여행 코스를 공유하고 함께 수정할 수 있는 협업형 여행 플래너로 발전시킬 수 있습니다.</p>
+      </div>
+      <div class="box">
+        <b>개인화 추천</b>
+        <p>사용자가 자주 선택하는 테마, 예산, 이동수단을 학습해 다음 여행에서 더 정확한 추천을 제공하겠습니다.</p>
+      </div>
+      <div class="box">
+        <b>모바일 최적화</b>
+        <p>실제 여행 중에도 편하게 볼 수 있도록 모바일 화면과 지도 사용성을 더 개선하겠습니다.</p>
+      </div>
+    </div>
+
+    <h3>마무리 멘트</h3>
+    <div class="script">
+      <p>
+        이 프로젝트는 단순히 여행지를 보여주는 것을 넘어서, 사용자의 취향과 조건을 반영해
+        실제로 따라갈 수 있는 여행 동선을 만드는 데 초점을 맞췄습니다.
+        앞으로 데이터를 확장하고 저장, 공유, 개인화 기능을 추가해서 더 실용적인 여행 플래너로 발전시키고 싶습니다.
+      </p>
+    </div>
+    <p class="footer">발길따라 - React 프로젝트 발표 자료</p>
+  </section>
+</body>
+</html>

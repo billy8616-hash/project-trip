@@ -1,163 +1,445 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { getCurrentUser, login, logout } from './authApi'
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import SignupScreen from './SignupScreen.jsx'
+import { budgets, journeyThemes, SLOT_LABELS, transports } from './data/travelOptions.js'
+import { allDestinations, destinationCatalog, destinationGroups, fallbackCity } from './data/destinations.js'
+import { buildCourse } from './lib/course.js'
+import { placeKindOf } from './lib/placeKind.js'
+import { formatClock, parseClock, scheduleDay } from './lib/schedule.js'
+import { formatStay } from './lib/stayTime.js'
+import { estimateDayCost, feeLabelOf } from './lib/cost.js'
+import { addDaysISO, durationLabelFromNights, formatShortDate, nightsBetween, parseDayCount, todayISO } from './lib/datetime.js'
+import { useAuth } from './hooks/useAuth.js'
+import { useCityHighlights, useCityWeather } from './hooks/useCityHighlights.js'
+import { useNearbyParking } from './hooks/useNearbyParking.js'
+import { useTripForecast } from './hooks/useTripForecast.js'
+import { useCityPool } from './hooks/useCityPool.js'
+import { useTripPlan } from './hooks/useTripPlan.js'
+import { legColor } from './lib/kakaoMaps.js'
+import { optimizeRouteOrder } from './lib/geo.js'
+import CoursePoolNotice from './components/CoursePoolNotice.jsx'
+import Icon from './components/Icon.jsx'
+import KakaoRouteMap from './components/KakaoRouteMap.jsx'
+import ScheduleTimeline from './components/ScheduleTimeline.jsx'
+import Segment from './components/Segment.jsx'
+import TravelSketchHome from './components/TravelSketchHome.jsx'
+import balgilLogoMark from './assets/balgil-logo-mark.png'
+import BudgetScreen from './screens/BudgetScreen.jsx'
+import DatesScreen from './screens/DatesScreen.jsx'
+import DestinationsScreen from './screens/DestinationsScreen.jsx'
+import OriginScreen from './screens/OriginScreen.jsx'
+import MyTripsScreen from './screens/MyTripsScreen.jsx'
+import ThemeScreen from './screens/ThemeScreen.jsx'
+import { saveTrip } from './lib/tripsApi.js'
+import leftEdgeBg from './assets/left_bg.png'
+import rightEdgeBg from './assets/right_bg.png'
 
-const themes = [
-  { id: 'healing', label: '힐링', icon: 'leaf' },
-  { id: 'food', label: '맛집', icon: 'fork' },
-  { id: 'family', label: '가족', icon: 'family' },
-  { id: 'couple', label: '연인', icon: 'heart' },
+// "오늘의 추천"용 날짜 시드 — 모듈 로드 시 한 번만 계산(렌더 중 Date.now() 호출 방지).
+const DAY_SEED = Math.floor(Date.now() / 86400000)
+const TODAY_CITY = destinationCatalog[DAY_SEED % destinationCatalog.length].name
+const TODAY_THEME_ID = journeyThemes[DAY_SEED % journeyThemes.length].id
+
+// "여행 일정 미리보기" 갤러리/카드에 쓰는 장소 종류별 이모지·라벨.
+const KIND_EMOJI = {
+  cafe: '☕',
+  bar: '🍺',
+  museum: '🖼️',
+  viewpoint: '🌇',
+  market: '🏮',
+  themepark: '🎡',
+  spa: '♨️',
+  nature: '🌳',
+  history: '🏛️',
+  restaurant: '🍽️',
+  sight: '📍',
+}
+const KIND_LABEL = {
+  cafe: '카페',
+  bar: '술집',
+  museum: '전시',
+  viewpoint: '전망',
+  market: '시장',
+  themepark: '테마파크',
+  spa: '온천',
+  nature: '자연',
+  history: '고궁·유적',
+  restaurant: '식당',
+  sight: '명소',
+}
+const SLOT_EMOJI = { 오전: '🌤️', '점심 맛집': '🍽️', '오후 카페': '☕', 저녁: '🌙' }
+
+// 코스 화면 저장 버튼의 평상시 레이블 (누른 뒤엔 "저장 중…" → "저장됨 ✓" 등으로 잠깐 바뀐다).
+const SAVE_LABEL = '현재 여행 코스 저장'
+
+// 지도 위 장소 정렬 방식.
+const SORT_MODES = ['distance', 'slot']
+const SORT_LABELS = { distance: '이동거리 최소 순서', slot: '시간대 순서' }
+
+// "여행 일정 미리보기"는 스크랩북 지면처럼 하루를 오전/오후/저녁 세 칸으로만 접어서 보여준다.
+// 내부 슬롯(점심 맛집·오후 카페)은 "오후" 한 칸으로 합친다.
+const PREVIEW_BUCKETS = [
+  { key: '오전', label: '오전', icon: '☀️', slots: ['오전'] },
+  { key: '오후', label: '오후', icon: '⛅', slots: ['점심 맛집', '오후 카페'] },
+  { key: '저녁', label: '저녁', icon: '🌙', slots: ['저녁'] },
 ]
 
-const budgets = ['저예산', '보통', '프리미엄']
-const transports = ['도보', '대중교통', '자차']
-const styles = ['느긋한 일정', '빡빡한 일정', '사진 중심', '맛집 중심']
-
-const courseDatabase = {
-  제주: {
-    title: '제주 힐링 여행',
-    subtitle: '바다와 숲을 천천히 걷는 하루',
-    center: { lat: 33.3891, lng: 126.5466 },
-    places: [
-      { name: '함덕해수욕장', address: '제주특별자치도 제주시 조천읍 조함해안로 525', stay: '1시간 20분', reason: '맑은 바다와 산책로가 있어 첫 코스로 부담이 적어요.', caution: '바람이 강한 날은 겉옷을 챙기면 좋아요.', time: '22분', location: { lat: 33.5433, lng: 126.6698 } },
-      { name: '비자림', address: '제주특별자치도 제주시 구좌읍 비자숲길 55', stay: '1시간', reason: '그늘진 숲길이 많아 힐링 테마와 잘 맞아요.', caution: '비 온 뒤에는 산책로가 미끄러울 수 있어요.', time: '34분', location: { lat: 33.4912, lng: 126.8114 } },
-      { name: '성산일출봉', address: '제주특별자치도 서귀포시 성산읍 일출로 284-12', stay: '1시간 30분', reason: '제주의 대표 풍경을 사진으로 남기기 좋아요.', caution: '오르막 구간이 있어 편한 신발을 추천해요.', time: '28분', location: { lat: 33.4580, lng: 126.9425 } },
-      { name: '섭지코지', address: '제주특별자치도 서귀포시 성산읍 고성리', stay: '50분', reason: '노을과 해안 산책이 좋아 마무리 코스로 잘 어울려요.', caution: '일몰 시간대 주차가 혼잡할 수 있어요.', time: '18분', location: { lat: 33.4239, lng: 126.9297 } },
-    ],
-  },
-  부산: {
-    title: '부산 맛집 코스',
-    subtitle: '바다 풍경 사이로 맛집을 콕콕 찍는 하루',
-    center: { lat: 35.1595, lng: 129.0756 },
-    places: [
-      { name: '감천문화마을', address: '부산광역시 사하구 감내2로 203', stay: '1시간', reason: '골목 사진과 간식 코스가 함께 좋아요.', caution: '주민 거주 지역이라 조용히 이동해 주세요.', time: '19분', location: { lat: 35.0975, lng: 129.0106 } },
-      { name: '자갈치시장', address: '부산광역시 중구 자갈치해안로 52', stay: '1시간 10분', reason: '부산다운 해산물 식사를 즐기기 좋은 핵심 지점이에요.', caution: '점심 시간대는 대기 시간이 길 수 있어요.', time: '14분', location: { lat: 35.0969, lng: 129.0305 } },
-      { name: '광안리해수욕장', address: '부산광역시 수영구 광안해변로 219', stay: '1시간 30분', reason: '카페, 야경, 바다 산책을 한 번에 즐길 수 있어요.', caution: '주말 저녁은 교통 정체가 잦아요.', time: '31분', location: { lat: 35.1532, lng: 129.1187 } },
-      { name: '해운대 블루라인파크', address: '부산광역시 해운대구 청사포로 116', stay: '1시간', reason: '바다열차와 사진 포인트가 많아 마무리가 예뻐요.', caution: '인기 시간대는 사전 예매가 편해요.', time: '24분', location: { lat: 35.1601, lng: 129.1710 } },
-    ],
-  },
-  경주: {
-    title: '경주 연인 산책',
-    subtitle: '밤 산책과 한옥 골목을 엮은 감성 코스',
-    center: { lat: 35.8349, lng: 129.2196 },
-    places: [
-      { name: '첨성대', address: '경상북도 경주시 인왕동 839-1', stay: '40분', reason: '경주의 시작점으로 상징성이 크고 사진이 잘 나와요.', caution: '낮에는 그늘이 적어 양산이나 모자가 좋아요.', time: '12분', location: { lat: 35.8347, lng: 129.2187 } },
-      { name: '황리단길', address: '경상북도 경주시 포석로 1080', stay: '1시간 20분', reason: '카페와 소품샵이 많아 취향 탐색에 좋아요.', caution: '주말에는 골목이 붐벼 이동 시간을 넉넉히 잡으세요.', time: '18분', location: { lat: 35.8380, lng: 129.2094 } },
-      { name: '동궁과 월지', address: '경상북도 경주시 원화로 102', stay: '1시간', reason: '야경이 아름다워 연인 테마의 하이라이트예요.', caution: '야간 입장 마감 시간을 확인해 주세요.', time: '25분', location: { lat: 35.8345, lng: 129.2266 } },
-      { name: '월정교', address: '경상북도 경주시 교동 274', stay: '45분', reason: '은은한 조명과 강변 산책로가 마무리에 잘 맞아요.', caution: '강변은 밤에 기온이 낮아질 수 있어요.', time: '15분', location: { lat: 35.8297, lng: 129.2146 } },
-    ],
-  },
+// 하루치 방문 목록(방문 순서대로)을 오전/오후/저녁 칸으로 나눈다.
+function bucketByPreview(places) {
+  return PREVIEW_BUCKETS.map((bucket) => ({
+    ...bucket,
+    items: places.filter((place) => bucket.slots.includes(place.assignedSlot || '오전')),
+  }))
 }
 
-const fallbackCity = '경주'
-const googleMapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
-let googleMapsPromise
+// 코스 안내 문구 앞에 붙일 아이콘 — 문구 내용으로 종류를 추정한다.
+function noticeIcon(message) {
+  if (/비·눈|비\/눈|☔|우천|실내 위주/.test(message)) return '☔'
+  if (/지하철|대중교통|자차/.test(message)) return '🚇'
+  if (/쉬는 곳|휴무|정기 휴무/.test(message)) return '🗓️'
+  if (/늦어|마감|문을 닫는/.test(message)) return '⏰'
+  if (/넉넉지|채우지 못|직접 추가/.test(message)) return '✏️'
+  return '💡'
+}
 
-function loadGoogleMaps() {
-  if (window.google?.maps) return Promise.resolve(window.google)
-  if (googleMapsPromise) return googleMapsPromise
-
-  googleMapsPromise = new Promise((resolve, reject) => {
-    const script = document.createElement('script')
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${googleMapsApiKey}&language=ko&region=KR`
-    script.async = true
-    script.defer = true
-    script.onload = () => resolve(window.google)
-    script.onerror = () => reject(new Error('Google Maps script failed to load'))
-    document.head.appendChild(script)
-  })
-
-  return googleMapsPromise
+// 주소 문자열에서 "시/군/구" 단위 지역명만 뽑는다 (예: "제주특별자치도 서귀포시 성산읍..." -> "서귀포시").
+function shortRegionOf(address, fallback = '') {
+  const tokens = String(address || '').trim().split(/\s+/)
+  const hit = tokens.find((token, index) => index > 0 && token.length <= 5 && /(시|군|구)$/.test(token))
+  return hit || fallback
 }
 
 function App() {
   const [screen, setScreen] = useState('home')
-  const [destination, setDestination] = useState('경주')
-  const [theme, setTheme] = useState('couple')
-  const [budget, setBudget] = useState('보통')
-  const [transport, setTransport] = useState('대중교통')
-  const [style, setStyle] = useState('사진 중심')
+  const [leaving, setLeaving] = useState(false)
+
+  // 브라우저 뒤로/앞으로 버튼으로도 화면(screen)이 넘어가도록 History API 와 동기화한다.
+  // popstate 로 들어온 화면 변경은 다시 pushState 하지 않도록 플래그로 걸러낸다.
+  const skipHistoryPush = useRef(false)
+  useEffect(() => {
+    window.history.replaceState({ screen: 'home' }, '')
+    const onPopState = (event) => {
+      skipHistoryPush.current = true
+      setLeaving(false)
+      setScreen(event.state?.screen || 'home')
+    }
+    window.addEventListener('popstate', onPopState)
+    return () => window.removeEventListener('popstate', onPopState)
+  }, [])
+  useEffect(() => {
+    if (skipHistoryPush.current) {
+      skipHistoryPush.current = false
+      return
+    }
+    if (window.history.state?.screen === screen) return
+    window.history.pushState({ screen }, '')
+  }, [screen])
+
   const [darkMode, setDarkMode] = useState(false)
   const [selectedPlace, setSelectedPlace] = useState(0)
-  const [savedName, setSavedName] = useState('경주 연인 산책')
+  // 지도 구간 트레이싱을 "누를 때마다" 다시 트리거하려고, 같은 번호를 눌러도 값이 바뀌는 카운터.
+  const [selectPulse, setSelectPulse] = useState(0)
+  const selectPlace = useCallback((index) => {
+    setSelectedPlace(index)
+    setSelectPulse((n) => n + 1)
+  }, [])
+  const [selectedDay, setSelectedDay] = useState(0)
+  const [dayStartTime, setDayStartTime] = useState('09:30')
+  const [savedName, setSavedName] = useState('')
   const [copyState, setCopyState] = useState('공유')
+  const [saveState, setSaveState] = useState(SAVE_LABEL) // 평상시 SAVE_LABEL, 누르면 저장 중… → 저장됨 ✓ / 로그인 필요 / 저장 실패
   const [routeLegs, setRouteLegs] = useState([])
-  const [authOpen, setAuthOpen] = useState(false)
-  const [authEmail, setAuthEmail] = useState('')
-  const [authPassword, setAuthPassword] = useState('')
-  const [authMessage, setAuthMessage] = useState('')
-  const [authLoading, setAuthLoading] = useState(false)
-  const [user, setUser] = useState(null)
-
-  const cityKey = Object.keys(courseDatabase).find((city) => destination.includes(city)) || fallbackCity
-  const course = useMemo(() => courseDatabase[cityKey], [cityKey])
-  const activeTheme = themes.find((item) => item.id === theme)
-  const legsForDisplay = routeLegs.length ? routeLegs : course.places.slice(0, -1).map((place, index) => ({
-    from: course.places[index].name,
-    to: course.places[index + 1].name,
-    duration: place.time,
-  }))
-  const totalTime = legsForDisplay.reduce((sum, leg) => sum + (Number.parseInt(leg.duration, 10) || 0), 0)
-  const detail = course.places[selectedPlace]
-
-  useEffect(() => {
-    let isMounted = true
-
-    getCurrentUser()
-      .then(({ user: currentUser }) => {
-        if (isMounted) setUser(currentUser)
-      })
-      .catch(() => {
-        if (isMounted) setUser(null)
-      })
-
-    return () => {
-      isMounted = false
-    }
+  // 타임라인에서 사용자가 편집한 결과. currentTimelineDays[일자] = 그 날의 방문 목록.
+  const [currentTimelineDays, setCurrentTimelineDays] = useState([])
+  // "여행 일정 미리보기" 패널: 기본은 요약만, 눌러야 하루 전체 타임라인이 펼쳐진다.
+  const [previewExpanded, setPreviewExpanded] = useState(false)
+  // 지도 위 장소 정렬: 'distance'(이동거리 최소) | 'slot'(오전→저녁 시간대 순). 툴바 드롭다운으로 바꾼다.
+  const [sortMode, setSortMode] = useState('distance')
+  const [sortOpen, setSortOpen] = useState(false)
+  // 장소 카드 줄 끝의 "장소 추가" 카드가 아래 편집 타임라인으로 스크롤할 때 쓴다.
+  const scheduleRef = useRef(null)
+  const scrollToSchedule = useCallback(() => {
+    scheduleRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }, [])
 
-  // 로그인 패널 전용 제출 핸들러. (회원가입은 별도 화면 SignupScreen 에서 처리)
-  const submitLogin = async (event) => {
-    event.preventDefault()
-    setAuthLoading(true)
-    setAuthMessage('')
+  const {
+    destination,
+    setDestination,
+    pickedDestination,
+    setPickedDestination,
+    journeyTheme,
+    setJourneyTheme,
+    tripStartDate,
+    setTripStartDate,
+    tripEndDate,
+    setTripEndDate,
+    tripOrigin,
+    setTripOrigin,
+    tripLodging,
+    setTripLodging,
+    duration,
+    setDuration,
+    budget,
+    setBudget,
+    transport,
+    setTransport,
+    style,
+    mustVisit,
+    setMustVisit,
+    mustVisitInput,
+    setMustVisitInput,
+    addMustVisit,
+    removeMustVisit,
+    routeStartPoint,
+    routeEndPoint,
+    courseAnchors,
+  } = useTripPlan()
 
-    login(authEmail.trim(), authPassword)
-      .then(({ user: authenticatedUser }) => {
-        setUser(authenticatedUser)
-        setAuthOpen(false)
-        setAuthMessage('')
-        setAuthPassword('')
-      })
-      .catch((error) => {
-        setAuthMessage(error.message)
-      })
-      .finally(() => {
-        setAuthLoading(false)
-      })
-  }
+  const {
+    user,
+    setUser,
+    authOpen,
+    setAuthOpen,
+    authEmail,
+    setAuthEmail,
+    authPassword,
+    setAuthPassword,
+    authMessage,
+    authLoading,
+    submitLogin,
+    signOut,
+    closeAuthPanel,
+  } = useAuth()
+
+  const cityKey = allDestinations.find((item) => destination.includes(item.name))?.name || fallbackCity
+  const { data: cityData, status: cityPoolStatus, retry: retryCityPool } = useCityPool(cityKey)
+  const { photos: cityPhotos, trends: cityTrends } = useCityHighlights()
+  const weather = useCityWeather(cityKey, cityData?.center)
+
+  // "오늘의 추천 AI 코스" — 날짜로 도시·테마를 회전시켜 매일 다른 1일 코스를 보여준다.
+  const todayCity = TODAY_CITY
+  const todayThemeId = TODAY_THEME_ID
+  const { data: todayPool, status: todayStatus, retry: retryTodayPool } = useCityPool(todayCity)
+  const todayCourse = useMemo(
+    () =>
+      (todayPool
+        ? buildCourse(todayPool, todayThemeId, '보통', [], {}, '대중교통', { dayCount: 1, dayStartMin: 10 * 60 })
+        : null),
+    [todayPool, todayThemeId],
+  )
+
+  const dayCount = parseDayCount(duration)
+  const dayStartMin = parseClock(dayStartTime)
+
+  // 여행 날짜 구간의 일자별 예보 → 비/눈 오는 날은 buildCourse 가 실내 위주로 코스를 짠다.
+  const tripForecast = useTripForecast(cityKey, cityData?.center, tripStartDate, tripEndDate)
+  const wetDays = useMemo(() => {
+    const WET_MAIN = new Set(['Rain', 'Drizzle', 'Thunderstorm', 'Snow'])
+    return Array.from({ length: dayCount }, (_, d) => {
+      const forecastDay = tripForecast.find((item) => item.date === addDaysISO(tripStartDate, d))
+      return Boolean(forecastDay?.available && WET_MAIN.has(forecastDay.main))
+    })
+  }, [tripForecast, tripStartDate, dayCount])
+
+  const course = useMemo(
+    () =>
+      (cityData
+        ? buildCourse(cityData, journeyTheme, budget, mustVisit, courseAnchors, transport, {
+            tripDate: tripStartDate,
+            dayCount,
+            dayStartMin,
+            wetDays,
+          })
+        : null),
+    [cityData, journeyTheme, budget, mustVisit, courseAnchors, transport, tripStartDate, dayCount, dayStartMin, wetDays],
+  )
+  const placeByName = useMemo(
+    () => new Map((cityData?.pool || []).map((place) => [place.name, place])),
+    [cityData],
+  )
+  // 지금 보고 있는 날(selectedDay)의 장소들. 타임라인을 편집했으면 그 결과를, 아니면 추천 코스를 쓴다.
+  const activeDayPlaces = useMemo(
+    () => (currentTimelineDays.length
+      ? (currentTimelineDays[selectedDay] || [])
+      : (course?.days?.[selectedDay]?.places || [])),
+    [currentTimelineDays, selectedDay, course],
+  )
+  // 풀 정보(카테고리·영업시간)와 합친 뒤, 하루 시작 시각 기준으로 도착 시각을 다시 계산한다.
+  // (course.days 는 buildCourse 가 이미 스케줄해 두지만, 타임라인에서 편집된 날도 여기서 똑같이 시각이 매겨지도록 한 번 더 돌린다.)
+  const displayPlaces = useMemo(() => {
+    const merged = activeDayPlaces.map((place, index) => ({
+      ...placeByName.get(place.name),
+      ...place,
+      assignedSlot: place.assignedSlot || SLOT_LABELS[Math.min(index, SLOT_LABELS.length - 1)],
+    }))
+    const ordered = sortMode === 'slot'
+      ? merged
+          .map((place, index) => ({ place, index }))
+          .sort(
+            (a, b) =>
+              SLOT_LABELS.indexOf(a.place.assignedSlot) - SLOT_LABELS.indexOf(b.place.assignedSlot) ||
+              a.index - b.index,
+          )
+          .map((entry) => entry.place)
+      : optimizeRouteOrder(merged, courseAnchors)
+    return scheduleDay(ordered, { dayStartMin, transport })
+  }, [activeDayPlaces, placeByName, dayStartMin, transport, sortMode, courseAnchors])
+  // "여행 일정 미리보기" 패널용: 모든 날짜를 한 번에 시각까지 매겨 슬롯별로 묶는다.
+  const allDaysScheduled = useMemo(() => {
+    const daysSource = currentTimelineDays.length
+      ? currentTimelineDays
+      : (course?.days || []).map((day) => day.places)
+    return daysSource.map((dayPlaces) => {
+      const merged = dayPlaces.map((place, index) => ({
+        ...placeByName.get(place.name),
+        ...place,
+        assignedSlot: place.assignedSlot || SLOT_LABELS[Math.min(index, SLOT_LABELS.length - 1)],
+      }))
+      return scheduleDay(merged, { dayStartMin, transport })
+    })
+  }, [currentTimelineDays, course, placeByName, dayStartMin, transport])
+  const journeyThemeLabel = (journeyThemes.find((item) => item.id === journeyTheme) || {}).label || ''
+  // 지도가 실제 경로를 그리면 routeLegs 를 쓰고(출발·복귀 앵커 포함), 아직이면 장소들만 이어 임시 구간을 만든다.
+  const legsForDisplay = routeLegs.length
+    ? routeLegs
+    : displayPlaces.slice(0, -1).map((place, index) => ({
+        from: displayPlaces[index].name,
+        to: displayPlaces[index + 1].name,
+        fromLabel: `${index + 1}`,
+        toLabel: `${index + 2}`,
+        duration: `${place.travelToNextMin || Number.parseInt(place.time, 10) || 0}분`,
+        focusIndex: index + 1,
+        summary: null,
+      }))
+  const totalTime = legsForDisplay.reduce((sum, leg) => sum + (Number.parseInt(leg.duration, 10) || 0), 0)
+  // 구간 리스트에서 노드 시퀀스를 복원한다: [첫 구간의 출발점, 이후 각 구간의 도착점].
+  // 지도 아래 "레일"이 이 노드들 사이에 구간 시간을 끼워 1차원으로 펼친다 (지도 위에 겹칠 일 없음).
+  const railNodes = legsForDisplay.length
+    ? [
+        {
+          label: legsForDisplay[0].fromLabel ?? '출발',
+          name: legsForDisplay[0].from,
+          isTerminus: !/^\d+$/.test(legsForDisplay[0].fromLabel ?? '출발'),
+          focusIndex: 0,
+        },
+        ...legsForDisplay.map((leg, index) => ({
+          label: leg.toLabel ?? `${index + 1}`,
+          name: leg.to,
+          isTerminus: !/^\d+$/.test(leg.toLabel ?? `${index + 1}`),
+          focusIndex: leg.focusIndex ?? index,
+        })),
+      ]
+    : []
+  // selectedPlace 는 그대로 두고, 읽을 때만 현재 날의 장소 수에 맞춰 눌러 쓴다 (날 전환·타임라인 편집으로 범위가 줄어도 안전).
+  const safeSelectedPlace = Math.min(selectedPlace, Math.max(displayPlaces.length - 1, 0))
+  const detail = displayPlaces[safeSelectedPlace] || displayPlaces[0] || null
+  // 선택한 장소 주변 주차장 (좌표가 있을 때만). 상세 박스 "주변 주차장" 줄에 쓴다.
+  const nearbyParking = useNearbyParking(detail?.location?.lat, detail?.location?.lng)
+
 
   const goToSignup = () => {
-    setAuthOpen(false)
-    setAuthMessage('')
-    setAuthPassword('')
+    closeAuthPanel()
     setScreen('signup')
   }
 
-  const signOut = async () => {
-    await logout().catch(() => null)
-    setUser(null)
+  // 홈 화면 '여행 시작하기': 입력한 목적지로 바로 코스로 가지 않고
+  // 테마 -> 예산 -> 날짜(날씨) -> 코스 순서의 단계 흐름으로 들어간다.
+  const startCourse = () => {
+    const typed = destination.trim()
+    if (!typed) return
+    setPickedDestination(typed)
+    setJourneyTheme('')
+    setTripStartDate(todayISO())
+    setTripEndDate(todayISO())
+    setDayStartTime('09:30')
+    slideTo('themes')
   }
 
-  const startCourse = () => {
-    setSavedName(`${cityKey} ${activeTheme.label} 여행`)
+  // 현재 화면을 슬라이드로 내보내고 다음 화면을 슬라이드로 들여온다. (홈 -> 여행지 목록 -> 테마 목록)
+  const slideTo = (next) => {
+    if (screen === next) return
+    setLeaving(true)
+    window.setTimeout(() => {
+      setScreen(next)
+      setLeaving(false)
+    }, 380)
+  }
+
+  // 목차(여행지 카드 / 상단 '목적지') -> 국내 여행지 카탈로그
+  const goToDestinations = () => slideTo('destinations')
+
+  // 여행지 카탈로그에서 한 곳을 고르면 -> 테마 선택 화면
+  const pickDestination = (name) => {
+    setPickedDestination(name)
+    setJourneyTheme('')
+    setTripStartDate(todayISO())
+    setTripEndDate(todayISO())
+    setDayStartTime('09:30')
+    slideTo('themes')
+  }
+
+  // "오늘의 추천 AI 코스" 시작 -> 오늘의 도시·테마를 미리 넣고 예산 선택부터.
+  const startTodayCourse = () => {
+    setPickedDestination(todayCity)
+    setDestination(todayCity)
+    setJourneyTheme(todayThemeId)
+    setTripStartDate(todayISO())
+    setTripEndDate(todayISO())
+    setDayStartTime('09:30')
+    slideTo('budget')
+  }
+
+  // 테마를 고르면 -> 예산 선택 화면
+  const pickTheme = (themeId) => {
+    setJourneyTheme(themeId)
+    slideTo('budget')
+  }
+
+  // 예산을 고르면 -> 날짜(+날씨) 선택 화면
+  const pickBudget = (budgetValue) => {
+    setBudget(budgetValue)
+    slideTo('dates')
+  }
+
+  // 출발일/귀가일을 고르면 -> 기간을 duration 라벨로 반영하고 출발지/숙소 화면으로.
+  const pickDates = () => {
+    const nights = nightsBetween(tripStartDate, tripEndDate)
+    setDuration(durationLabelFromNights(nights))
+    slideTo('origin')
+  }
+
+  // 출발지(필수) + 숙소(선택)를 확정하면 -> 코스 화면으로 슬라이드한다.
+  const confirmOrigin = (origin, lodging) => {
+    const themeObj = journeyThemes.find((item) => item.id === journeyTheme)
+    const dest = pickedDestination || destination
+    setTripOrigin(origin)
+    setTripLodging(lodging)
+    setDestination(dest)
     setSelectedPlace(0)
+    setSelectedDay(0)
     setRouteLegs([])
-    setScreen('course')
+    setCurrentTimelineDays([])
+    setSavedName(`${dest} ${themeObj ? themeObj.label : ''} 여행`.replace(/\s+/g, ' ').trim())
+    slideTo('course')
   }
 
   const shareCourse = async () => {
-    const text = `${savedName}: ${course.places.map((place, index) => `${index + 1}. ${place.name}`).join(' -> ')}`
+    const daysForShare = currentTimelineDays.length
+      ? currentTimelineDays
+      : (course?.days || []).map((day) => day.places)
+    const body = daysForShare
+      .map((dayPlaces, d) => {
+        const timed = scheduleDay(
+          dayPlaces.map((place, index) => ({
+            ...placeByName.get(place.name),
+            ...place,
+            assignedSlot: place.assignedSlot || SLOT_LABELS[Math.min(index, SLOT_LABELS.length - 1)],
+          })),
+          { dayStartMin, transport },
+        )
+        const line = timed.map((place) => `${formatClock(place.arriveMin)} ${place.name}`).join(' → ')
+        return `[Day ${d + 1}] ${line}`
+      })
+      .join('\n')
+    const text = `${savedName}\n${body}`
     try {
       await navigator.clipboard.writeText(text)
       setCopyState('복사됨')
@@ -168,21 +450,103 @@ function App() {
     }
   }
 
-  const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${cityKey} ${detail.name}`)}`
-  const naverUrl = `https://map.naver.com/p/search/${encodeURIComponent(`${cityKey} ${detail.name}`)}`
+  // 지금 보고 있는 코스를 "내 여행"에 저장한다. 로그인 안 했으면 로그인 패널을 연다.
+  const saveCourse = async () => {
+    if (!user) {
+      setAuthOpen(true)
+      setSaveState('로그인 필요')
+      setTimeout(() => setSaveState(SAVE_LABEL), 1800)
+      return
+    }
+    const days = (allDaysScheduled.length ? allDaysScheduled : (course?.days || []).map((day) => day.places)).map(
+      (dayPlaces) => dayPlaces.map((place) => ({ name: place.name, assignedSlot: place.assignedSlot || null })),
+    )
+    const payload = {
+      meta: {
+        destination: pickedDestination || destination,
+        journeyTheme,
+        budget,
+        transport,
+        style,
+        tripStartDate,
+        tripEndDate,
+        duration,
+        dayStartTime,
+        mustVisit,
+      },
+      days,
+    }
+    setSaveState('저장 중…')
+    try {
+      await saveTrip({ title: savedName.trim() || `${cityKey} 여행`, city: cityKey, dayCount, payload })
+      setSaveState('저장됨 ✓')
+      setTimeout(() => setSaveState(SAVE_LABEL), 1800)
+    } catch (error) {
+      if (error.status === 401) {
+        setAuthOpen(true)
+        setSaveState('로그인 필요')
+      } else {
+        setSaveState('저장 실패')
+      }
+      setTimeout(() => setSaveState(SAVE_LABEL), 1800)
+    }
+  }
+
+  // "내 여행"에서 저장된 여행을 골라 같은 조건으로 코스를 다시 계획한다.
+  const replanFromSaved = (payload, title) => {
+    const meta = payload?.meta || {}
+    const dest = meta.destination || ''
+    setDestination(dest)
+    setPickedDestination(dest)
+    setJourneyTheme(meta.journeyTheme || '')
+    setBudget(meta.budget || '보통')
+    setTransport(meta.transport || '대중교통')
+    setTripStartDate(meta.tripStartDate || todayISO())
+    setTripEndDate(meta.tripEndDate || meta.tripStartDate || todayISO())
+    setDuration(meta.duration || '당일')
+    setDayStartTime(meta.dayStartTime || '09:30')
+    setMustVisit(Array.isArray(meta.mustVisit) ? meta.mustVisit : [])
+    setTripOrigin(null)
+    setTripLodging(null)
+    setSelectedPlace(0)
+    setSelectedDay(0)
+    setRouteLegs([])
+    setCurrentTimelineDays([])
+    setSavedName(title || `${dest} 여행`.trim())
+    setScreen('course')
+  }
+
+  const handleTimelineDaysChange = useCallback((nextDays) => {
+    setCurrentTimelineDays(nextDays)
+    setRouteLegs([])
+  }, [])
+
+  // 타임라인 카드 클릭: 그 날로 전환하면서 해당 장소를 선택한다.
+  const handleTimelineSelect = useCallback((day, index) => {
+    setSelectedDay(day)
+    setSelectedPlace(index)
+  }, [])
+
+  const mapUrl = detail ? `https://map.kakao.com/link/search/${encodeURIComponent(`${cityKey} ${detail.name}`)}` : ''
+  const naverUrl = detail ? `https://map.naver.com/p/search/${encodeURIComponent(`${cityKey} ${detail.name}`)}` : ''
 
   return (
     <main className={darkMode ? 'app dark' : 'app'}>
+      <div className="edge-bg edge-bg-left" style={{ backgroundImage: `url(${leftEdgeBg})` }} aria-hidden="true" />
+      <div className="edge-bg edge-bg-right" style={{ backgroundImage: `url(${rightEdgeBg})` }} aria-hidden="true" />
+
+      <div className="app-stage">
       <nav className="topbar">
         <button className="brand" type="button" onClick={() => setScreen('home')} aria-label="홈으로 이동">
-          <span className="brand-mark">⌾</span>
+          <img src={balgilLogoMark} alt="" aria-hidden="true" className="brand-logo" />
           <span>발길따라</span>
         </button>
         <div className="nav-links">
           <button className={screen === 'home' ? 'active' : ''} type="button" onClick={() => setScreen('home')}>홈</button>
-          <button type="button">목적지</button>
-          <button type="button">테마</button>
+          <button className={screen === 'destinations' ? 'active' : ''} type="button" onClick={goToDestinations}>목적지</button>
+          <button className={screen === 'themes' ? 'active' : ''} type="button" onClick={() => slideTo('themes')}>테마</button>
           <button className={screen === 'course' ? 'active' : ''} type="button" onClick={() => setScreen('course')}>여행 코스</button>
+          <button className={screen === 'mytrips' ? 'active' : ''} type="button" onClick={() => setScreen('mytrips')}>내 여행</button>
         </div>
         <div className="top-actions">
           {user && <span className="user-email">{user.email}</span>}
@@ -198,6 +562,8 @@ function App() {
           </button>
         </div>
       </nav>
+
+      <span className="page-number">PAGE 1</span>
 
       {authOpen && !user && (
         <section className="auth-panel" aria-label="member auth">
@@ -255,432 +621,577 @@ function App() {
             setScreen('home')
           }}
         />
+      ) : screen === 'themes' ? (
+        <ThemeScreen
+          items={journeyThemes}
+          destination={pickedDestination}
+          selected={journeyTheme}
+          onSelect={pickTheme}
+          onBack={() => slideTo('destinations')}
+          leaving={leaving}
+        />
+      ) : screen === 'dates' ? (
+        <DatesScreen
+          destination={pickedDestination}
+          startDate={tripStartDate}
+          endDate={tripEndDate}
+          startTime={dayStartTime}
+          onChangeStart={setTripStartDate}
+          onChangeEnd={setTripEndDate}
+          onChangeStartTime={setDayStartTime}
+          onNext={pickDates}
+          onBack={() => slideTo('budget')}
+          leaving={leaving}
+        />
+      ) : screen === 'origin' ? (
+        <OriginScreen
+          destination={pickedDestination}
+          nights={nightsBetween(tripStartDate, tripEndDate)}
+          initialOrigin={tripOrigin}
+          initialLodging={tripLodging}
+          onConfirm={confirmOrigin}
+          onBack={() => slideTo('dates')}
+          leaving={leaving}
+        />
+      ) : screen === 'budget' ? (
+        <BudgetScreen
+          options={budgets}
+          destination={pickedDestination}
+          theme={journeyThemeLabel}
+          selected={budget}
+          onSelect={pickBudget}
+          onBack={() => slideTo('themes')}
+          leaving={leaving}
+        />
+      ) : screen === 'destinations' ? (
+        <DestinationsScreen
+          items={destinationCatalog}
+          groups={destinationGroups}
+          photos={cityPhotos}
+          trends={cityTrends}
+          onPick={pickDestination}
+          onBack={() => setScreen('home')}
+          leaving={leaving}
+        />
       ) : screen === 'home' ? (
-        <section className="home">
-          <div className="desk-object camera"></div>
-          <div className="desk-object paper-map"></div>
-          <div className="desk-object ticket">
-            <b>서울 → 부산</b>
-            <span>07:45 · 3호차</span>
-          </div>
-          <div className="desk-object suitcase"><span></span></div>
-          <div className="desk-object tag">
-            <b>오늘도</b>
-            <span>설레는 여행 중</span>
-          </div>
-          <div className="desk-object photo-stack"></div>
-          <div className="desk-object postcard">오늘, 여행하기 좋은 날</div>
-          <div className="desk-object compass"></div>
-          <div className="travel-rope one"></div>
-          <div className="travel-rope two"></div>
-
-          <div className="hero-panel">
-            <p className="eyebrow">AI 국내 여행 코스 메이커</p>
-            <h1>AI가 추천하는 국내 여행 코스</h1>
-            <p className="hero-copy">가고 싶은 곳만 입력하세요. 예산, 이동수단, 스타일에 맞춰 하루 동선을 귀엽고 알차게 짜드릴게요.</p>
-
-            <div className="hero-search">
-              <label>
-                <span>목적지</span>
-                <input value={destination} onChange={(event) => setDestination(event.target.value)} placeholder="어디로 떠나고 싶으세요?" />
-              </label>
-              <button type="button" onClick={startCourse}>여행 시작하기</button>
-            </div>
-
-            <div className="korea-map" aria-label="국내 여행지 지도">
-              <div className="map-line"></div>
-              <span className="map-label label-incheon">인천</span>
-              <span className="map-label label-gangneung">강릉</span>
-              <span className="map-label label-jeonju">전주</span>
-              <span className="map-label label-yeosu">여수</span>
-              <span className="map-label label-pohang">포항</span>
-              <span className="map-label label-ulleung">울릉도</span>
-              <span className="map-doodle mountain-a">⌂</span>
-              <span className="map-doodle mountain-b">⌂</span>
-              <span className="map-doodle wave-a">∿∿</span>
-              <span className="map-doodle wave-b">∿∿</span>
-              {['서울', '제주', '경주', '부산'].map((city, index) => (
-                <button key={city} className={`map-pin pin-${index + 1}`} type="button" onClick={() => setDestination(city)}>
-                  <span>{index + 1}</span>{city}
-                </button>
-              ))}
-            </div>
-
-            <div className="destination-cards">
-              {['서울', '제주', '경주', '부산'].map((city, index) => (
-                <button className="destination-card" type="button" key={city} onClick={() => setDestination(city)}>
-                  <span className={`photo photo-${index + 1}`}></span>
-                  <b>{city}</b>
-                </button>
-              ))}
-            </div>
-
-            <div className="option-row">
-              {themes.map((item) => (
-                <button key={item.id} className={theme === item.id ? 'chip selected' : 'chip'} type="button" onClick={() => setTheme(item.id)}>
-                  <Icon type={item.icon} />
-                  {item.label}
-                </button>
-              ))}
-            </div>
-
-            <div className="planner-options">
-              <Segment title="예산 선택" options={budgets} value={budget} onChange={setBudget} />
-              <Segment title="이동수단 선택" options={transports} value={transport} onChange={setTransport} />
-              <Segment title="여행 스타일 선택" options={styles} value={style} onChange={setStyle} />
-            </div>
-          </div>
-        </section>
+        <TravelSketchHome
+          cityPhotos={cityPhotos}
+          destination={destination}
+          leaving={leaving}
+          mustVisit={mustVisit}
+          mustVisitInput={mustVisitInput}
+          todayCity={todayCity}
+          todayCourse={todayCourse}
+          todayStatus={todayStatus}
+          onAddMustVisit={addMustVisit}
+          onChangeDestination={setDestination}
+          onChangeMustVisitInput={setMustVisitInput}
+          onPickCity={pickDestination}
+          onRemoveMustVisit={removeMustVisit}
+          onRetryToday={retryTodayPool}
+          onStartCourse={startCourse}
+          onStartToday={startTodayCourse}
+        />
+      ) : screen === 'mytrips' ? (
+        <MyTripsScreen
+          user={user}
+          leaving={leaving}
+          onRequireLogin={() => setAuthOpen(true)}
+          onReplan={replanFromSaved}
+          onBack={() => setScreen('home')}
+        />
+      ) : !course ? (
+        <CoursePoolNotice
+          cityKey={cityKey}
+          status={cityPoolStatus}
+          onRetry={retryCityPool}
+          onBack={() => setScreen('home')}
+        />
       ) : (
         <section className="course-screen">
           <header className="course-header">
             <div>
               <button className="back-button" type="button" onClick={() => setScreen('home')}>홈으로</button>
-              <h1>{course.title}</h1>
-              <p>{course.subtitle} · {budget} · {transport} · {style}</p>
+              <div className="course-title-row">
+                <h1>{pickedDestination ? `${pickedDestination} 여행 코스` : course.title}</h1>
+                {weather && (
+                  <span className="weather-badge">
+                    {weather.emoji} {weather.tempC}° {weather.description}
+                  </span>
+                )}
+              </div>
+              <p className="course-subtitle">
+                {journeyThemeLabel && <b className="course-theme-tag">{journeyThemeLabel}</b>}
+                {course.subtitle}
+              </p>
+              <div className="course-tags" aria-label="여행 조건">
+                <span className="course-tag">📅 {duration}</span>
+                <span className="course-tag">💰 {budget}</span>
+                <span className="course-tag">
+                  {transport === '자차' ? '🚗' : transport === '도보' ? '🚶' : '🚇'} {transport}
+                </span>
+                <span className="course-tag">🎞️ {style}</span>
+                <span className="course-tag">⏰ {dayStartTime} 출발</span>
+              </div>
             </div>
             <div className="course-actions">
               <label className="name-editor">
                 저장한 코스 이름
-                <input value={savedName} onChange={(event) => setSavedName(event.target.value)} />
+                <input
+                  value={savedName}
+                  onChange={(event) => setSavedName(event.target.value)}
+                  placeholder={`예: ${cityKey} 여행`}
+                />
               </label>
-              <button type="button" onClick={shareCourse}>{copyState}</button>
+              <div className="course-action-buttons">
+                <button
+                  type="button"
+                  className="course-save-btn"
+                  onClick={saveCourse}
+                  disabled={saveState === '저장 중…'}
+                  title="지금 보고 있는 여행 코스를 '내 여행'에 저장합니다"
+                >
+                  <span aria-hidden="true">💾</span> {saveState}
+                </button>
+                <button
+                  type="button"
+                  className="course-share-btn"
+                  onClick={shareCourse}
+                  title="여행 일정을 텍스트로 클립보드에 복사합니다"
+                >
+                  <span aria-hidden="true">🔗</span> {copyState}
+                </button>
+              </div>
             </div>
           </header>
+
+          {mustVisit.length > 0 && (
+            <div className="course-must-visit">
+              <b>필수 방문</b>
+              {mustVisit.map((keyword) => (
+                <span key={keyword}>{keyword}</span>
+              ))}
+            </div>
+          )}
+
+          {(() => {
+            const messages = course.notices || (course.notice ? [course.notice] : [])
+            if (messages.length === 0) return null
+            return (
+              <div className="course-notes" role="note">
+                <b className="course-notes-title">코스 안내</b>
+                <ul>
+                  {messages.map((message) => (
+                    <li key={message}>
+                      <span className="course-notes-icon" aria-hidden="true">{noticeIcon(message)}</span>
+                      <span>{message.replace(/^☔\s*/, '')}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )
+          })()}
 
           <div className="course-layout">
             <section className="route-map-card">
               <div className="map-toolbar">
-                <h2>지도와 추천 동선</h2>
-                <span>총 이동 약 {totalTime || 70}분</span>
+                <h2>지도</h2>
+                <div className={sortOpen ? 'map-sort is-open' : 'map-sort'}>
+                  <button
+                    type="button"
+                    className="map-sort-btn"
+                    aria-haspopup="listbox"
+                    aria-expanded={sortOpen}
+                    onClick={() => setSortOpen((open) => !open)}
+                    onBlur={() => window.setTimeout(() => setSortOpen(false), 120)}
+                  >
+                    {SORT_LABELS[sortMode]}
+                    <span className="map-sort-caret" aria-hidden="true">▾</span>
+                  </button>
+                  {sortOpen && (
+                    <ul className="map-sort-menu" role="listbox">
+                      {SORT_MODES.map((mode) => (
+                        <li key={mode} role="option" aria-selected={mode === sortMode}>
+                          <button
+                            type="button"
+                            className={mode === sortMode ? 'is-active' : ''}
+                            onMouseDown={(event) => {
+                              event.preventDefault()
+                              setSortMode(mode)
+                              setSortOpen(false)
+                            }}
+                          >
+                            {SORT_LABELS[mode]}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
               </div>
-              <GoogleRouteMap
+              <KakaoRouteMap
                 course={course}
+                places={displayPlaces}
+                origin={routeStartPoint}
+                endPoint={routeEndPoint}
                 transport={transport}
-                selectedPlace={selectedPlace}
-                onSelectPlace={setSelectedPlace}
+                selectedPlace={safeSelectedPlace}
+                selectPulse={selectPulse}
+                onSelectPlace={selectPlace}
                 onRouteReady={setRouteLegs}
               />
-              <div className="route-leg-strip" aria-label="구간별 소요 시간">
-                {legsForDisplay.map((leg, index) => (
-                  <button key={`${leg.from}-${leg.to}`} type="button" onClick={() => setSelectedPlace(index)}>
-                    <b>{index + 1} → {index + 2}</b>
-                    <span>{leg.duration}</span>
-                  </button>
-                ))}
+              <Segment title="교통편" options={transports} value={transport} onChange={setTransport} />
+              <div className="route-rail-scroll">
+                <div className="route-rail" aria-label="구간별 소요 시간">
+                  {railNodes.map((node, index) => (
+                    <Fragment key={`${node.label}-${index}`}>
+                      {index > 0 && (
+                        <button
+                          type="button"
+                          className="rail-seg"
+                          onClick={() => selectPlace(legsForDisplay[index - 1].focusIndex ?? index - 1)}
+                          aria-label={`${railNodes[index - 1].label}에서 ${node.label}까지 ${legsForDisplay[index - 1].duration}`}
+                        >
+                          <span className="rail-bar" style={{ background: legColor(index - 1) }} />
+                          <span className="rail-mins">{legsForDisplay[index - 1].duration}</span>
+                          {legsForDisplay[index - 1].summary && (
+                            <span className="rail-sub">{legsForDisplay[index - 1].summary}</span>
+                          )}
+                        </button>
+                      )}
+                      {node.isTerminus ? (
+                        <span className="rail-node">
+                          <span className="rail-dot terminus">{node.label}</span>
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          className={safeSelectedPlace === node.focusIndex ? 'rail-node rail-node-btn selected' : 'rail-node rail-node-btn'}
+                          onClick={() => selectPlace(node.focusIndex)}
+                        >
+                          <span
+                            className="rail-dot"
+                            style={{ background: legColor(index < railNodes.length - 1 ? index : Math.max(0, index - 1)) }}
+                          >
+                            {node.label}
+                          </span>
+                          <small>{node.name}</small>
+                        </button>
+                      )}
+                    </Fragment>
+                  ))}
+                </div>
               </div>
+
+              <div className="stop-gallery-scroll">
+                <div className="stop-gallery" aria-label="오늘 방문할 장소">
+                  {displayPlaces.map((place, index) => {
+                    const kind = placeKindOf(place)
+                    const loved = mustVisit.some(
+                      (word) => place.name.includes(word) || word.includes(place.name),
+                    )
+                    return (
+                      <button
+                        key={place.name}
+                        type="button"
+                        className={safeSelectedPlace === index ? 'stop-card is-active' : 'stop-card'}
+                        onClick={() => selectPlace(index)}
+                      >
+                        <span className="stop-num">{index + 1}</span>
+                        <span className={`stop-thumb kind-${kind}`}>
+                          <span className="stop-emoji" aria-hidden="true">{KIND_EMOJI[kind] || '📍'}</span>
+                        </span>
+                        <b>{place.name}</b>
+                        <small className="stop-region">{shortRegionOf(place.address, cityKey)}</small>
+                        <span className="stop-corner" aria-hidden="true">{loved ? '🤍' : '📷'}</span>
+                      </button>
+                    )
+                  })}
+                  <button
+                    type="button"
+                    className="stop-card stop-card-add"
+                    onClick={scrollToSchedule}
+                  >
+                    <span className="stop-add-plus" aria-hidden="true">＋</span>
+                    <small>장소 추가</small>
+                  </button>
+                </div>
+              </div>
+
               <div className="map-buttons">
                 <a href={naverUrl} target="_blank" rel="noreferrer">네이버지도에서 보기</a>
-                <a href={mapUrl} target="_blank" rel="noreferrer">구글맵에서 보기</a>
+                <a href={mapUrl} target="_blank" rel="noreferrer">카카오맵에서 보기</a>
+              </div>
+
+              <div className="detail-card detail-inline">
+                <h2>장소 상세 보기</h2>
+                {!detail ? (
+                  <p className="timeline-empty">이 날은 아직 장소가 없어요. 타임라인에서 추가하면 여기에 상세 정보가 보여요.</p>
+                ) : (
+                <>
+                <div className="detail-title">
+                  <Icon type="pin" />
+                  <div>
+                    <h3>{detail.name}</h3>
+                    <p>{detail.address}</p>
+                  </div>
+                </div>
+                <dl>
+                  {Number.isFinite(detail.arriveMin) && (
+                    <>
+                      <dt>도착 예정</dt>
+                      <dd>
+                        {formatClock(detail.arriveMin)}
+                        {Number.isFinite(detail.departMin) && ` ~ ${formatClock(detail.departMin)} 출발`}
+                      </dd>
+                    </>
+                  )}
+                  <dt>예상 체류 시간</dt>
+                  <dd>약 {formatStay(detail.stayMin ?? 60)}</dd>
+                  {feeLabelOf(detail) && (
+                    <>
+                      <dt>입장·비용</dt>
+                      <dd>{feeLabelOf(detail)}</dd>
+                    </>
+                  )}
+                  <dt>추천 이유</dt>
+                  <dd>{detail.reason}</dd>
+                  <dt>주의사항</dt>
+                  <dd>{detail.caution}</dd>
+                  {detail.parking && (
+                    <>
+                      <dt>주차</dt>
+                      <dd>{detail.parking}</dd>
+                    </>
+                  )}
+                  {detail.location && (nearbyParking.status === 'loading' || nearbyParking.items.length > 0) && (
+                    <>
+                      <dt>주변 주차장</dt>
+                      <dd>
+                        {nearbyParking.status === 'loading' ? (
+                          <span className="parking-loading">주변 주차장 찾는 중…</span>
+                        ) : (
+                          <ul className="parking-list">
+                            {nearbyParking.items.map((lot) => (
+                              <li key={lot.id}>
+                                <a href={lot.url || `https://map.kakao.com/link/search/${encodeURIComponent(lot.name)}`} target="_blank" rel="noreferrer">
+                                  {lot.name}
+                                </a>
+                                {Number.isFinite(lot.distanceM) && (
+                                  <span className="parking-dist">
+                                    {' '}· {lot.distanceM}m · 도보 약 {Math.max(1, Math.round(lot.distanceM / 67))}분
+                                  </span>
+                                )}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </dd>
+                    </>
+                  )}
+                  {detail.openHoursText && (
+                    <>
+                      <dt>영업시간</dt>
+                      <dd className="detail-hours">{detail.openHoursText}</dd>
+                    </>
+                  )}
+                  {detail.closedDayText && (
+                    <>
+                      <dt>휴무일</dt>
+                      <dd>{detail.closedDayText}</dd>
+                    </>
+                  )}
+                  {detail.hoursNote && (
+                    <>
+                      <dt>참고</dt>
+                      <dd className="detail-warn">{detail.hoursNote}</dd>
+                    </>
+                  )}
+                  {detail.transitScore && (
+                    <>
+                      <dt>대중교통</dt>
+                      <dd>
+                        {detail.transitStation
+                          ? `${detail.transitStation} 도보 약 ${Math.max(1, Math.round(detail.transitDistanceM / 67))}분`
+                          : '주변 지하철역 없음 · 차량 권장'}
+                      </dd>
+                    </>
+                  )}
+                </dl>
+                </>
+                )}
               </div>
             </section>
 
             <aside className="timeline">
-              <h2>추천 코스</h2>
-              {course.places.map((place, index) => (
-                <button key={place.name} className={selectedPlace === index ? 'timeline-item selected' : 'timeline-item'} type="button" onClick={() => setSelectedPlace(index)}>
-                  <span>{index + 1}</span>
-                  <div>
-                    <b>{place.name}</b>
-                    <small>예상 체류 {place.stay}</small>
-                  </div>
-                </button>
-              ))}
-            </aside>
-
-            <section className="score-card">
-              <h2>코스 점수</h2>
-              <Score label="취향 적합도" value="94" />
-              <Score label="이동 효율" value="88" />
-              <Score label="일정 밀도" value={style === '빡빡한 일정' ? '91' : '72'} />
-            </section>
-
-            <section className="detail-card">
-              <h2>장소 상세 보기</h2>
-              <div className="detail-title">
-                <Icon type="pin" />
-                <div>
-                  <h3>{detail.name}</h3>
-                  <p>{detail.address}</p>
+              {course.days.length > 1 && (
+                <div className="day-tabs" role="tablist" aria-label="여행 일자 선택">
+                  {course.days.map((day, d) => (
+                    <button
+                      key={d}
+                      type="button"
+                      role="tab"
+                      aria-selected={selectedDay === d}
+                      className={selectedDay === d ? 'day-tab selected' : 'day-tab'}
+                      onClick={() => {
+                        setSelectedDay(d)
+                        setSelectedPlace(0)
+                      }}
+                    >
+                      <b>Day {d + 1}</b>
+                      <span>{formatShortDate(addDaysISO(tripStartDate, d))}</span>
+                    </button>
+                  ))}
                 </div>
+              )}
+              <div className="preview-head">
+                <h2>여행 일정 미리보기</h2>
+                <span className="preview-days-badge">
+                  <span aria-hidden="true">📅</span> {course.days.length > 1 ? duration : '당일'}
+                </span>
               </div>
-              <dl>
-                <dt>예상 체류 시간</dt>
-                <dd>{detail.stay}</dd>
-                <dt>추천 이유</dt>
-                <dd>{detail.reason}</dd>
-                <dt>주의사항</dt>
-                <dd>{detail.caution}</dd>
-              </dl>
-            </section>
+
+              <div className="preview-days">
+                {course.days.map((day, d) => {
+                  const dayPlaces = allDaysScheduled[d] || []
+                  const buckets = bucketByPreview(dayPlaces)
+                  return (
+                    <div key={d} className={selectedDay === d ? 'preview-day is-active' : 'preview-day'}>
+                      <button
+                        type="button"
+                        className="preview-day-tag"
+                        onClick={() => {
+                          setSelectedDay(d)
+                          setSelectedPlace(0)
+                        }}
+                      >
+                        <b>DAY {d + 1}</b>
+                        {course.days.length > 1 && <span>{formatShortDate(addDaysISO(tripStartDate, d))}</span>}
+                      </button>
+                      {dayPlaces.length === 0 ? (
+                        <p className="preview-slot-empty">추천 장소가 부족해요.</p>
+                      ) : (
+                        buckets.map((bucket) => (
+                          bucket.items.length ? (
+                            <div key={bucket.key} className="preview-slot">
+                              <span className="preview-slot-time">
+                                <span className="preview-slot-icon" aria-hidden="true">{bucket.icon}</span>
+                                <span className="preview-slot-label">{bucket.label}</span>
+                              </span>
+                              <ul className="preview-slot-list">
+                                {bucket.items.map((place) => (
+                                  <li key={place.name}>{place.name}</li>
+                                ))}
+                              </ul>
+                              <span
+                                className={`preview-slot-thumb kind-${placeKindOf(bucket.items[0])}`}
+                                aria-hidden="true"
+                              >
+                                {KIND_EMOJI[placeKindOf(bucket.items[0])] || '📍'}
+                              </span>
+                            </div>
+                          ) : null
+                        ))
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+
+              <button type="button" className="preview-expand" onClick={() => setPreviewExpanded((value) => !value)}>
+                {previewExpanded ? '간단히 보기 ⌃' : '전체 일정 보기 ›'}
+              </button>
+
+              {previewExpanded && (
+                <div className="timeline-full">
+                  <h3>{course.days.length > 1 ? `Day ${selectedDay + 1} 동선` : '오늘 동선'}</h3>
+                  <p className="timeline-sum">
+                    {dayStartTime} 출발 · {displayPlaces.length}곳 · 이동 약 {totalTime || 0}분
+                  </p>
+                  {displayPlaces.length > 0 && (() => {
+                    const cost = estimateDayCost(displayPlaces, transport, budget)
+                    return (
+                      <p className="timeline-cost">
+                        예상 하루 비용 <b>약 ₩{cost.total.toLocaleString()}</b>
+                        <span>
+                          {' '}· 입장 ₩{cost.admission.toLocaleString()} · 식사 ₩{cost.meals.toLocaleString()} · 이동 ₩{cost.transit.toLocaleString()}
+                        </span>
+                        <span className="timeline-cost-note"> (1인 · 추정)</span>
+                      </p>
+                    )
+                  })()}
+                  {displayPlaces.length === 0 && (
+                    <p className="timeline-empty">이 날은 추천 장소가 부족해요. 아래 타임라인에서 직접 추가해보세요.</p>
+                  )}
+                  <ol className="timeline-list">
+                    {displayPlaces.map((place, index) => (
+                      <li key={place.name} className="tl-stop">
+                        <button
+                          type="button"
+                          className={safeSelectedPlace === index ? 'tl-card selected' : 'tl-card'}
+                          onClick={() => setSelectedPlace(index)}
+                        >
+                          <span className="tl-time">{formatClock(place.arriveMin)}</span>
+                          <span className="tl-node" aria-hidden="true">{index + 1}</span>
+                          <span className="tl-body">
+                            <b>{place.name}</b>
+                            <span className="tl-meta">머무는 시간 약 {formatStay(place.stayMin)}</span>
+                            {place.hoursNote && <span className="tl-warn">⚠ {place.hoursNote}</span>}
+                          </span>
+                        </button>
+                        {place.travelToNextMin ? (
+                          <span className="tl-move">{transport} {place.travelToNextMin}분</span>
+                        ) : null}
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              )}
+            </aside>
+          </div>
+
+          <div className="course-tip-bar">
+            <p className="course-tip-text">
+              <span aria-hidden="true">💡</span> 팁: 계절과 날씨에 맞는 여행지와 최적의 동선을 추천해드려요!
+            </p>
+            <div className="course-tip-chips">
+              {weather && (
+                <span className="course-tip-chip">
+                  <span aria-hidden="true">🌡️</span> {weather.tempC}° {weather.description}
+                </span>
+              )}
+              <span className="course-tip-chip">
+                <span aria-hidden="true">📅</span> {Number(tripStartDate.slice(5, 7))}월 추천 코스
+              </span>
+            </div>
+          </div>
+
+          <div ref={scheduleRef}>
+            <ScheduleTimeline
+              // 이 조합이 바뀌면 일정을 처음부터 다시 잡아야 하므로 통째로 새로 마운트시킨다.
+              // (ScheduleTimeline 안에서 effect 로 되돌리는 대신 key 로 처리)
+              key={`${cityKey}:${journeyTheme || '-'}:${budget || '-'}:${dayCount}`}
+              cityKey={cityKey}
+              seedDays={course.days.map((day) => day.places)}
+              dayCount={dayCount}
+              transport={transport}
+              themeId={journeyTheme}
+              budgetTier={budget}
+              dayStartMin={dayStartMin}
+              placeInfoByName={placeByName}
+              selectedDay={selectedDay}
+              onDaysChange={handleTimelineDaysChange}
+              selectedPlace={safeSelectedPlace}
+              onSelectPlace={handleTimelineSelect}
+            />
           </div>
         </section>
       )}
+      </div>
     </main>
   )
 }
 
-function GoogleRouteMap({ course, transport, selectedPlace, onSelectPlace, onRouteReady }) {
-  const mapElementRef = useRef(null)
-  const overlaysRef = useRef([])
-  const markersRef = useRef([])
-  const rendererRef = useRef(null)
-  const [mapStatus, setMapStatus] = useState(googleMapsApiKey ? 'loading' : 'missing-key')
-
-  useEffect(() => {
-    if (!googleMapsApiKey) {
-      setMapStatus('missing-key')
-      return undefined
-    }
-
-    let isMounted = true
-
-    const clearMapItems = () => {
-      overlaysRef.current.forEach((overlay) => overlay.setMap(null))
-      markersRef.current.forEach((marker) => marker.setMap(null))
-      rendererRef.current?.setMap(null)
-      overlaysRef.current = []
-      markersRef.current = []
-      rendererRef.current = null
-    }
-
-    loadGoogleMaps()
-      .then(({ maps }) => {
-        if (!isMounted || !mapElementRef.current) return
-
-        clearMapItems()
-
-        const map = new maps.Map(mapElementRef.current, {
-          center: course.center,
-          zoom: 14,
-          mapTypeControl: false,
-          streetViewControl: false,
-          fullscreenControl: false,
-          clickableIcons: true,
-        })
-
-        const renderer = new maps.DirectionsRenderer({
-          map,
-          suppressMarkers: true,
-          preserveViewport: false,
-          polylineOptions: {
-            strokeColor: '#ee5b4f',
-            strokeOpacity: 0.92,
-            strokeWeight: 6,
-          },
-        })
-        rendererRef.current = renderer
-
-        const service = new maps.DirectionsService()
-        const travelMode = transport === '도보' ? maps.TravelMode.WALKING : maps.TravelMode.DRIVING
-
-        service.route(
-          {
-            origin: course.places[0].location,
-            destination: course.places.at(-1).location,
-            waypoints: course.places.slice(1, -1).map((place) => ({
-              location: place.location,
-              stopover: true,
-            })),
-            optimizeWaypoints: false,
-            travelMode,
-          },
-          (result, status) => {
-            if (!isMounted) return
-
-            if (status !== 'OK' || !result) {
-              setMapStatus('route-error')
-              return
-            }
-
-            renderer.setDirections(result)
-            const route = result.routes[0]
-            const bounds = new maps.LatLngBounds()
-            const nextLegs = route.legs.map((leg, index) => {
-              bounds.extend(leg.start_location)
-              bounds.extend(leg.end_location)
-
-              const marker = new maps.Marker({
-                map,
-                position: leg.start_location,
-                title: course.places[index].name,
-                label: { text: `${index + 1}`, color: '#ffffff', fontWeight: '800' },
-              })
-              marker.addListener('click', () => onSelectPlace(index))
-              markersRef.current.push(marker)
-
-              const midpoint = {
-                lat: (leg.start_location.lat() + leg.end_location.lat()) / 2,
-                lng: (leg.start_location.lng() + leg.end_location.lng()) / 2,
-              }
-              const overlay = createRouteTimeOverlay(maps, midpoint, leg.duration?.text || course.places[index].time)
-              overlay.setMap(map)
-              overlaysRef.current.push(overlay)
-
-              return {
-                from: course.places[index].name,
-                to: course.places[index + 1].name,
-                duration: leg.duration?.text || course.places[index].time,
-              }
-            })
-
-            const finalMarker = new maps.Marker({
-              map,
-              position: route.legs.at(-1).end_location,
-              title: course.places.at(-1).name,
-              label: { text: `${course.places.length}`, color: '#ffffff', fontWeight: '800' },
-            })
-            finalMarker.addListener('click', () => onSelectPlace(course.places.length - 1))
-            markersRef.current.push(finalMarker)
-
-            map.fitBounds(bounds, 80)
-            onRouteReady(nextLegs)
-            setMapStatus('ready')
-          },
-        )
-      })
-      .catch(() => {
-        if (isMounted) setMapStatus('load-error')
-      })
-
-    return () => {
-      isMounted = false
-      clearMapItems()
-    }
-  }, [course, transport, onRouteReady, onSelectPlace])
-
-  useEffect(() => {
-    markersRef.current.forEach((marker, index) => {
-      marker.setAnimation(index === selectedPlace ? window.google?.maps?.Animation?.BOUNCE : null)
-      if (index === selectedPlace) {
-        window.setTimeout(() => marker.setAnimation(null), 700)
-      }
-    })
-  }, [selectedPlace])
-
-  return (
-    <div className="route-map google-route-map">
-      <div ref={mapElementRef} className="google-map-canvas" aria-label="구글맵 추천 동선" />
-      {mapStatus === 'loading' && <MapNotice title="구글맵 불러오는 중" text="경로와 소요 시간을 계산하고 있어요." />}
-      {mapStatus === 'missing-key' && <MapNotice title="Google Maps API 키가 필요해요" text="react project2/.env 파일에 VITE_GOOGLE_MAPS_API_KEY를 넣으면 실제 지도와 경로가 표시됩니다." />}
-      {mapStatus === 'load-error' && <MapNotice title="지도 로드 실패" text="API 키, 결제 설정, 도메인 제한을 확인해 주세요." />}
-      {mapStatus === 'route-error' && <MapNotice title="경로 계산 실패" text="선택한 이동수단으로 경로를 찾지 못했어요. 자차 또는 도보로 다시 시도해 주세요." />}
-      <div className="map-api-badges">
-        <span>Google Maps API</span>
-        <span>Directions API</span>
-      </div>
-    </div>
-  )
-}
-
-function createRouteTimeOverlay(maps, position, text) {
-  class RouteTimeOverlay extends maps.OverlayView {
-    constructor() {
-      super()
-      this.position = new maps.LatLng(position.lat, position.lng)
-      this.text = text
-      this.div = null
-    }
-
-    onAdd() {
-      this.div = document.createElement('button')
-      this.div.type = 'button'
-      this.div.className = 'google-time-badge'
-      this.div.textContent = this.text
-      this.getPanes().floatPane.appendChild(this.div)
-    }
-
-    draw() {
-      const point = this.getProjection().fromLatLngToDivPixel(this.position)
-      if (!point || !this.div) return
-      this.div.style.left = `${point.x}px`
-      this.div.style.top = `${point.y}px`
-    }
-
-    onRemove() {
-      this.div?.remove()
-      this.div = null
-    }
-  }
-
-  return new RouteTimeOverlay()
-}
-
-function MapNotice({ title, text }) {
-  return (
-    <div className="map-notice">
-      <b>{title}</b>
-      <span>{text}</span>
-    </div>
-  )
-}
-
-function Segment({ title, options, value, onChange }) {
-  return (
-    <fieldset className="segment">
-      <legend>{title}</legend>
-      <div>
-        {options.map((option) => (
-          <button key={option} className={value === option ? 'selected' : ''} type="button" onClick={() => onChange(option)}>
-            {option}
-          </button>
-        ))}
-      </div>
-    </fieldset>
-  )
-}
-
-function Score({ label, value }) {
-  return (
-    <div className="score">
-      <div>
-        <b>{label}</b>
-        <span>{value}점</span>
-      </div>
-      <meter min="0" max="100" value={value}></meter>
-    </div>
-  )
-}
-
-function Icon({ type }) {
-  const icons = {
-    leaf: (
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M20 4C11 4 6 8.5 6 15a5 5 0 0 0 5 5c6.5 0 9-7 9-16Z" />
-        <path d="M4 20c3-6 7-9 12-11" />
-      </svg>
-    ),
-    fork: (
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M6 3v8" />
-        <path d="M9 3v8" />
-        <path d="M6 7h3" />
-        <path d="M7.5 11v10" />
-        <path d="M16 3v18" />
-        <path d="M16 3c3 2 3 7 0 9" />
-      </svg>
-    ),
-    family: (
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <circle cx="8" cy="7" r="3" />
-        <circle cx="17" cy="8" r="2.5" />
-        <path d="M3 21c.5-4 2.5-7 5-7s4.5 3 5 7" />
-        <path d="M13 21c.4-3.4 2-5.8 4-5.8s3.6 2.4 4 5.8" />
-      </svg>
-    ),
-    heart: (
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M12 20s-7-4.4-9-9.2C1.4 7 3.7 4 7 4c2 0 3.3 1.1 5 3 1.7-1.9 3-3 5-3 3.3 0 5.6 3 4 6.8C19 15.6 12 20 12 20Z" />
-      </svg>
-    ),
-    pin: (
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M12 21s7-6 7-12a7 7 0 0 0-14 0c0 6 7 12 7 12Z" />
-        <circle cx="12" cy="9" r="2.5" />
-      </svg>
-    ),
-  }
-  return icons[type] || null
-}
+// 최근 3일 평균 검색량이 그 이전 기간 평균보다 이 배수 이상이면 "지금 뜨는 중" 배지를 붙인다.
 
 export default App

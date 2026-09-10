@@ -1,0 +1,80 @@
+/* =========================================================================
+   전역 리셋 + 디자인 토큰
+   - 색상 / 간격 / 폰트 값은 여기 :root 에 모아둔다.
+   - 각 컴포넌트의 *.module.css 에서는 이 변수만 참조한다.
+     (톤을 바꾸고 싶으면 이 파일만 수정하면 된다)
+   ========================================================================= */
+
+/* 감성적인 둥근 한글 디스플레이 폰트 + 본문용 Pretendard */
+@import url('https://fonts.googleapis.com/css2?family=Jua&display=swap');
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css');
+
+:root {
+  /* --- 히어로 배경 사진 -------------------------------------------------
+     이 한 줄만 바꾸면 배경 사진이 교체된다.
+     내 사진을 쓰려면: public/ 폴더에 hero.jpg 를 넣고
+     url('/hero.jpg') 로 바꾸면 된다. */
+  --hero-image: url('https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=2100&q=80');
+
+  /* 사진이 안 뜰 때 보이는 대체 그라데이션 (일몰 산 느낌) */
+  --hero-fallback: linear-gradient(180deg, #6b7fa6 0%, #8a7f9c 45%, #caa77f 72%, #a9b6c4 100%);
+
+  /* 사진 위에 얹는 어두운 막 — 흰 글씨 가독성 확보용 */
+  --hero-overlay: linear-gradient(
+    180deg,
+    rgba(20, 30, 48, 0.34) 0%,
+    rgba(20, 30, 48, 0.22) 38%,
+    rgba(14, 22, 38, 0.62) 100%
+  );
+
+  /* --- 글래스모피즘(반투명 유리) --- */
+  --glass-bg: rgba(255, 255, 255, 0.12);
+  --glass-bg-strong: rgba(255, 255, 255, 0.18);
+  --glass-border: rgba(255, 255, 255, 0.30);
+  --glass-blur: 14px;
+
+  /* --- 텍스트 --- */
+  --text-white: #ffffff;
+  --text-dim: rgba(255, 255, 255, 0.78);
+  --text-faint: rgba(255, 255, 255, 0.6);
+
+  /* --- 포인트 컬러 --- */
+  --accent: #8fd3d8;
+
+  /* --- 글꼴 --- */
+  --font-body: 'Pretendard', system-ui, -apple-system, 'Segoe UI',
+    'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+  --font-display: 'Jua', var(--font-body);
+
+  /* --- 레이아웃 --- */
+  --nav-h: 72px;
+  --page-max: 1240px;
+  --page-pad: clamp(20px, 5vw, 72px);
+
+  color: var(--text-white);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  /* 사진 로드 전 / 스크롤 바운스 시 보이는 바탕색 */
+  background: #10161f;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}

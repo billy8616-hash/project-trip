@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="44" height="44">
+  <defs>
+    <linearGradient id="padGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#e6c19a"/>
+      <stop offset="100%" stop-color="#cd9f6f"/>
+    </linearGradient>
+    <linearGradient id="toeGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#e9c6a0"/>
+      <stop offset="100%" stop-color="#d0a374"/>
+    </linearGradient>
+  </defs>
+
+  <!-- main palm pad (extends up between the two center toes so there's no gap) -->
+  <path d="M30,46 C20,51 17,64 21,76 C25,90 38,95 50,95 C62,95 75,90 79,76 C83,64 80,51 70,46 C63,42 55,44 50,50 C45,44 37,42 30,46 Z"
+        fill="url(#padGrad)" stroke="#8a5a34" stroke-width="2.4" stroke-dasharray="4 3.5"/>
+
+  <!-- toes -->
+  <g stroke="#8a5a34" stroke-width="2.2" stroke-dasharray="3.5 3">
+    <ellipse cx="23" cy="39" rx="10.5" ry="13" transform="rotate(-24 23 39)" fill="url(#toeGrad)"/>
+    <ellipse cx="40.5" cy="27" rx="11.5" ry="14.5" transform="rotate(-7 40.5 27)" fill="url(#toeGrad)"/>
+    <ellipse cx="59.5" cy="27" rx="11.5" ry="14.5" transform="rotate(7 59.5 27)" fill="url(#toeGrad)"/>
+    <ellipse cx="77" cy="39" rx="10.5" ry="13" transform="rotate(24 77 39)" fill="url(#toeGrad)"/>
+  </g>
+
+  <!-- heart accent on palm -->
+  <path d="M50,64 C47.3,59.5 40,60.5 40,67 C40,72.5 46.5,76.5 50,80.5 C53.5,76.5 60,72.5 60,67 C60,60.5 52.7,59.5 50,64 Z"
+        fill="#c25b52"/>
+</svg>

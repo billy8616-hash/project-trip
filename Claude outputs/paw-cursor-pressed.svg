@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="44" height="44">
+  <defs>
+    <linearGradient id="padGrad3" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#dbb488"/>
+      <stop offset="100%" stop-color="#c2955f"/>
+    </linearGradient>
+    <linearGradient id="toeGrad3" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#deb98d"/>
+      <stop offset="100%" stop-color="#c4995f"/>
+    </linearGradient>
+  </defs>
+
+  <!-- squished palm: wider, shorter -->
+  <path d="M22,58 C14,62 13,72 18,80 C24,92 38,96 50,96 C62,96 76,92 82,80 C87,72 86,62 78,58 C69,53 58,55 50,60 C42,55 31,53 22,58 Z"
+        fill="url(#padGrad3)" stroke="#8a5a34" stroke-width="2.4" stroke-dasharray="4 3.5"/>
+
+  <!-- toes: flattened + splayed outward -->
+  <g stroke="#8a5a34" stroke-width="2.2" stroke-dasharray="3.5 3">
+    <ellipse cx="15" cy="50" rx="10.5" ry="9.5" transform="rotate(-32 15 50)" fill="url(#toeGrad3)"/>
+    <ellipse cx="37" cy="41" rx="11" ry="10.5" transform="rotate(-10 37 41)" fill="url(#toeGrad3)"/>
+    <ellipse cx="63" cy="41" rx="11" ry="10.5" transform="rotate(10 63 41)" fill="url(#toeGrad3)"/>
+    <ellipse cx="85" cy="50" rx="10.5" ry="9.5" transform="rotate(32 85 50)" fill="url(#toeGrad3)"/>
+  </g>
+</svg>

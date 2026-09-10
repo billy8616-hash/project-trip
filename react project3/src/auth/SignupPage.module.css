@@ -1,0 +1,123 @@
+/* =========================================================================
+   SignupPage — 별도 창(팝업)으로 열리는 회원가입 화면
+   ========================================================================= */
+
+.wrap {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  /* 메인 히어로와 같은 배경 사진 + 어두운 막 (브랜드 톤 통일) */
+  background-image: var(--hero-overlay), var(--hero-image), var(--hero-fallback);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.card {
+  width: min(400px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: clamp(24px, 5vw, 40px);
+  border: 1px solid var(--glass-border);
+  border-radius: 22px;
+  background: rgba(18, 24, 34, 0.62);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  box-shadow: 0 30px 80px rgba(6, 10, 18, 0.5);
+  text-align: left;
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 28px;
+}
+
+.lead {
+  margin: 0 0 4px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--text-dim);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.field span {
+  color: var(--text-dim);
+  font-weight: 600;
+}
+
+.field em {
+  margin-left: 4px;
+  font-style: normal;
+  font-weight: 400;
+  font-size: 12px;
+  color: var(--text-faint);
+}
+
+.field input {
+  height: 44px;
+  padding: 0 14px;
+  border: 1.5px solid var(--glass-border);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-white);
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+}
+
+.field input:focus {
+  border-color: var(--accent);
+}
+
+.field input::placeholder {
+  color: var(--text-faint);
+}
+
+.error {
+  margin: 0;
+  color: #ffd2d2;
+  font-size: 13px;
+}
+
+.submit {
+  margin-top: 6px;
+  height: 48px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--accent);
+  color: #0d2b2d;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  transition: filter 0.15s ease;
+}
+
+.submit:hover {
+  filter: brightness(1.06);
+}
+
+.submit:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.check {
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #0d2b2d;
+  font-size: 26px;
+  font-weight: 900;
+}
