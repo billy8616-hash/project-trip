@@ -103,3 +103,14 @@ export async function fetchTransitRoute(routePlaces) {
   if (!response.ok || !data?.sections) throw new Error(data?.message || '대중교통 경로를 불러오지 못했어요.')
   return data
 }
+
+// 도보 모드일 때 Tmap 보행자 경로안내(서버 경유)로 실제 인도를 따라가는 경로를 가져온다.
+// sections[i] 가 null 이면 그 구간은 보행자 경로를 못 찾았다는 뜻이라, 호출한 쪽에서 직선+추정으로 그린다.
+export async function fetchWalkRoute(routePlaces) {
+  const response = await fetch(`${apiBaseUrl}/api/directions/walk?${routeParams(routePlaces)}`, {
+    credentials: 'include',
+  })
+  const data = await response.json().catch(() => null)
+  if (!response.ok || !data?.sections) throw new Error(data?.message || '도보 경로를 불러오지 못했어요.')
+  return data
+}

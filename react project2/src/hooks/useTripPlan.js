@@ -4,7 +4,7 @@ import { todayISO } from '../lib/datetime.js'
 const MAX_MUST_VISIT = 8
 
 export function useTripPlan() {
-  const [destination, setDestination] = useState('부산')
+  const [destination, setDestination] = useState('')
   const [pickedDestination, setPickedDestination] = useState('')
   const [journeyTheme, setJourneyTheme] = useState('')
   const [tripStartDate, setTripStartDate] = useState(() => todayISO())

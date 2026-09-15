@@ -16,3 +16,13 @@ export function estimateTravelMin(from, to, transport) {
 
 // 길찾기 API가 주는 초 단위 소요시간을 화면 표기용 "N분"으로.
 export const formatMinutes = (seconds) => `${Math.max(1, Math.round(seconds / 60))}분`
+
+// 분 단위 소요시간을 사람이 읽기 좋은 문자열로.
+// 47 -> "47분", 60 -> "1시간", 136 -> "2시간 16분".
+export function formatDurationMin(minutes) {
+  const m = Math.max(0, Math.round(minutes))
+  if (m < 60) return `${m}분`
+  const h = Math.floor(m / 60)
+  const rest = m % 60
+  return rest === 0 ? `${h}시간` : `${h}시간 ${rest}분`
+}

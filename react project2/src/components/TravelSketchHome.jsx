@@ -19,16 +19,11 @@ export default function TravelSketchHome({
   cityPhotos,
   destination,
   leaving,
-  mustVisit,
-  mustVisitInput,
   todayCity,
   todayCourse,
   todayStatus,
-  onAddMustVisit,
   onChangeDestination,
-  onChangeMustVisitInput,
   onPickCity,
-  onRemoveMustVisit,
   onRetryToday,
   onStartCourse,
   onStartToday,
@@ -60,7 +55,7 @@ export default function TravelSketchHome({
             <input
               value={destination}
               onChange={(event) => onChangeDestination(event.target.value)}
-              placeholder="부산"
+              placeholder="어디로 떠나볼까요? (예: 강릉)"
               aria-label="목적지"
             />
           </label>
@@ -125,51 +120,7 @@ export default function TravelSketchHome({
           </p>
         )}
 
-        <form
-          className="diary-must"
-          onSubmit={(event) => {
-            event.preventDefault()
-            onAddMustVisit()
-          }}
-        >
-          <div className="diary-must-head">
-            <b>꼭 들르고 싶은 장소</b>
-            <span>가고 싶은 곳을 적어두면 코스에 함께 반영해요.</span>
-          </div>
-          <div className="diary-must-input">
-            <input
-              value={mustVisitInput}
-              onChange={(event) => onChangeMustVisitInput(event.target.value)}
-              placeholder="예: 해운대, 감천문화마을"
-              maxLength={20}
-              aria-label="꼭 들르고 싶은 장소"
-            />
-            <button type="submit">추가</button>
-          </div>
-          {mustVisit.length > 0 && (
-            <ul className="diary-must-tags">
-              {mustVisit.map((keyword) => (
-                <li key={keyword}>
-                  {keyword}
-                  <button type="button" onClick={() => onRemoveMustVisit(keyword)} aria-label={`${keyword} 삭제`}>
-                    ×
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </form>
       </article>
-
-      <footer className="diary-footer">
-        <nav aria-label="하단 메뉴">
-          <a href="#sitemap">사이트맵</a>
-          <a href="#privacy">개인정보 처리방침</a>
-          <a href="#terms">이용 약관</a>
-          <a href="#dark">다크코드</a>
-          <a href="#festival">축제</a>
-        </nav>
-      </footer>
     </section>
   )
 }

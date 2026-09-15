@@ -107,7 +107,7 @@ export default function OriginScreen({ destination, nights, initialOrigin, initi
           disabled={status === 'resolving' || !originInput.trim()}
           onClick={handleConfirm}
         >
-          {status === 'resolving' ? '위치 확인 중...' : '여행 코스 만들기'}
+          {status === 'resolving' ? '위치 확인 중...' : '다음'}
         </button>
       </div>
     </section>

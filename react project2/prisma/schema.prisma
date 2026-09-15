@@ -75,3 +75,49 @@ model PlaceCache {
 
   @@index([cityKey])
 }
+
+// ── 커뮤니티 ────────────────────────────────────────────────────────────
+// 사용자가 자기 코스를 공개해 공유하는 글. payload 는 SavedCourse 와 같은 모양의
+// 동선 스냅샷 JSON 문자열이라 상세 화면에서 그대로 일정을 그릴 수 있다.
+model CoursePost {
+  id         String   @id @default(uuid())
+  userId     String
+  authorName String // 작성 시점 이름 스냅샷 (계정 이름이 바뀌어도 글은 그대로)
+  title      String
+  city       String
+  dayCount   Int      @default(1)
+  summary    String   @default("") // 한 줄 소개
+  body       String   @default("") // 작성자 후기 본문
+  rating     Int      @default(5) // 작성자 본인 별점 1~5
+  payload    String // 동선 스냅샷 JSON
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([city])
+  @@index([createdAt])
+}
+
+// 공유된 코스에 달리는 후기 (별점 + 내용).
+model CourseReview {
+  id         String   @id @default(uuid())
+  postId     String
+  userId     String
+  authorName String
+  rating     Int // 1~5
+  body       String
+  createdAt  DateTime @default(now())
+
+  @@unique([postId, userId]) // 한 코스에 한 사람당 후기 하나 (다시 쓰면 갱신)
+  @@index([postId])
+}
+
+// 추천(좋아요). userId+postId 유니크라 토글로 동작한다.
+model CourseLike {
+  id        String   @id @default(uuid())
+  postId    String
+  userId    String
+  createdAt DateTime @default(now())
+
+  @@unique([postId, userId])
+  @@index([postId])
+}

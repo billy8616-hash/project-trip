@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { fetchCarRoute, fetchTransitRoute } from '../lib/api.js'
+import { fetchCarRoute, fetchTransitRoute, fetchWalkRoute } from '../lib/api.js'
 import { kakaoMapApiKey, legColor, loadKakaoMaps } from '../lib/kakaoMaps.js'
 import { estimateTravelMin, formatMinutes } from '../lib/travelTime.js'
 import MapNotice from './MapNotice.jsx'
@@ -64,9 +64,15 @@ function traceEntries(entries, { steps = 16, intervalMs = 22 } = {}) {
   }
 }
 
-export default function KakaoRouteMap({ course, places, origin, endPoint, transport, selectedPlace, selectPulse = 0, onSelectPlace, onRouteReady }) {
+export default function KakaoRouteMap({ course, places, origin, endPoint, transport, selectedPlace, selectPulse = 0, onSelectPlace, onRouteReady, onMapReady }) {
   const mapElementRef = useRef(null)
   const mapRef = useRef(null)
+  // onMapReady 를 ref 로 들고 있어 effect 의존성에서 빼둔다 (부모가 인라인 함수로 넘겨도 지도를 다시 만들지 않도록).
+  // 렌더 중에 ref 를 건드리면 안 되므로 갱신은 effect 에서 한다.
+  const onMapReadyRef = useRef(onMapReady)
+  useEffect(() => {
+    onMapReadyRef.current = onMapReady
+  }, [onMapReady])
   const markersRef = useRef([])
   const polylinesRef = useRef([])
   const traceTimerRef = useRef(null)
@@ -145,6 +151,7 @@ export default function KakaoRouteMap({ course, places, origin, endPoint, transp
           level: 6,
         })
         mapRef.current = map
+        onMapReadyRef.current?.(map)
 
         const fitToStops = () => {
           if (stops.length === 1) {
@@ -414,10 +421,76 @@ export default function KakaoRouteMap({ course, places, origin, endPoint, transp
             })
         }
 
+        // 도보 모드: Tmap 보행자 경로가 있는 구간은 실제 인도를 따라가는 경로로 그린다.
+        // (예전엔 도보가 전용 로직 없이 항상 drawFallbackRoute 를 썼는데, 그건 대중교통 API 실패 시의
+        // 대체 경로와 완전히 같은 모양이라 두 모드가 똑같아 보이는 원인이었다.)
+        const drawWalkRoute = () => {
+          fetchWalkRoute(stops)
+            .then((data) => {
+              if (!isMounted) return
+
+              const bounds = new kakao.maps.LatLngBounds()
+
+              const nextLegs = stops.slice(0, -1).map((_stop, index) => {
+                const section = data.sections[index]
+                const color = legColor(index)
+                const meta = legMeta(index)
+                const from = stops[index].location
+                const to = stops[index + 1].location
+
+                const coords = section ? section.path : [from, to]
+                const segPath = coords.map((point) => {
+                  const latlng = new kakao.maps.LatLng(point.lat, point.lng)
+                  bounds.extend(latlng)
+                  return latlng
+                })
+
+                // 지도 배경(도로 빨간선 등) 위에서도 눈에 띄도록 흰 테두리를 먼저 깔고, 그 위에 구간별 색선을 얹는다.
+                const outline = new kakao.maps.Polyline({
+                  map,
+                  path: segPath,
+                  strokeWeight: section ? 9 : 8,
+                  strokeColor: '#ffffff',
+                  strokeOpacity: 0.88,
+                  strokeStyle: 'solid',
+                })
+                const polyline = new kakao.maps.Polyline({
+                  map,
+                  path: segPath,
+                  strokeWeight: section ? 5 : 5,
+                  strokeColor: color,
+                  strokeOpacity: 0.96,
+                  strokeStyle: section ? 'solid' : 'shortdash',
+                })
+                registerLeg(outline, polyline, index, 5, color)
+
+                const duration = section
+                  ? `${section.totalMinutes}분`
+                  : `${estimateTravelMin(stops[index], stops[index + 1], transport)}분`
+                placeStopMarker(stops[index])
+                return { ...meta, duration, summary: null }
+              })
+
+              placeStopMarker(stops[stops.length - 1])
+              stops.forEach((stop) => bounds.extend(new kakao.maps.LatLng(stop.location.lat, stop.location.lng)))
+              map.setBounds(bounds, 80, 80, 80, 80)
+              onRouteReady(nextLegs)
+              setDrawn({ stops, transport, status: 'ready', source: 'walk' })
+              traceLegs()
+            })
+            .catch((error) => {
+              if (!isMounted) return
+              console.warn(`[route] Tmap 보행자 길찾기 실패: ${error.message}`)
+              drawFallbackRoute()
+            })
+        }
+
         if (transport === '자차') {
           drawCarRoute()
         } else if (transport === '대중교통') {
           drawTransitRoute()
+        } else if (transport === '도보') {
+          drawWalkRoute()
         } else {
           drawFallbackRoute()
         }
@@ -508,6 +581,7 @@ export default function KakaoRouteMap({ course, places, origin, endPoint, transp
         <span>Kakao Maps API</span>
         {routeSource === 'car' && <span>카카오모빌리티 길찾기</span>}
         {routeSource === 'transit' && <span>ODsay 대중교통 길찾기</span>}
+        {routeSource === 'walk' && <span>Tmap 보행자 길찾기</span>}
       </div>
     </div>
   )

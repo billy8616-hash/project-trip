@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import DateRangeField from '../components/DateRangeField.jsx'
 import { destinationCatalog } from '../data/destinations.js'
 import { fetchWeatherForecast } from '../lib/api.js'
 import { durationLabelFromNights, formatShortDate, nightsBetween } from '../lib/datetime.js'
@@ -27,10 +28,10 @@ export default function DatesScreen({
   const [confirmedRange, setConfirmedRange] = useState('')
   const confirmed = confirmedRange !== '' && confirmedRange === `${startDate}~${endDate}`
 
-  const handleStartChange = (event) => {
-    const next = event.target.value
-    onChangeStart(next)
-    if (endDate < next) onChangeEnd(next)
+  // 캘린더가 (출발, 도착) 두 날짜를 함께 넘겨 준다. 각각 상태에 반영.
+  const handleRangeChange = (nextStart, nextEnd) => {
+    onChangeStart(nextStart)
+    onChangeEnd(nextEnd && nextEnd >= nextStart ? nextEnd : nextStart)
   }
 
   const handleConfirm = () => {
@@ -58,15 +59,14 @@ export default function DatesScreen({
         <p>출발하는 날과 돌아오는 날, 그리고 매일 아침 몇 시부터 움직일지 정해 주세요.</p>
       </header>
       <div className="date-form">
-        <label>
-          <span>여행 출발하는 날</span>
-          <input type="date" value={startDate} onChange={handleStartChange} />
-        </label>
-        <label>
-          <span>집에 돌아오는 날</span>
-          <input type="date" value={endDate} min={startDate} onChange={(event) => onChangeEnd(event.target.value)} />
-        </label>
-        <label>
+        <div className="date-form-range">
+          <DateRangeField
+            startDate={startDate}
+            endDate={endDate}
+            onChange={handleRangeChange}
+          />
+        </div>
+        <label className="date-form-time">
           <span>하루를 시작하는 시각</span>
           <input
             type="time"

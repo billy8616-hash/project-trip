@@ -11,11 +11,21 @@ import {
   listSavedCourses,
   renameSavedCourse,
 } from './savedCourseStore.js'
+import {
+  createPost,
+  deletePost,
+  deleteReview,
+  getPost,
+  listPosts,
+  toggleLike,
+  upsertReview,
+} from './communityStore.js'
 import { enrichPlaces } from './placeEnrich.js'
 import { fetchGoogleHoursMany } from './googlePlaces.js'
 import { findCityPool, toPoolPlace, upsertPlaces } from './placeCache.js'
 import { getCityTrends } from './naverTrend.js'
 import { searchTransitPath } from './odsay.js'
+import { searchWalkPath } from './tmap.js'
 import { fetchPlaceDetailsMany, getCityThumbnails, searchAttractions, searchCultureSpots } from './tourApi.js'
 import { fetchTransitAccessMany } from './transit.js'
 import { fetchCurrentWeather, fetchForecast } from './weather.js'
@@ -312,6 +322,17 @@ async function requireAuth(req, res, next) {
   return next()
 }
 
+// 로그인했으면 req.userId / req.userName 을 채우고, 아니면 그냥 통과시킨다.
+// 커뮤니티 "읽기"는 비로그인도 되지만, 내가 추천했는지 같은 건 알아야 해서 쓴다.
+async function optionalAuth(req, _res, next) {
+  const token = getCookie(req, cookieName)
+  const payload = token ? verifyToken(token) : null
+  const user = payload ? await findUserById(payload.sub) : null
+  req.userId = user ? user.id : null
+  req.userName = user ? user.name : null
+  return next()
+}
+
 // "내 여행" — 로그인 사용자가 저장한 여행 동선 목록.
 app.get('/api/trips', requireAuth, async (req, res) => {
   try {
@@ -366,6 +387,103 @@ app.delete('/api/trips/:id', requireAuth, async (req, res) => {
     return res.json({ ok: true })
   } catch (error) {
     return res.status(500).json({ message: error.message || '여행을 삭제하지 못했어요.' })
+  }
+})
+
+// ── 커뮤니티 ─────────────────────────────────────────────────────────────
+// 읽기(목록/상세)는 비로그인도 가능. 쓰기(공유·후기·추천)는 로그인 필요.
+
+// 공유된 코스 목록. ?city=제주 &sort=recent|likes|rating
+app.get('/api/community', optionalAuth, async (req, res) => {
+  const { city = '', sort = 'recent' } = req.query || {}
+  try {
+    const posts = await listPosts({ city: String(city).trim(), sort: String(sort), viewerId: req.userId })
+    return res.json({ posts })
+  } catch (error) {
+    return res.status(500).json({ message: error.message || '커뮤니티 글을 불러오지 못했어요.' })
+  }
+})
+
+// 글 하나 + 동선 + 후기 목록.
+app.get('/api/community/:id', optionalAuth, async (req, res) => {
+  try {
+    const post = await getPost(req.params.id, req.userId)
+    if (!post) return res.status(404).json({ message: '글을 찾지 못했어요.' })
+    return res.json({ post })
+  } catch (error) {
+    return res.status(500).json({ message: error.message || '글을 불러오지 못했어요.' })
+  }
+})
+
+// 내 코스를 커뮤니티에 공유하기.
+app.post('/api/community', requireAuth, async (req, res) => {
+  const { title, city, dayCount, summary, body, rating, payload } = req.body || {}
+  if (typeof title !== 'string' || !title.trim()) {
+    return res.status(400).json({ message: '제목이 필요해요.' })
+  }
+  if (typeof city !== 'string' || !city.trim()) {
+    return res.status(400).json({ message: '여행지 정보가 필요해요.' })
+  }
+  if (!payload || typeof payload !== 'object' || !Array.isArray(payload.days)) {
+    return res.status(400).json({ message: '공유할 일정 정보가 올바르지 않아요.' })
+  }
+  try {
+    const user = await findUserById(req.userId)
+    const post = await createPost(req.userId, user?.name, {
+      title: title.trim(), city: city.trim(), dayCount, summary, body, rating, payload,
+    })
+    return res.status(201).json({ post })
+  } catch (error) {
+    return res.status(error.status || 500).json({ message: error.message || '공유하지 못했어요.' })
+  }
+})
+
+// 내가 올린 글 삭제 (후기·추천도 같이 정리된다).
+app.delete('/api/community/:id', requireAuth, async (req, res) => {
+  try {
+    const ok = await deletePost(req.userId, req.params.id)
+    if (!ok) return res.status(404).json({ message: '글을 찾지 못했어요.' })
+    return res.json({ ok: true })
+  } catch (error) {
+    return res.status(500).json({ message: error.message || '글을 삭제하지 못했어요.' })
+  }
+})
+
+// 후기 남기기 (한 사람당 하나. 다시 보내면 갱신).
+app.post('/api/community/:id/reviews', requireAuth, async (req, res) => {
+  const { rating, body } = req.body || {}
+  if (typeof body !== 'string' || !body.trim()) {
+    return res.status(400).json({ message: '후기 내용을 입력해 주세요.' })
+  }
+  try {
+    const user = await findUserById(req.userId)
+    const review = await upsertReview(req.params.id, req.userId, user?.name, { rating, body })
+    if (!review) return res.status(404).json({ message: '글을 찾지 못했어요.' })
+    return res.status(201).json({ review })
+  } catch (error) {
+    return res.status(error.status || 500).json({ message: error.message || '후기를 남기지 못했어요.' })
+  }
+})
+
+// 내 후기 삭제.
+app.delete('/api/community/:id/reviews', requireAuth, async (req, res) => {
+  try {
+    const ok = await deleteReview(req.params.id, req.userId)
+    if (!ok) return res.status(404).json({ message: '후기를 찾지 못했어요.' })
+    return res.json({ ok: true })
+  } catch (error) {
+    return res.status(500).json({ message: error.message || '후기를 지우지 못했어요.' })
+  }
+})
+
+// 추천 토글.
+app.post('/api/community/:id/like', requireAuth, async (req, res) => {
+  try {
+    const result = await toggleLike(req.params.id, req.userId)
+    if (!result) return res.status(404).json({ message: '글을 찾지 못했어요.' })
+    return res.json(result)
+  } catch (error) {
+    return res.status(500).json({ message: error.message || '추천하지 못했어요.' })
   }
 })
 
@@ -455,6 +573,42 @@ app.get('/api/directions/transit', async (req, res) => {
   } catch (error) {
     console.error('[directions/transit]', error)
     return res.status(502).json({ message: error.message || '대중교통 경로를 가져오지 못했어요.' })
+  }
+})
+
+// 도보 모드 지도 경로용: Tmap(SK 오픈API) 보행자 경로안내를 서버에서 대신 호출한다.
+// ODsay 처럼 경유지를 한 번에 못 받아서 구간(정류장 i -> i+1)마다 따로 조회해 합친다.
+// 경로가 없는 구간은 sections 에 null 로 담아 프런트가 직선+추정으로 폴백하게 한다.
+app.get('/api/directions/walk', async (req, res) => {
+  if (!process.env.TMAP_API_KEY) {
+    return res.status(503).json({ message: '서버에 TMAP_API_KEY가 설정되지 않았어요.' })
+  }
+
+  const origin = String(req.query.origin || '')
+  const destination = String(req.query.destination || '')
+  const waypoints = String(req.query.waypoints || '')
+  if (!COORD_PATTERN.test(origin) || !COORD_PATTERN.test(destination)) {
+    return res.status(400).json({ message: 'origin, destination 좌표(lng,lat)가 필요해요.' })
+  }
+  if (waypoints && !WAYPOINTS_PATTERN.test(waypoints)) {
+    return res.status(400).json({ message: 'waypoints 형식이 올바르지 않아요.' })
+  }
+
+  const toPoint = (text) => {
+    const [lng, lat] = text.split(',').map(Number)
+    return { lat, lng }
+  }
+  const points = [origin, ...(waypoints ? waypoints.split('|') : []), destination].map(toPoint)
+
+  try {
+    const sections = await Promise.all(
+      points.slice(0, -1).map((from, index) => searchWalkPath(from, points[index + 1]).catch(() => null)),
+    )
+    const totalMinutes = sections.reduce((sum, section) => sum + (section?.totalMinutes || 0), 0)
+    return res.json({ sections, totalMinutes })
+  } catch (error) {
+    console.error('[directions/walk]', error)
+    return res.status(502).json({ message: error.message || '도보 경로를 가져오지 못했어요.' })
   }
 })
 

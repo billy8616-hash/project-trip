@@ -1,6 +1,5 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import { app as authApi } from './server/app.js'
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -18,7 +17,10 @@ export default defineConfig({
       // 덕분에 `npm run dev` 한 번이면 프런트와 인증 API 가 같은 포트에서 함께 뜬다.
       // (별도 백엔드 프로세스를 쓰고 싶으면 `npm run server` 로 4000 포트에 따로 띄울 수도 있다.)
       name: 'auth-api-middleware',
-      configureServer(server) {
+      // configureServer 는 `vite dev` 에서만 실행된다. Express/Prisma 는 여기서 동적으로만
+      // 불러와서, `vite build`(배포 빌드) 는 서버 코드를 전혀 끌어오지 않게 한다.
+      async configureServer(server) {
+        const { app: authApi } = await import('./server/app.js')
         server.middlewares.use((req, res, next) => {
           if (req.url?.startsWith('/api/')) authApi(req, res, next)
           else next()

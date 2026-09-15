@@ -1,8 +1,35 @@
 import { useEffect, useRef, useState } from 'react'
 import { SLOT_LABELS } from '../data/travelOptions.js'
 import { makeId } from '../lib/ids.js'
+import { placeKindOf } from '../lib/placeKind.js'
 import { formatClock, scheduleDay } from '../lib/schedule.js'
+import { formatDurationMin } from '../lib/travelTime.js'
 import SlotAdder from './SlotAdder.jsx'
+import { KakaoMark, NaverMark } from './MapMarks.jsx'
+
+// 슬롯 라벨은 실제 배정 결과에 맞춰 느슨하게 — "점심 맛집"/"오후 카페"는 그 자리에
+// 실제 음식점·카페(카카오 로컬 풀)가 들어왔을 때만 쓰고, 아니면 "점심"/"오후"로 표시한다.
+function slotDisplayLabel(slotKey, list, placeInfoByName) {
+  const hasFood = list.some((card) => placeInfoByName?.get(card.name)?.source === 'kakao')
+  if (slotKey === '점심 맛집') return hasFood ? '점심 맛집' : '점심'
+  if (slotKey === '오후 카페') return hasFood ? '오후 카페' : '오후'
+  return slotKey // '오전', '저녁'
+}
+
+// 카드 카테고리 태그(#…) 라벨.
+const KIND_TAG = {
+  cafe: '카페',
+  bar: '술집',
+  museum: '전시·박물관',
+  viewpoint: '전망대',
+  market: '전통시장',
+  themepark: '체험·테마파크',
+  spa: '온천·스파',
+  nature: '자연',
+  history: '고궁·유적',
+  restaurant: '맛집',
+  sight: '명소',
+}
 
 export default function ScheduleTimeline({
   cityKey,
@@ -170,9 +197,18 @@ export default function ScheduleTimeline({
                 onDragOver={(event) => event.preventDefault()}
                 onDrop={() => moveCard({ d, s, i: list.length })}
               >
-                <span className="sch-slot-label">{SLOT_LABELS[s]}</span>
+                <span className="sch-slot-label">{slotDisplayLabel(SLOT_LABELS[s], list, placeInfoByName)}</span>
                 <div className="sch-cards">
-                  {list.map((card, i) => (
+                  {list.map((card, i) => {
+                    const info = placeInfoByName?.get(card.name) || {}
+                    const kind = placeKindOf({
+                      category: info.category,
+                      source: info.source,
+                      name: card.name,
+                      assignedSlot: SLOT_LABELS[s],
+                    })
+                    const query = encodeURIComponent(`${cityKey} ${card.name}`)
+                    return (
                     <div className="sch-card-wrap" key={card.id}>
                       <div
                         className={selectedDay === d && selectedPlace === dayIndexOf(d, s, i) ? 'sch-card selected' : 'sch-card'}
@@ -189,27 +225,57 @@ export default function ScheduleTimeline({
                       >
                         <span className="sch-grip" aria-hidden="true">⠿</span>
                         <time className="sch-clock">{formatClock(timedByCard[`${d}:${card.id}`]?.arriveMin ?? dayStartMin ?? 0)}</time>
-                        <b>{card.name}</b>
-                        <button
-                          type="button"
-                          className="sch-del"
-                          onClick={(event) => {
-                            event.stopPropagation()
-                            removePlace(d, s, i)
-                          }}
-                          aria-label={`${card.name} 삭제`}
-                        >
-                          ×
-                        </button>
+                        <span className="sch-card-main">
+                          <b>{card.name}</b>
+                          <span className="sch-tag">#{KIND_TAG[kind] || '명소'}</span>
+                        </span>
+                        <span className="sch-card-actions">
+                          <a
+                            className="sch-map-link"
+                            href={`https://map.kakao.com/link/search/${query}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            draggable={false}
+                            aria-label={`${card.name} 카카오맵에서 보기`}
+                            title="카카오맵에서 보기"
+                            onClick={(event) => event.stopPropagation()}
+                          >
+                            <KakaoMark />
+                          </a>
+                          <a
+                            className="sch-map-link"
+                            href={`https://map.naver.com/p/search/${query}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            draggable={false}
+                            aria-label={`${card.name} 네이버지도에서 보기`}
+                            title="네이버지도에서 보기"
+                            onClick={(event) => event.stopPropagation()}
+                          >
+                            <NaverMark />
+                          </a>
+                          <button
+                            type="button"
+                            className="sch-del"
+                            onClick={(event) => {
+                              event.stopPropagation()
+                              removePlace(d, s, i)
+                            }}
+                            aria-label={`${card.name} 삭제`}
+                          >
+                            ×
+                          </button>
+                        </span>
                       </div>
                       {timedByCard[`${d}:${card.id}`]?.hoursNote && (
                         <span className="sch-hours-warn">⚠ {timedByCard[`${d}:${card.id}`].hoursNote}</span>
                       )}
                       {timedByCard[`${d}:${card.id}`]?.travelToNextMin ? (
-                        <span className="sch-travel">↓ 약 {timedByCard[`${d}:${card.id}`].travelToNextMin}분</span>
+                        <span className="sch-travel">↓ 약 {formatDurationMin(timedByCard[`${d}:${card.id}`].travelToNextMin)}</span>
                       ) : null}
                     </div>
-                  ))}
+                    )
+                  })}
                   {list.length === 0 && <span className="sch-empty">카드를 끌어다 놓거나 아래에서 추가</span>}
                 </div>
                 <SlotAdder onAdd={(name) => addPlace(d, s, name)} />
