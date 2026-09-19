@@ -3,8 +3,10 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  // 마이그레이션(db push)은 pgbouncer 를 거치면 안 되므로 세션 모드 연결을 따로 쓴다.
+  directUrl = env("DIRECT_URL")
 }
 
 // 로그인 자체(이메일/비밀번호, 소셜 계정)는 Supabase Auth 의 auth.users 가 관리한다.
