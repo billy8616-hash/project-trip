@@ -6,6 +6,53 @@ import { costTierFromPriceLevel } from './costTier.js'
 
 const apiKey = process.env.GOOGLE_PLACES_API_KEY
 const SEARCH_URL = 'https://places.googleapis.com/v1/places:searchText'
+const PHOTO_BASE_URL = 'https://places.googleapis.com/v1'
+
+// Google 사진 리소스 이름: "places/<place_id>/photos/<photo_id>".
+// 이 값을 그대로 브라우저에 주면 API 키가 필요해 노출되므로, 서버 프록시(/api/place-photo)를 거친다.
+const PHOTO_REF_PATTERN = /^places\/[A-Za-z0-9_-]+\/photos\/[A-Za-z0-9_-]+$/
+
+export function isPhotoRef(value) {
+  return PHOTO_REF_PATTERN.test(String(value || ''))
+}
+
+// 사진 리소스 이름 -> 프런트가 <img src> 로 쓸 수 있는 우리 서버 경로.
+export function googlePhotoPath(photoRef) {
+  if (!isPhotoRef(photoRef)) return null
+  return `/api/place-photo?ref=${encodeURIComponent(photoRef)}`
+}
+
+// 실제 이미지 주소는 서명이 붙어 있고 한 시간쯤 뒤 만료된다. DB 에 넣어 두면 금방 깨지니
+// 요청이 올 때마다 새로 받아 오되, 만료 전까지는 메모리에 재사용한다.
+const photoUriCache = new Map() // `${ref}|${maxWidth}` -> { uri, cachedAt }
+const PHOTO_URI_TTL_MS = 45 * 60 * 1000
+
+// 사진 리소스 이름 -> googleusercontent 실제 이미지 주소 | null
+export async function resolveGooglePhotoUri(photoRef, maxWidth = 320) {
+  if (!apiKey || !isPhotoRef(photoRef)) return null
+
+  const cacheKey = `${photoRef}|${maxWidth}`
+  const cached = photoUriCache.get(cacheKey)
+  if (cached && Date.now() - cached.cachedAt < PHOTO_URI_TTL_MS) return cached.uri
+
+  const params = new URLSearchParams({
+    maxWidthPx: String(maxWidth),
+    skipHttpRedirect: 'true', // 이미지 바이트 대신 주소(JSON)만 받아서 브라우저로 리다이렉트한다.
+    key: apiKey,
+  })
+
+  let response
+  try {
+    response = await fetch(`${PHOTO_BASE_URL}/${photoRef}/media?${params}`, { signal: timeoutSignal(4000) })
+  } catch {
+    return null
+  }
+  const data = await response.json().catch(() => null)
+  if (!response.ok || !data?.photoUri) return null
+
+  photoUriCache.set(cacheKey, { uri: data.photoUri, cachedAt: Date.now() })
+  return data.photoUri
+}
 
 // priceLevel -> 사용자에게 보여줄 짧은 문구 (Google 은 금액 텍스트를 주지 않는다).
 const PRICE_LEVEL_TEXT = {
@@ -63,23 +110,10 @@ export function parseGoogleHours(regularOpeningHours) {
   return { openHoursText, closedDayText, opensAt, closesAt, alwaysOpen, closedWeekdays }
 }
 
-// place: { name, address, lat, lng } -> 영업시간 정보 | null
-export async function fetchGoogleHours(place) {
-  if (!apiKey || !place?.name) return null
-
-  const textQuery = [place.name, place.address].filter(Boolean).join(' ').trim()
-  if (!textQuery) return null
-
-  const body = {
-    textQuery,
-    languageCode: 'ko',
-    regionCode: 'KR',
-    maxResultCount: 1,
-  }
-  if (Number.isFinite(place.lat) && Number.isFinite(place.lng)) {
-    // 상호명이 흔하면 엉뚱한 지점이 잡힐 수 있어 좌표 주변으로 검색을 좁힌다.
-    body.locationBias = { circle: { center: { latitude: place.lat, longitude: place.lng }, radius: 400 } }
-  }
+// textQuery 한 번을 던져 첫 결과를 받는다. 실패/무응답이면 null.
+async function searchTextOnce(textQuery, locationBias) {
+  const body = { textQuery, languageCode: 'ko', regionCode: 'KR', maxResultCount: 1 }
+  if (locationBias) body.locationBias = locationBias
 
   let response
   try {
@@ -88,7 +122,9 @@ export async function fetchGoogleHours(place) {
       headers: {
         'Content-Type': 'application/json',
         'X-Goog-Api-Key': apiKey,
-        'X-Goog-FieldMask': 'places.id,places.regularOpeningHours,places.priceLevel',
+        'X-Goog-FieldMask':
+          'places.id,places.regularOpeningHours,places.priceLevel,places.photos,' +
+          'places.rating,places.userRatingCount,places.editorialSummary,places.websiteUri',
       },
       body: JSON.stringify(body),
       signal: timeoutSignal(4000),
@@ -99,19 +135,50 @@ export async function fetchGoogleHours(place) {
 
   const data = await response.json().catch(() => null)
   if (!response.ok || !data) return null
+  return data.places?.[0] || null
+}
 
-  const found = data.places?.[0]
+// place: { name, address, lat, lng } -> { ...영업시간, ...가격대, photoRef } | null
+// 영업시간·가격대·사진을 searchText 한 번으로 같이 받는다 (필드를 늘려도 호출 수는 그대로다).
+export async function fetchGoogleHours(place) {
+  if (!apiKey || !place?.name) return null
+
+  const locationBias =
+    Number.isFinite(place.lat) && Number.isFinite(place.lng)
+      ? // 상호명이 흔하면 엉뚱한 지점이 잡힐 수 있어 좌표 주변으로 검색을 좁힌다.
+        { circle: { center: { latitude: place.lat, longitude: place.lng }, radius: 400 } }
+      : undefined
+
+  const nameQuery = place.name.trim()
+  const nameAddressQuery = [place.name, place.address].filter(Boolean).join(' ').trim()
+  if (!nameQuery) return null
+
+  // 이름+주소로 먼저 찾는다(같은 이름이 여러 곳일 때 주소가 구분해 준다).
+  // 구글이 도로명 대신 옛 지번 주소로 색인해 둔 곳은 이 조합이 0건으로 나오므로,
+  // 좌표 반경(locationBias)만 믿고 이름만으로 한 번 더 찾아본다.
+  const found =
+    (nameAddressQuery && nameAddressQuery !== nameQuery ? await searchTextOnce(nameAddressQuery, locationBias) : null) ||
+    (await searchTextOnce(nameQuery, locationBias))
   if (!found) return null
 
   const priceLevel = found.priceLevel || null
   const costFields = {
     feeText: priceLevel ? PRICE_LEVEL_TEXT[priceLevel] || null : null,
     costTier: costTierFromPriceLevel(priceLevel),
+    // 사진은 인기순으로 오므로 첫 장이 대표 사진 역할을 한다.
+    photoRef: found.photos?.[0]?.name || null,
+    // 카드 딥데이터: 별점·리뷰수·한줄요약·홈페이지(SNS 주소도 여기 하나로 옴).
+    // editorialSummary 는 구글이 요약을 만들어 둔 곳만 있어서 없는 경우가 흔하다.
+    rating: typeof found.rating === 'number' ? found.rating : null,
+    userRatingCount: typeof found.userRatingCount === 'number' ? found.userRatingCount : null,
+    editorialSummary: found.editorialSummary?.text || null,
+    websiteUrl: found.websiteUri || null,
   }
+  const hasAnything = Object.values(costFields).some((value) => value !== null)
 
   if (!found.regularOpeningHours) {
-    // 영업시간이 없어도 가격대는 건질 수 있으면 그것만 돌려준다.
-    if (!costFields.costTier && !costFields.feeText) return null
+    // 영업시간이 없어도 나머지(가격대·사진·별점 등)는 건질 수 있으면 그것만 돌려준다.
+    if (!hasAnything) return null
     return {
       openHoursText: null,
       closedDayText: null,
@@ -126,7 +193,7 @@ export async function fetchGoogleHours(place) {
   return { ...parseGoogleHours(found.regularOpeningHours), ...costFields }
 }
 
-// 여러 장소의 영업시간을 한 번에 조회한다. -> Map<placeId, hours | null>
+// 여러 장소의 영업시간·가격대·대표 사진을 한 번에 조회한다. -> Map<placeId, info | null>
 // 키가 없으면 빈 Map (불필요한 요청을 아예 안 보낸다).
 export async function fetchGoogleHoursMany(places) {
   if (!apiKey || places.length === 0) return new Map()

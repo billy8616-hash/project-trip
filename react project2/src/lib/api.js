@@ -2,6 +2,15 @@
 // 비워두면 같은 오리진(/api)으로 요청하고 Vite 프록시가 백엔드로 전달한다.
 export const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || ''
 
+// 서버가 내려주는 이미지 주소는 두 종류다.
+//  · 절대 URL      (TourAPI 사진) -> 그대로 쓴다
+//  · "/api/..." 경로 (Google 사진 프록시) -> 백엔드를 따로 띄웠다면 그 오리진을 붙여 줘야 한다
+export function resolveImageUrl(value) {
+  const url = String(value || '').trim()
+  if (!url) return ''
+  return url.startsWith('/') ? `${apiBaseUrl}${url}` : url
+}
+
 // 도시별 장소 풀. TourAPI(관광지/문화시설/야경) + 카카오 로컬(맛집/카페) + Gemini(추천이유/주의사항/테마)를
 // 서버가 모아서 { title, subtitle, center, pool } 모양으로 내려준다. (server/app.js 참고)
 export async function fetchCityPool(cityName) {

@@ -43,6 +43,13 @@ async function searchKeyword(keyword, contentTypeId) {
   return Array.isArray(items) ? items : [items]
 }
 
+// TourAPI 사진 URL 은 콘텐츠에 따라 http:// 로 오기도 한다. https 페이지에서 막히지 않게 통일한다.
+function normalizeImageUrl(value) {
+  const url = String(value || '').trim()
+  if (!url) return null
+  return url.startsWith('http://') ? `https://${url.slice(7)}` : url
+}
+
 function toPlace(item, contentTypeId) {
   const slots = slotsForTourPlace({
     contentTypeId,
@@ -55,6 +62,9 @@ function toPlace(item, contentTypeId) {
     id: `tour-${item.contentid}`,
     source: 'tourapi',
     contentTypeId, // detailIntro2(주차 정보 등)를 조회할 때 콘텐츠 타입이 필요하다.
+    // 대표 사진. firstimage 는 원본, firstimage2 는 썸네일(작은 쪽)이다. 둘 다 없는 콘텐츠도 흔하다.
+    // 검색 응답에 이미 들어 있어서 추가 호출이 필요 없다.
+    image: normalizeImageUrl(item.firstimage || item.firstimage2),
     name: item.title,
     address: item.addr1 || '',
     lat: Number(item.mapy),
@@ -171,7 +181,7 @@ async function fetchCityThumbnail(cityName) {
   for (const contentTypeId of [CONTENT_TYPE.attraction, CONTENT_TYPE.culture, undefined]) {
     const items = await searchKeyword(cityName, contentTypeId)
     const withImage = items.find((item) => item.firstimage && isInCity(item, cityName))
-    if (withImage) return withImage.firstimage
+    if (withImage) return normalizeImageUrl(withImage.firstimage)
   }
   return null
 }

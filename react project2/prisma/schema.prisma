@@ -63,6 +63,17 @@ model PlaceCache {
   feeText  String @default("") // 표시용 원문/문구 (예: "무료", "성인 3,000원", "보통").
   costTier String @default("") // free | low | mid | high | "" (판단 불가).
 
+  // 대표 사진 URL. 관광지·문화시설은 TourAPI firstimage(절대 URL),
+  // 맛집·카페는 Google Places 사진이라 키를 숨기려고 서버 프록시 경로("/api/place-photo?ref=...")로 저장한다.
+  // 사진을 못 구한 장소는 null 이고, 화면에서는 종류 색 자리표시 타일이 그대로 나온다.
+  imageUrl String?
+
+  // 코스 카드 딥데이터 (현재는 Google Places 소스, 즉 맛집·카페만 채워진다. 관광지는 별도 호출이 필요해 아직 없음).
+  rating          Float? // 5점 만점 별점.
+  userRatingCount Int? // 리뷰 개수.
+  editorialSummary String? // 구글이 만들어 둔 한 줄 요약. 없는 곳이 흔해서 null 이 정상.
+  websiteUrl      String? // 홈페이지 또는 SNS(인스타그램 등) 주소 — 구글은 이 둘을 구분하지 않고 하나로 준다.
+
   // 대중교통 접근성 (카카오 로컬 SW8 카테고리 검색으로 구한 최근접 지하철역).
   transitStation   String? // 가장 가까운 지하철역 이름. 반경 내 없으면 null.
   transitDistanceM Int? // 그 역까지 직선거리(m). 없으면 null.

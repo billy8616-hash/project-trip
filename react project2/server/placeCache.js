@@ -32,6 +32,16 @@ export async function upsertPlaces(places) {
   )
 }
 
+// 사진만 따로 채워 넣을 때 쓴다. updates: [{ id, imageUrl }]
+export async function updatePlaceImages(updates) {
+  if (updates.length === 0) return
+  await prisma.$transaction(
+    updates.map((update) =>
+      prisma.placeCache.update({ where: { id: update.id }, data: { imageUrl: update.imageUrl } }),
+    ),
+  )
+}
+
 // closedWeekdays 는 "[1]" 같은 JSON 배열 문자열로 저장돼 있다. 깨졌거나 비어있으면 빈 배열.
 function parseWeekdays(value) {
   try {
@@ -76,6 +86,11 @@ export function toPoolPlace(row) {
     transitStation: row.transitStation,
     transitDistanceM: row.transitDistanceM,
     transitScore: row.transitScore,
+    imageUrl: row.imageUrl || '',
+    rating: row.rating ?? null,
+    userRatingCount: row.userRatingCount ?? null,
+    editorialSummary: row.editorialSummary || null,
+    websiteUrl: row.websiteUrl || null,
     location: { lat: row.lat, lng: row.lng },
     slots: parseSlots(row.slots, row.slot),
     themes: JSON.parse(row.themes),

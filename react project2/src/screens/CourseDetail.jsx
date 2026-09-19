@@ -27,6 +27,19 @@ export const KIND_STYLE = {
 }
 const kindStyle = (kind) => KIND_STYLE[kind] || KIND_STYLE.sight
 
+// 링크 하나로 홈페이지/SNS 를 다 받기 때문에(구글 websiteUri), 인스타그램 주소면
+// 라벨·아이콘만 그에 맞게 바꿔 보여준다 — 실제로는 하나의 필드다.
+function websiteMeta(url) {
+  if (!url) return null
+  try {
+    const host = new URL(url).hostname.replace(/^www\./, '')
+    if (host.includes('instagram.com')) return { icon: 'instagram', label: '인스타그램' }
+    return { icon: 'globe', label: '홈페이지' }
+  } catch {
+    return { icon: 'globe', label: '홈페이지' }
+  }
+}
+
 /* ── MOCK (props 를 안 넘겼을 때만 쓰는 예시 데이터) ─────────────────────── */
 const MOCK_DAY = { no: 1, date: '9월 12일 (토)', region: '강릉' }
 const MOCK_PLACES = [
@@ -64,6 +77,18 @@ const PATHS = {
   calendar: <><rect x="3" y="4" width="18" height="17" rx="2" /><path d="M3 9h18M8 2v4M16 2v4" /></>,
   chevron: <><path d="M9 6l6 6-6 6" /></>,
   parking: <><rect x="3" y="3" width="18" height="18" rx="3" /><path d="M9 17V7h4a3 3 0 0 1 0 6H9" /></>,
+  globe: <><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" /></>,
+  instagram: <><rect x="3" y="3" width="18" height="18" rx="5" /><circle cx="12" cy="12" r="4" /><circle cx="17.2" cy="6.8" r="1" fill="currentColor" stroke="none" /></>,
+  externalLink: <><path d="M14 4h6v6M20 4L10 14M19 13v6a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h6" /></>,
+}
+// 채워진 별 하나 — 커뮤니티 화면(Star)과 같은 색(#F5A524)을 써서 "별점"이라는 신호를 앱 전체에서 통일한다.
+// 위 PATHS 는 전부 outline(fill=none) 이라 별만 별도 svg 로 그린다.
+function StarIcon({ size = 12 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="#F5A524" aria-hidden="true">
+      <path d="M12 3.5l2.7 5.6 6.1.8-4.5 4.3 1.1 6.1-5.4-2.9-5.4 2.9 1.1-6.1L3.2 9.9l6.1-.8z" />
+    </svg>
+  )
 }
 function Icon({ name, size = 18, stroke = 2, className = '' }) {
   return (
@@ -130,20 +155,28 @@ function RouteBadge({ route }) {
   )
 }
 
-/* 썸네일 — 사진이 있으면 <img>, 없으면 종류 색 자리표시 타일 */
+/* 썸네일 — 종류 색 자리표시 타일 위에 사진을 덮는다.
+   사진을 받는 동안·URL 이 깨졌을 때도 빈칸 대신 타일이 그대로 보이도록 겹쳐 두는 구조다. */
 function Thumb({ place }) {
   const k = kindStyle(place.kind)
   const [broken, setBroken] = useState(false)
-  if (place.image && !broken) {
-    return (
-      <img src={place.image} alt="" loading="lazy" onError={() => setBroken(true)}
-        className="tw-h-16 tw-w-16 tw-shrink-0 tw-rounded-cxl tw-border tw-border-cline tw-object-cover" />
-    )
-  }
+  const showImage = Boolean(place.image) && !broken
   return (
-    <div className="tw-grid tw-h-16 tw-w-16 tw-shrink-0 tw-place-items-center tw-rounded-cxl tw-border tw-border-cline"
-      style={{ background: k.bg, color: k.fg }}>
+    <div
+      className="tw-relative tw-grid tw-h-16 tw-w-16 tw-shrink-0 tw-place-items-center tw-overflow-hidden tw-rounded-cxl tw-border tw-border-cline"
+      style={{ background: k.bg, color: k.fg }}
+    >
       <Icon name="image" size={22} stroke={1.8} />
+      {showImage && (
+        <img
+          src={place.image}
+          alt={`${place.name} 사진`}
+          loading="lazy"
+          decoding="async"
+          onError={() => setBroken(true)}
+          className="tw-absolute tw-inset-0 tw-h-full tw-w-full tw-object-cover"
+        />
+      )}
     </div>
   )
 }
@@ -204,10 +237,18 @@ function PlaceCard({ place, isLast, isActive, onPick }) {
                   )}
                 </div>
               </div>
-              {/* 이제 이 자체는 버튼이 아니라 '펼쳐짐' 상태만 보여주는 장식 화살표 */}
-              <span aria-hidden="true" className="tw--mr-1 tw--mt-1 tw-shrink-0 tw-rounded-lg tw-p-1.5 tw-text-cink-faint">
-                <Icon name="chevron" size={16} className={`${open ? 'tw-rotate-90' : ''} tw-transition-transform tw-duration-200`} />
-              </span>
+              <div className="tw-flex tw-shrink-0 tw-items-center tw-gap-1">
+                {/* 접힌 상태에도 보이는 유일한 "딥 데이터" — 숫자 하나만. 리뷰수·요약·링크는 펼쳤을 때만. */}
+                {Number.isFinite(place.rating) && (
+                  <span className="tw-inline-flex tw-items-center tw-gap-0.5 tw-text-[12px] tw-font-semibold tw-tabular-nums tw-text-cink-muted">
+                    <StarIcon size={11} />{place.rating.toFixed(1)}
+                  </span>
+                )}
+                {/* 이제 이 자체는 버튼이 아니라 '펼쳐짐' 상태만 보여주는 장식 화살표 */}
+                <span aria-hidden="true" className="tw--mr-1 tw--mt-1 tw-rounded-lg tw-p-1.5 tw-text-cink-faint">
+                  <Icon name="chevron" size={16} className={`${open ? 'tw-rotate-90' : ''} tw-transition-transform tw-duration-200`} />
+                </span>
+              </div>
             </div>
 
             {place.timeRange && <p className="tw-mt-1 tw-text-xs tw-text-cink-faint tw-tabular-nums">{place.timeRange}</p>}
@@ -220,6 +261,26 @@ function PlaceCard({ place, isLast, isActive, onPick }) {
             >
               <div className="tw-min-h-0 tw-overflow-hidden">
                 <div className="tw-space-y-2.5 tw-pt-2.5">
+                  {/* 별점 · 리뷰수 — 신뢰 신호라 목록 맨 위, 다른 메타 칩보다 먼저 보여준다 */}
+                  {Number.isFinite(place.rating) && (
+                    <div className="tw-flex tw-items-center tw-gap-1 tw-text-[13px] tw-font-semibold tw-text-cink">
+                      <StarIcon size={13} />
+                      <span className="tw-tabular-nums">{place.rating.toFixed(1)}</span>
+                      {Number.isFinite(place.reviewCount) && (
+                        <span className="tw-font-medium tw-text-cink-faint">
+                          리뷰 {place.reviewCount.toLocaleString()}개
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  {/* 구글 한줄요약 — AI 추천이유(place.desc)와 출처가 다르므로 따옴표+옅은 배경으로 분리해 보여준다 */}
+                  {place.editorialSummary && (
+                    <p className="tw-rounded-lg tw-bg-surface-2 tw-px-2.5 tw-py-1.5 tw-text-[12.5px] tw-italic tw-leading-relaxed tw-text-cink-muted">
+                      “{place.editorialSummary}”
+                    </p>
+                  )}
+
                   {/* 체류시간 · 요금 · 대중교통 접근성 */}
                   {(place.stay || place.fee || place.transit) && (
                     <div className="tw-flex tw-flex-wrap tw-items-center tw-gap-1.5">
@@ -278,6 +339,23 @@ function PlaceCard({ place, isLast, isActive, onPick }) {
                   )}
 
                   {place.address && <p className="tw-text-[12px] tw-text-cink-faint">{place.address}</p>}
+
+                  {/* 홈페이지/SNS 링크 — 텍스트 버튼이 아니라 작은 아이콘 pill 로, 맨 마지막에 몰아서 둔다 */}
+                  {place.websiteUrl && (() => {
+                    const meta = websiteMeta(place.websiteUrl)
+                    return (
+                      <a
+                        href={place.websiteUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="tw-inline-flex tw-items-center tw-gap-1.5 tw-rounded-full tw-border tw-border-cline tw-px-3 tw-py-1.5 tw-text-[12px] tw-font-semibold tw-text-cink-muted tw-transition-colors hover:tw-border-caccent/40 hover:tw-text-caccent"
+                      >
+                        <Icon name={meta.icon} size={13} />{meta.label}
+                        <Icon name="externalLink" size={11} className="tw-text-cink-faint" />
+                      </a>
+                    )
+                  })()}
                 </div>
               </div>
             </div>

@@ -21,8 +21,8 @@ import {
   upsertReview,
 } from './communityStore.js'
 import { enrichPlaces } from './placeEnrich.js'
-import { fetchGoogleHoursMany } from './googlePlaces.js'
-import { findCityPool, toPoolPlace, upsertPlaces } from './placeCache.js'
+import { fetchGoogleHoursMany, googlePhotoPath, isPhotoRef, resolveGooglePhotoUri } from './googlePlaces.js'
+import { findCityPool, toPoolPlace, updatePlaceImages, upsertPlaces } from './placeCache.js'
 import { getCityTrends } from './naverTrend.js'
 import { searchTransitPath } from './odsay.js'
 import { searchWalkPath } from './tmap.js'
@@ -699,6 +699,13 @@ export async function buildCityPoolRows(cityKey) {
           transitStation: transit.transitStation,
           transitDistanceM: transit.transitDistanceM,
           transitScore: transit.transitScore,
+          // 대표 사진: 관광지·문화시설은 TourAPI 가 준 절대 URL, 맛집·카페는 Google 사진 프록시 경로.
+          imageUrl: place.image || googlePhotoPath(hours.photoRef) || null,
+          // 카드 딥데이터 — 지금은 Google 소스(맛집·카페)만 채워진다. TourAPI(관광지)는 이 필드들이 없어 전부 null.
+          rating: hours.rating ?? null,
+          userRatingCount: hours.userRatingCount ?? null,
+          editorialSummary: hours.editorialSummary ?? null,
+          websiteUrl: hours.websiteUrl ?? null,
           reason: enriched.reason || `${place.name}, ${cityKey}에서 들러볼 만한 곳이에요.`,
           caution: enriched.caution || '방문 전 영업시간과 휴무일을 확인해 주세요.',
           themes: JSON.stringify(enriched.themes || []),
@@ -708,6 +715,47 @@ export async function buildCityPoolRows(cityKey) {
 
   await upsertPlaces(rows)
   return rows
+}
+
+// 사진 칼럼이 생기기 전에 캐시된 장소들을 위한 보강.
+// 풀 전체를 다시 만들면 Gemini·상세조회까지 또 돌아가니, 사진만 따로 채워 넣는다.
+// (관광지·문화시설은 도시 검색 2번으로 전부 커버되고, 맛집·카페만 장소 단위로 조회한다.)
+async function backfillCityImages(cityKey, rows) {
+  const missing = rows.filter((row) => !row.imageUrl)
+  if (missing.length === 0) return
+
+  const tourRows = missing.filter((row) => row.source === 'tourapi')
+  const kakaoRows = missing.filter((row) => row.source === 'kakao')
+
+  const [tourPlaces, googleByPlaceId] = await Promise.all([
+    tourRows.length === 0
+      ? Promise.resolve([])
+      : Promise.all([searchAttractions(cityKey), searchCultureSpots(cityKey)])
+          .then(([attractions, cultureSpots]) => [...attractions, ...cultureSpots])
+          .catch(() => []),
+    fetchGoogleHoursMany(kakaoRows),
+  ])
+
+  const tourImageById = new Map(tourPlaces.filter((place) => place.image).map((place) => [place.id, place.image]))
+  const updates = missing
+    .map((row) => ({
+      id: row.id,
+      imageUrl: tourImageById.get(row.id) || googlePhotoPath(googleByPlaceId.get(row.id)?.photoRef) || null,
+    }))
+    .filter((update) => update.imageUrl)
+
+  if (updates.length > 0) await updatePlaceImages(updates)
+  console.log(`[course-pool images] ${cityKey}: ${updates.length}/${missing.length}곳 사진 보강`)
+}
+
+// 같은 도시를 동시에 두 번 사진 보강하지 않도록.
+const backfillingCities = new Set()
+function backfillCityImagesInBackground(cityKey, rows) {
+  if (backfillingCities.has(cityKey)) return
+  backfillingCities.add(cityKey)
+  backfillCityImages(cityKey, rows)
+    .catch((error) => console.warn(`[course-pool images] ${cityKey}: ${error.message}`))
+    .finally(() => backfillingCities.delete(cityKey))
 }
 
 // 같은 도시를 동시에 두 번 백그라운드 갱신하지 않도록.
@@ -740,6 +788,8 @@ app.get('/api/course-pool', async (req, res) => {
     if (cached && cached.length > 0) {
       res.json(cityPoolResponse(cityKey, cached))
       if (stale) refreshCityPoolInBackground(cityKey)
+      // 사진이 비어 있는 캐시 행(사진 기능 이전에 저장된 것)은 응답과 별개로 조용히 채워 둔다.
+      else if (cached.some((row) => !row.imageUrl)) backfillCityImagesInBackground(cityKey, cached)
       return
     }
 
@@ -748,6 +798,27 @@ app.get('/api/course-pool', async (req, res) => {
   } catch (error) {
     console.error('[course-pool]', error)
     return res.status(502).json({ message: error.message || '여행지 정보를 가져오지 못했어요.' })
+  }
+})
+
+// 맛집·카페 대표 사진 프록시. Google Places 사진은 API 키가 있어야 받을 수 있어서
+// 키를 브라우저로 내보내는 대신 여기서 실제 이미지 주소를 받아 리다이렉트한다.
+// ?ref=places/<place_id>/photos/<photo_id> (PlaceCache.imageUrl 에 들어 있는 값 그대로)
+app.get('/api/place-photo', async (req, res) => {
+  const ref = String(req.query.ref || '')
+  // 임의 URL 로 서버가 요청을 날리지 않도록 Google 사진 리소스 이름 모양만 받는다.
+  if (!isPhotoRef(ref)) return res.status(400).json({ message: 'ref 파라미터가 올바르지 않아요.' })
+
+  const width = Math.min(Math.max(Number.parseInt(req.query.w, 10) || 320, 80), 1200)
+
+  try {
+    const photoUri = await resolveGooglePhotoUri(ref, width)
+    if (!photoUri) return res.status(404).json({ message: '사진을 찾지 못했어요.' })
+    // 이미지 주소 자체는 만료되지만, 이 경로는 캐시돼도 되므로 브라우저 재요청을 줄인다.
+    res.set('Cache-Control', 'public, max-age=1800')
+    return res.redirect(302, photoUri)
+  } catch (error) {
+    return res.status(502).json({ message: error.message || '사진을 가져오지 못했어요.' })
   }
 })
 

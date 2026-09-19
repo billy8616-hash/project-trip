@@ -9,6 +9,7 @@ import { formatStay } from './lib/stayTime.js'
 import { formatDurationMin } from './lib/travelTime.js'
 import { estimateDayCost, feeLabelOf } from './lib/cost.js'
 import { transitLabelOf } from './lib/transit.js'
+import { resolveImageUrl } from './lib/api.js'
 import { addDaysISO, durationLabelFromNights, formatShortDate, nightsBetween, parseDayCount, todayISO } from './lib/datetime.js'
 import { useAuth } from './hooks/useAuth.js'
 import { useCityHighlights, useCityWeather } from './hooks/useCityHighlights.js'
@@ -328,7 +329,9 @@ function App() {
   const journeyThemeLabel = (journeyThemes.find((item) => item.id === journeyTheme) || {}).label || ''
 
   // 새 코스 상세 화면(CourseDetail)이 쓰는 모양으로 변환한다.
-  // 장소: 타임라인 카드에 필요한 필드만 골라서. (풀 데이터에는 사진 URL 이 없어 image 는 비워 둔다)
+  // 장소: 타임라인 카드에 필요한 필드만 골라서.
+  // 사진은 서버가 풀에 실어 준 대표 사진(관광지=TourAPI, 맛집·카페=Google Places 프록시).
+  // 없는 곳은 빈 문자열이고, 카드가 알아서 자리표시 타일로 대체한다.
   const coursePlaces = useMemo(
     () =>
       displayPlaces.map((place, index) => ({
@@ -340,7 +343,12 @@ function App() {
         timeRange: Number.isFinite(place.arriveMin)
           ? `${formatClock(place.arriveMin)} – ${formatClock(place.departMin)}`
           : '',
-        image: '',
+        image: resolveImageUrl(place.imageUrl),
+        // 딥데이터(별점·리뷰수·한줄요약·홈페이지)는 지금은 맛집·카페(Google 소스)만 값이 있다.
+        rating: place.rating ?? null,
+        reviewCount: place.userRatingCount ?? null,
+        editorialSummary: place.editorialSummary || '',
+        websiteUrl: place.websiteUrl || '',
         desc: place.reason,
         tip: place.caution,
         note: place.hoursNote,
@@ -700,7 +708,6 @@ function App() {
         <div className="nav-links">
           <button className={screen === 'home' ? 'active' : ''} type="button" onClick={() => slideTo('home')}>홈</button>
           <button className={screen === 'destinations' ? 'active' : ''} type="button" onClick={goToDestinations}>목적지</button>
-          <button className={screen === 'themes' ? 'active' : ''} type="button" onClick={() => slideTo('themes')}>테마</button>
           <button className={screen === 'course' ? 'active' : ''} type="button" onClick={() => setScreen('course')}>여행 코스</button>
           <button className={screen === 'mytrips' ? 'active' : ''} type="button" onClick={() => setScreen('mytrips')}>내 여행</button>
           <button className={screen === 'community' ? 'active' : ''} type="button" onClick={() => setScreen('community')}>커뮤니티</button>
@@ -719,8 +726,6 @@ function App() {
           </button>
         </div>
       </nav>
-
-      <span className="page-number">PAGE 1</span>
 
       {authOpen && !user && (
         <section className="auth-panel" aria-label="member auth">
