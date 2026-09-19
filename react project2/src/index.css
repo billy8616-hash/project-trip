@@ -534,20 +534,6 @@ button {
   pointer-events: none;
 }
 
-/* 페이지 오른쪽 아래 "PAGE 1" 쪽수. */
-.hero-panel::after {
-  position: absolute;
-  right: 22px;
-  bottom: 10px;
-  color: var(--muted);
-  font-family: Gaegu, sans-serif;
-  font-size: 15px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  content: "PAGE 1";
-  pointer-events: none;
-}
-
 .dark .hero-panel {
   background:
     repeating-linear-gradient(
@@ -2722,18 +2708,6 @@ dd {
 }
 /* 예전 전체 화면 테두리 프레임은 제거 — .app-stage 크림 판이 그 역할을 대신하고,
    프레임 윗변이 상단바를 가로지르는 "검은 줄"이 됐었다. */
-
-.page-number {
-  position: absolute;
-  right: 34px;
-  bottom: 26px;
-  z-index: 9;
-  color: var(--muted);
-  font-family: "Nanum Pen Script", Gaegu, sans-serif;
-  font-size: 22px;
-  letter-spacing: 2px;
-  pointer-events: none;
-}
 
 .topbar {
   gap: 32px;
@@ -8340,42 +8314,46 @@ input[type="button"]:active,
   line-height: 1;
 }
 
-/* 커뮤니티 화면 — 코스 상세와 같은 톤의 밝은 바탕 위에 카드들. */
+/* 커뮤니티 화면 — 코스 상세와 같은 톤의 밝은 바탕 위에 카드들.
+   바깥 section 은 화면 끝까지 꽉 차는 채로 두되(edge-bg 소품이 비치도록 투명하게 둔다),
+   종이 느낌 배경은 실제 내용이 들어가는 가운데 칼럼(> div)에만 칠한다.
+   예전엔 이 배경이 section 전체(뷰포트 끝까지)를 덮어서, 화면 양옆 고정 소품(나뭇잎·나침반 등)을
+   카드 목록 뒤에서 완전히 가려 버렸다. */
 .community-screen {
   position: relative;
   isolation: isolate;
   min-height: 70vh;
+  animation: courseSlideIn 0.44s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+.community-screen > div {
+  position: relative;
+  z-index: 1;
   overflow: hidden;
+  border-radius: 20px;
   background:
     linear-gradient(90deg, rgba(229, 204, 166, 0.24), transparent 13%, transparent 87%, rgba(229, 204, 166, 0.24)),
     linear-gradient(180deg, rgba(255, 251, 242, 0.88), rgba(249, 238, 218, 0.78)),
     repeating-linear-gradient(105deg, rgba(96, 72, 45, 0.035) 0 1px, transparent 1px 16px),
     #f4e6d0;
-  border-radius: 0;
-  animation: courseSlideIn 0.44s cubic-bezier(0.22, 0.61, 0.36, 1) both;
 }
-.community-screen::before,
-.community-screen::after {
+.community-screen > div::before,
+.community-screen > div::after {
   position: absolute;
   z-index: -1;
   pointer-events: none;
   content: "";
 }
-.community-screen::before {
+.community-screen > div::before {
   inset: 0;
   background:
     linear-gradient(90deg, rgba(255, 246, 229, 0), rgba(255, 246, 229, 0.76) 18%, rgba(255, 246, 229, 0.82) 82%, rgba(255, 246, 229, 0)),
     repeating-linear-gradient(0deg, rgba(116, 86, 52, 0.024) 0 1px, transparent 1px 9px);
 }
-.community-screen::after {
+.community-screen > div::after {
   inset: 0;
   box-shadow:
     inset 0 18px 34px rgba(103, 72, 38, 0.08),
     inset 0 -24px 40px rgba(103, 72, 38, 0.08);
-}
-.community-screen > div {
-  position: relative;
-  z-index: 1;
 }
 .community-screen.is-leaving {
   animation: homeSlideOut 0.36s ease both;
