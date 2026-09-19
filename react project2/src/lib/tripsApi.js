@@ -1,20 +1,5 @@
-// "내 여행" — 로그인 사용자가 저장한 여행 동선 API. 모든 요청은 인증 쿠키를 함께 보낸다.
-import { apiBaseUrl } from './api.js'
-
-async function request(path, options = {}) {
-  const response = await fetch(`${apiBaseUrl}${path}`, {
-    credentials: 'include',
-    headers: options.body ? { 'Content-Type': 'application/json' } : undefined,
-    ...options,
-  })
-  const data = await response.json().catch(() => null)
-  if (!response.ok) {
-    const error = new Error(data?.message || '요청을 처리하지 못했어요.')
-    error.status = response.status
-    throw error
-  }
-  return data
-}
+// "내 여행" — 로그인 사용자가 저장한 여행 동선 API. 모든 요청에 Supabase 액세스 토큰을 함께 보낸다.
+import { authedRequest as request } from './apiClient.js'
 
 export async function listTrips() {
   const data = await request('/api/trips')

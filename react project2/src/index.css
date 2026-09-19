@@ -2518,6 +2518,25 @@ dd {
   }
 }
 
+.auth-social {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--ink-line);
+}
+
+.auth-social-button {
+  padding: 10px 14px;
+  border: 1.5px solid var(--ink-line);
+  border-radius: 10px;
+  background: var(--paper);
+  color: var(--ink);
+  font-weight: 700;
+  cursor: pointer;
+}
+
 /* ===== 회원가입 화면 ===== */
 .auth-hint {
   margin: 12px 0 0;

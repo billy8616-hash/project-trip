@@ -3,19 +3,20 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id           String   @id @default(uuid())
-  email        String   @unique
-  name         String
-  birthdate    String
-  gender       String?
-  phone        String?
-  passwordHash String
-  createdAt    DateTime @default(now())
+// 로그인 자체(이메일/비밀번호, 소셜 계정)는 Supabase Auth 의 auth.users 가 관리한다.
+// 이 테이블은 거기서 다루지 않는, 우리 앱만의 추가 필드만 담는다.
+// id 는 Supabase 유저의 uuid 와 동일한 값을 그대로 쓴다(Prisma 레벨 FK는 걸지 않는다).
+model Profile {
+  id        String   @id
+  name      String
+  birthdate String?
+  gender    String?
+  phone     String?
+  createdAt DateTime @default(now())
 }
 
 // 로그인 사용자가 "내 여행"에 저장해 둔 여행 동선 스냅샷.

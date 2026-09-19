@@ -1,22 +1,7 @@
 // 커뮤니티 — 공유된 코스 / 후기 / 추천 API.
-// 읽기(list·get)는 비로그인도 되지만, "내가 추천했는지" 같은 건 쿠키가 있어야 채워지므로
-// 모든 요청에 credentials: 'include' 를 붙인다.
-import { apiBaseUrl } from './api.js'
-
-async function request(path, options = {}) {
-  const response = await fetch(`${apiBaseUrl}${path}`, {
-    credentials: 'include',
-    headers: options.body ? { 'Content-Type': 'application/json' } : undefined,
-    ...options,
-  })
-  const data = await response.json().catch(() => null)
-  if (!response.ok) {
-    const error = new Error(data?.message || '요청을 처리하지 못했어요.')
-    error.status = response.status
-    throw error
-  }
-  return data
-}
+// 읽기(list·get)는 비로그인도 되지만, "내가 추천했는지" 같은 건 액세스 토큰이 있어야 채워지므로
+// 모든 요청에 Supabase 액세스 토큰을 함께 보낸다(로그인 안 했으면 토큰 없이 그냥 보낸다).
+import { authedRequest as request } from './apiClient.js'
 
 // 목록. sort: 'recent' | 'likes' | 'rating', city 는 빈 문자열이면 전체.
 export async function listCommunityPosts({ city = '', sort = 'recent' } = {}) {

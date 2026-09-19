@@ -225,7 +225,8 @@ function App() {
 
   const {
     user,
-    setUser,
+    needsProfile,
+    refreshProfile,
     authOpen,
     setAuthOpen,
     authEmail,
@@ -236,6 +237,8 @@ function App() {
     authLoading,
     submitLogin,
     signOut,
+    signInWithGoogle,
+    signInWithKakao,
     closeAuthPanel,
   } = useAuth()
 
@@ -765,6 +768,14 @@ function App() {
                 {authLoading ? '처리 중...' : '로그인'}
               </button>
             </form>
+            <div className="auth-social">
+              <button type="button" className="auth-social-button" onClick={signInWithGoogle}>
+                구글로 계속하기
+              </button>
+              <button type="button" className="auth-social-button" onClick={signInWithKakao}>
+                카카오로 계속하기
+              </button>
+            </div>
             <p className="auth-hint">
               계정이 없으신가요?{' '}
               <button type="button" className="auth-link" onClick={goToSignup}>
@@ -775,11 +786,17 @@ function App() {
         </section>
       )}
 
-      {screen === 'signup' ? (
+      {needsProfile ? (
+        <SignupScreen
+          mode="complete"
+          onBack={signOut}
+          onSuccess={() => refreshProfile()}
+        />
+      ) : screen === 'signup' ? (
         <SignupScreen
           onBack={() => setScreen('home')}
-          onSuccess={(newUser) => {
-            setUser(newUser)
+          onSuccess={() => {
+            refreshProfile()
             setScreen('home')
           }}
         />

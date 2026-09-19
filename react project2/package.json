@@ -9,7 +9,6 @@
     "prisma": "node ./node_modules/prisma/build/index.js",
     "db:push": "node ./node_modules/prisma/build/index.js db push",
     "db:studio": "node ./node_modules/prisma/build/index.js studio",
-    "db:migrate-users": "node server/migrateUsersToDb.js",
     "db:clear-places": "node server/clearPlaceCache.js",
     "db:prewarm": "node server/prewarm.js",
     "build": "vite build",
@@ -20,6 +19,7 @@
   "dependencies": {
     "@google/genai": "^2.21.0",
     "@prisma/client": "6.19.0",
+    "@supabase/supabase-js": "^2.116.0",
     "@vitejs/plugin-react": "^6.0.4",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",

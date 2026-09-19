@@ -1,9 +1,8 @@
 import 'dotenv/config'
 import cors from 'cors'
 import express from 'express'
-import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto'
-import { createUser, findUserByEmail, findUserById, hashPassword, publicUser, verifyPassword } from './authStore.js'
-import { createRateLimiter } from './rateLimit.js'
+import { getSupabaseAdmin } from './supabaseAdmin.js'
+import { getProfile, publicProfile, upsertProfile, validateProfile } from './profileStore.js'
 import { geocodePlace, searchCafes, searchParkingNear, searchRestaurants } from './kakaoLocal.js'
 import {
   createSavedCourse,
@@ -36,140 +35,7 @@ const clientOrigins = (process.env.CLIENT_ORIGIN || 'http://127.0.0.1:5173,http:
   .split(',')
   .map((origin) => origin.trim())
   .filter(Boolean)
-const isProduction = process.env.NODE_ENV === 'production'
-
-// 개발 편의를 위한 값. 프로덕션에서는 절대 쓰이지 않는다(아래에서 부팅을 막는다).
-const DEV_JWT_SECRET = 'dev-only-insecure-jwt-secret'
-
-// .env.example 이나 과거 코드에 있던 예시 값들. 프로덕션에서 이게 그대로면 시크릿이 공개된 것과 같다.
-const PLACEHOLDER_JWT_SECRETS = new Set([
-  DEV_JWT_SECRET,
-  'change-this-secret-before-production',
-  'replace_this_with_a_long_random_secret',
-  'dev_secret_change_before_production',
-])
-
-// 토큰 위조를 막는 마지막 방어선이라, 프로덕션에서 시크릿이 없거나 예시 값이면
-// 조용히 넘어가지 않고 서버 부팅 자체를 실패시킨다.
-function resolveJwtSecret() {
-  const secret = (process.env.JWT_SECRET || '').trim()
-
-  if (!isProduction) {
-    if (!secret) {
-      console.warn('[auth] JWT_SECRET이 없어 개발용 임시 시크릿을 씁니다. 배포 전에 .env에 반드시 설정하세요.')
-      return DEV_JWT_SECRET
-    }
-    return secret
-  }
-
-  const hint = 'openssl rand -base64 48 (또는 node -e "console.log(require(\'crypto\').randomBytes(48).toString(\'base64\'))") 로 생성하세요.'
-  if (!secret) {
-    throw new Error(`프로덕션에서는 JWT_SECRET 환경변수가 반드시 필요합니다. ${hint}`)
-  }
-  if (PLACEHOLDER_JWT_SECRETS.has(secret)) {
-    throw new Error(`JWT_SECRET이 예시 값 그대로입니다. 실제 시크릿으로 바꾸세요. ${hint}`)
-  }
-  if (secret.length < 32) {
-    throw new Error(`JWT_SECRET이 너무 짧습니다(32자 이상 권장). ${hint}`)
-  }
-  return secret
-}
-
-// 모듈을 불러오는 것만으로는 검사하지 않는다. vite.config.js 가 이 앱을 미들웨어로 쓰려고
-// import 하는데, `vite build` 는 NODE_ENV=production 으로 돌아서 여기서 던지면 프런트 빌드까지 막힌다.
-// 대신 (1) 토큰을 실제로 다룰 때와 (2) 서버가 기동할 때(server.js 의 assertJwtSecret) 검사한다.
-let cachedJwtSecret = null
-function getJwtSecret() {
-  if (cachedJwtSecret === null) cachedJwtSecret = resolveJwtSecret()
-  return cachedJwtSecret
-}
-
-// 서버 기동 시점에 미리 불러 실패시키기 위한 진입점 (server.js 에서 호출).
-export function assertJwtSecret() {
-  return getJwtSecret()
-}
-
-const cookieName = 'auth_token'
 const kakaoRestApiKey = process.env.KAKAO_REST_API_KEY
-
-function base64Url(input) {
-  return Buffer.from(input).toString('base64url')
-}
-
-function signToken(payload) {
-  const header = base64Url(JSON.stringify({ alg: 'HS256', typ: 'JWT' }))
-  const body = base64Url(JSON.stringify(payload))
-  const signature = createHmac('sha256', getJwtSecret()).update(`${header}.${body}`).digest('base64url')
-  return `${header}.${body}.${signature}`
-}
-
-function verifyToken(token) {
-  const [header, body, signature] = token.split('.')
-  if (!header || !body || !signature) return null
-
-  const expected = createHmac('sha256', getJwtSecret()).update(`${header}.${body}`).digest('base64url')
-  const expectedBuffer = Buffer.from(expected)
-  const signatureBuffer = Buffer.from(signature)
-  if (expectedBuffer.length !== signatureBuffer.length || !timingSafeEqual(expectedBuffer, signatureBuffer)) {
-    return null
-  }
-
-  const payload = JSON.parse(Buffer.from(body, 'base64url').toString('utf8'))
-  if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) return null
-  return payload
-}
-
-function cookieOptions() {
-  return {
-    httpOnly: true,
-    sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
-    maxAge: 1000 * 60 * 60 * 24 * 7,
-  }
-}
-
-function getCookie(req, name) {
-  const cookies = req.headers.cookie?.split(';') ?? []
-  const cookie = cookies.map((value) => value.trim()).find((value) => value.startsWith(`${name}=`))
-  return cookie ? decodeURIComponent(cookie.slice(name.length + 1)) : null
-}
-
-function validateCredentials(email, password) {
-  if (!email || !password) return '이메일과 비밀번호를 입력해주세요.'
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return '올바른 이메일 형식이 아니에요.'
-  if (password.length < 6) return '비밀번호는 6자 이상이어야 해요.'
-  return null
-}
-
-const ALLOWED_GENDERS = ['male', 'female', 'other']
-
-// 회원가입 폼 전체(이름/생년월일/성별/휴대폰 + 이메일/비밀번호)를 서버에서도 재검증한다.
-function validateSignup({ name, birthdate, gender, phone, email, password, passwordConfirm }) {
-  if (name.length < 2 || name.length > 20) return '이름은 2~20자로 입력해주세요.'
-
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(birthdate)) {
-    return '생년월일을 YYYY-MM-DD 형식으로 입력해주세요.'
-  }
-  const birth = new Date(`${birthdate}T00:00:00`)
-  if (Number.isNaN(birth.getTime())) return '올바른 생년월일이 아니에요.'
-  const now = new Date()
-  if (birth > now) return '생년월일은 미래일 수 없어요.'
-  const ageInYears = (now - birth) / (1000 * 60 * 60 * 24 * 365.25)
-  if (ageInYears > 120) return '생년월일을 다시 확인해주세요.'
-
-  if (gender && !ALLOWED_GENDERS.includes(gender)) return '성별 값이 올바르지 않아요.'
-
-  if (phone && !/^0\d{1,2}-?\d{3,4}-?\d{4}$/.test(phone)) {
-    return '휴대폰 번호 형식이 올바르지 않아요. (예: 010-1234-5678)'
-  }
-
-  const credentialsError = validateCredentials(email, password)
-  if (credentialsError) return credentialsError
-
-  if (password !== passwordConfirm) return '비밀번호가 서로 일치하지 않아요.'
-
-  return null
-}
 
 export const app = express()
 
@@ -186,152 +52,66 @@ app.use(cors({
   credentials: true,
 }))
 
-// 로그인 방어는 두 겹이다.
-// - 계정별: 같은 이메일에 실패가 쌓이면 잠근다 (분산된 IP 에서 오는 비밀번호 추측 차단).
-// - IP별: 성공/실패와 무관하게 총 시도를 제한한다. verifyPassword 가 pbkdf2 12만 회라
-//   요청만 쏟아부어도 CPU 가 고갈되기 때문에, 계정 잠금과 별개로 필요하다.
-const loginAccountLimiter = createRateLimiter({ windowMs: 15 * 60 * 1000, max: 5, blockMs: 15 * 60 * 1000 })
-const loginIpLimiter = createRateLimiter({ windowMs: 60 * 1000, max: 20, blockMs: 5 * 60 * 1000 })
-const signupIpLimiter = createRateLimiter({ windowMs: 60 * 60 * 1000, max: 10, blockMs: 60 * 60 * 1000 })
-
-function clientIp(req) {
-  return req.ip || req.socket?.remoteAddress || 'unknown'
+// Authorization: Bearer <supabase access token> 헤더에서 토큰을 꺼낸다.
+function bearerToken(req) {
+  const header = req.headers.authorization || ''
+  return header.startsWith('Bearer ') ? header.slice('Bearer '.length).trim() : null
 }
 
-function tooManyRequests(res, retryAfterSec, message) {
-  res.set('Retry-After', String(retryAfterSec))
-  const minutes = Math.ceil(retryAfterSec / 60)
-  return res.status(429).json({ message: `${message} ${minutes}분 뒤에 다시 시도해주세요.` })
+// 토큰을 Supabase 로 검증해 auth 유저를 돌려준다. 유효하지 않으면 null.
+async function verifySupabaseToken(token) {
+  if (!token) return null
+  const { data, error } = await getSupabaseAdmin().auth.getUser(token)
+  if (error || !data?.user) return null
+  return data.user
 }
 
-app.post('/api/auth/signup', async (req, res) => {
-  const ip = clientIp(req)
-  const signupLimit = signupIpLimiter.hit(ip)
-  if (!signupLimit.allowed) {
-    return tooManyRequests(res, signupLimit.retryAfterSec, '가입 시도가 너무 많아요.')
-  }
-
-  const name = String(req.body.name || '').trim()
-  const birthdate = String(req.body.birthdate || '').trim()
-  const gender = String(req.body.gender || '').trim()
-  const phone = String(req.body.phone || '').trim()
-  const email = String(req.body.email || '').trim().toLowerCase()
-  const password = String(req.body.password || '')
-  const passwordConfirm = String(req.body.passwordConfirm || '')
-
-  const validationError = validateSignup({
-    name,
-    birthdate,
-    gender,
-    phone,
-    email,
-    password,
-    passwordConfirm,
-  })
-  if (validationError) return res.status(400).json({ message: validationError })
-
-  const existingUser = await findUserByEmail(email)
-  if (existingUser) {
-    return res.status(409).json({ message: '이미 가입된 이메일이에요.' })
-  }
-
-  const user = await createUser({
-    id: randomUUID(),
-    email,
-    name,
-    birthdate,
-    gender: gender || null,
-    phone: phone || null,
-    passwordHash: hashPassword(password),
-    createdAt: new Date().toISOString(),
-  })
-
-  const token = signToken({
-    sub: user.id,
-    exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7,
-  })
-  res.cookie(cookieName, token, cookieOptions())
-  return res.status(201).json({ user: publicUser(user) })
-})
-
-app.post('/api/auth/login', async (req, res) => {
-  const ip = clientIp(req)
-
-  // 비싼 비밀번호 검증(pbkdf2)에 들어가기 전에 IP 한도부터 막는다.
-  const ipLimit = loginIpLimiter.hit(ip)
-  if (!ipLimit.allowed) {
-    return tooManyRequests(res, ipLimit.retryAfterSec, '로그인 시도가 너무 많아요.')
-  }
-
-  const email = String(req.body.email || '').trim().toLowerCase()
-  const password = String(req.body.password || '')
-  const validationError = validateCredentials(email, password)
-  if (validationError) return res.status(400).json({ message: validationError })
-
-  // 이 계정이 실패 누적으로 잠겨 있으면 비밀번호를 확인하지 않고 돌려보낸다.
-  const accountLimit = loginAccountLimiter.check(email)
-  if (!accountLimit.allowed) {
-    return tooManyRequests(res, accountLimit.retryAfterSec, '로그인 실패가 많아 잠시 잠갔어요.')
-  }
-
-  const user = await findUserByEmail(email)
-  if (!user || !verifyPassword(password, user.passwordHash)) {
-    // 실패했을 때만 계정 카운터를 올린다. 정상 로그인은 한도를 소모하지 않는다.
-    const failure = loginAccountLimiter.hit(email)
-    if (!failure.allowed) {
-      return tooManyRequests(res, failure.retryAfterSec, '로그인 실패가 많아 잠시 잠갔어요.')
-    }
-    return res.status(401).json({ message: '이메일 또는 비밀번호가 맞지 않아요.' })
-  }
-
-  // 정상 로그인이 확인됐으니 그동안 쌓인 실패 기록을 지운다.
-  loginAccountLimiter.reset(email)
-
-  const token = signToken({
-    sub: user.id,
-    exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7,
-  })
-  res.cookie(cookieName, token, cookieOptions())
-  return res.json({ user: publicUser(user) })
-})
-
-app.get('/api/auth/me', async (req, res) => {
-  const token = getCookie(req, cookieName)
-  const payload = token ? verifyToken(token) : null
-  if (!payload) return res.status(401).json({ user: null })
-
-  const user = await findUserById(payload.sub)
-  if (!user) return res.status(401).json({ user: null })
-
-  return res.json({ user: publicUser(user) })
-})
-
-app.post('/api/auth/logout', (_req, res) => {
-  res.clearCookie(cookieName, { sameSite: 'lax', secure: process.env.NODE_ENV === 'production' })
-  return res.json({ ok: true })
-})
-
-// 로그인 쿠키를 검증하고 req.userId 를 채운다. 실패하면 401.
+// 액세스 토큰을 검증하고 req.authUser / req.userId / req.userName 을 채운다. 실패하면 401.
 async function requireAuth(req, res, next) {
-  const token = getCookie(req, cookieName)
-  const payload = token ? verifyToken(token) : null
-  if (!payload) return res.status(401).json({ message: '로그인이 필요해요.' })
-  const user = await findUserById(payload.sub)
-  if (!user) return res.status(401).json({ message: '로그인이 필요해요.' })
-  req.userId = user.id
+  const authUser = await verifySupabaseToken(bearerToken(req))
+  if (!authUser) return res.status(401).json({ message: '로그인이 필요해요.' })
+  const profile = await getProfile(authUser.id)
+  req.authUser = authUser
+  req.userId = authUser.id
+  req.userName = profile?.name || null
   return next()
 }
 
 // 로그인했으면 req.userId / req.userName 을 채우고, 아니면 그냥 통과시킨다.
 // 커뮤니티 "읽기"는 비로그인도 되지만, 내가 추천했는지 같은 건 알아야 해서 쓴다.
 async function optionalAuth(req, _res, next) {
-  const token = getCookie(req, cookieName)
-  const payload = token ? verifyToken(token) : null
-  const user = payload ? await findUserById(payload.sub) : null
-  req.userId = user ? user.id : null
-  req.userName = user ? user.name : null
+  const authUser = await verifySupabaseToken(bearerToken(req))
+  const profile = authUser ? await getProfile(authUser.id) : null
+  req.authUser = authUser
+  req.userId = authUser ? authUser.id : null
+  req.userName = profile?.name || null
   return next()
 }
+
+// 이름/생년월일/성별/휴대폰 프로필 조회·저장.
+// 이메일 가입 직후(프로필 완성), 소셜 로그인 첫 진입(프로필 완성)에서 공통으로 쓴다.
+app.get('/api/profile', requireAuth, async (req, res) => {
+  const profile = await getProfile(req.userId)
+  return res.json({ profile: publicProfile(req.authUser, profile) })
+})
+
+app.put('/api/profile', requireAuth, async (req, res) => {
+  const name = String(req.body.name || '').trim()
+  const birthdate = String(req.body.birthdate || '').trim()
+  const gender = String(req.body.gender || '').trim()
+  const phone = String(req.body.phone || '').trim()
+
+  const validationError = validateProfile({ name, birthdate, gender, phone })
+  if (validationError) return res.status(400).json({ message: validationError })
+
+  const profile = await upsertProfile(req.userId, {
+    name,
+    birthdate: birthdate || null,
+    gender: gender || null,
+    phone: phone || null,
+  })
+  return res.json({ profile: publicProfile(req.authUser, profile) })
+})
 
 // "내 여행" — 로그인 사용자가 저장한 여행 동선 목록.
 app.get('/api/trips', requireAuth, async (req, res) => {
@@ -428,8 +208,7 @@ app.post('/api/community', requireAuth, async (req, res) => {
     return res.status(400).json({ message: '공유할 일정 정보가 올바르지 않아요.' })
   }
   try {
-    const user = await findUserById(req.userId)
-    const post = await createPost(req.userId, user?.name, {
+    const post = await createPost(req.userId, req.userName, {
       title: title.trim(), city: city.trim(), dayCount, summary, body, rating, payload,
     })
     return res.status(201).json({ post })
@@ -456,8 +235,7 @@ app.post('/api/community/:id/reviews', requireAuth, async (req, res) => {
     return res.status(400).json({ message: '후기 내용을 입력해 주세요.' })
   }
   try {
-    const user = await findUserById(req.userId)
-    const review = await upsertReview(req.params.id, req.userId, user?.name, { rating, body })
+    const review = await upsertReview(req.params.id, req.userId, req.userName, { rating, body })
     if (!review) return res.status(404).json({ message: '글을 찾지 못했어요.' })
     return res.status(201).json({ review })
   } catch (error) {
