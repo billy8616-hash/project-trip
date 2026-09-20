@@ -8169,6 +8169,9 @@ input[type="button"]:active,
   align-items: flex-end;
   flex-wrap: wrap;
   gap: 16px 20px;
+  /* 코스 화면은 .stage-course 가 100vw 를 꽉 채우는 full-bleed 라 이 바만 따로 안쪽으로
+     들여야 한다 (부모 .course-screen 은 padding: 0). 아래 지도는 그대로 끝까지 흘린다. */
+  padding-inline: clamp(16px, 3vw, 44px);
   margin-bottom: 16px;
 }
 .course-ctl {
