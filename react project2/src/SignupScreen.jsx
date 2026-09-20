@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { supabase } from './lib/supabaseClient.js'
 import { saveMyProfile } from './lib/profileApi.js'
 
@@ -48,6 +48,26 @@ export default function SignupScreen({ mode = 'signup', onBack, onSuccess }) {
   const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(false)
   const [emailConfirmPending, setEmailConfirmPending] = useState(false)
+
+  // 소셜 로그인(카카오/구글) 첫 진입이면 provider 가 넘겨준 닉네임을 이름 칸에 미리 채워 둔다.
+  // 카카오는 동의 항목에 따라 이메일이 없을 수도 있어서, 사용자가 확실히 갖고 있는 건 닉네임뿐이다.
+  useEffect(() => {
+    if (mode !== 'complete') return undefined
+    let alive = true
+
+    supabase.auth.getUser().then(({ data }) => {
+      if (!alive) return
+      const meta = data?.user?.user_metadata || {}
+      const nickname = String(meta.name || meta.full_name || meta.nickname || meta.preferred_username || '').trim()
+      if (!nickname) return
+      // 사용자가 이미 뭔가 입력했다면 덮어쓰지 않는다.
+      setForm((prev) => (prev.name ? prev : { ...prev, name: nickname.slice(0, 20) }))
+    })
+
+    return () => {
+      alive = false
+    }
+  }, [mode])
 
   const update = (key) => (event) => {
     const { value } = event.target
