@@ -398,6 +398,7 @@ function AddPlaceRow({ pool = [], excludeNames, onAdd, onGeocode }) {
   const [message, setMessage] = useState('')
   const inputRef = useRef(null)
   const rowRef = useRef(null)
+  const overlayRef = useRef(null)
 
   useEffect(() => {
     if (open) inputRef.current?.focus()
@@ -416,23 +417,30 @@ function AddPlaceRow({ pool = [], excludeNames, onAdd, onGeocode }) {
     return pool.filter((place) => !excludeNames?.has(place.name) && place.name.includes(q)).slice(0, 6)
   }, [pool, excludeNames, query])
 
+  // 후보 목록/안내 문구를 입력창 아래 "떠 있는 패널"로 뺐다(문서 흐름에 안 끼움. 아래 렌더 참고).
+  // 예전엔 목록이 입력창 바로 밑에서 실제 레이아웃을 밀어내는 방식이었는데, 그러면 타이핑할 때마다
+  // 후보 개수(6→4→6…)가 바뀔 때 카드 높이가 같이 바뀌고, 모바일 브라우저가 "포커스된 입력창을
+  // 계속 보이게" 하려고 그때마다 자체적으로 스크롤을 다시 계산해 화면이 튀는 원인이 됐다.
+  // 오버레이로 빼면 후보가 몇 개든 카드 자체의 높이는 절대 안 바뀌어서, 그 문제가 아예 안 생긴다.
+  const hasMessage = status === 'error' || (status !== 'error' && query.trim() && suggestions.length === 0)
+  const showOverlay = suggestions.length > 0 || hasMessage
+
   // 검색창을 열 때 한 번 화면에 보이는 자리로 스크롤한다. 이 카드가 목록 맨 아래(장소 추가
   // 버튼 자리)에 있다 보니, 직접 스크롤해서 내리지 않으면 입력창 자체가 화면 밖에 가려질 수 있다.
   useEffect(() => {
     if (open) rowRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
   }, [open])
 
-  // 후보 목록이 "없다가 처음 나타날 때"만 한 번 더 스크롤한다. 글자를 한 자씩 칠 때마다
-  // 후보 개수(6→4→6…)가 계속 바뀌는데, 그때마다 스크롤하면 타이핑 중에 화면이 계속 튀어서
-  // 어지럽다 — 그래서 "목록이 있다/없다"가 바뀌는 경계에서만 움직이고, 개수 변화 자체는 무시한다.
-  const hasSuggestions = suggestions.length > 0
-  const hadSuggestionsRef = useRef(false)
+  // 오버레이가 "없다가 처음 뜰 때"만 한 번 더 스크롤해서 화면 밖에 가려지지 않게 한다. 오버레이라
+  // 카드 높이엔 안 잡히므로(위 주석 참고) rowRef 만으로는 오버레이까지 보장이 안 돼 따로 잡는다.
+  // 그 뒤로 후보 개수가 계속 바뀌어도(대부분 계속 showOverlay=true 상태라) 다시 스크롤하지 않는다.
+  const hadOverlayRef = useRef(false)
   useEffect(() => {
-    if (open && hasSuggestions && !hadSuggestionsRef.current) {
-      rowRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    if (open && showOverlay && !hadOverlayRef.current) {
+      overlayRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
     }
-    hadSuggestionsRef.current = hasSuggestions
-  }, [open, hasSuggestions])
+    hadOverlayRef.current = showOverlay
+  }, [open, showOverlay])
 
   const pick = (place) => {
     onAdd({ name: place.name, assignedSlot: place.slots?.[0] })
@@ -481,7 +489,7 @@ function AddPlaceRow({ pool = [], excludeNames, onAdd, onGeocode }) {
   }
 
   return (
-    <div ref={rowRef} className="tw-mt-1 tw-rounded-cxl tw-border tw-border-cline tw-bg-surface tw-p-3 tw-shadow-ccard">
+    <div ref={rowRef} className="tw-relative tw-mt-1 tw-rounded-cxl tw-border tw-border-cline tw-bg-surface tw-p-3 tw-shadow-ccard">
       <form onSubmit={submit} className="tw-flex tw-items-center tw-gap-2">
         <input
           ref={inputRef}
@@ -507,26 +515,34 @@ function AddPlaceRow({ pool = [], excludeNames, onAdd, onGeocode }) {
         <button type="button" onClick={close} aria-label="취소" className="tw-shrink-0 tw-rounded-lg tw-px-2 tw-py-2 tw-text-cink-faint hover:tw-text-cink">×</button>
       </form>
 
-      {suggestions.length > 0 && (
-        <ul className="tw-mt-2 tw-flex tw-flex-col tw-gap-1">
-          {suggestions.map((place) => (
-            <li key={place.name}>
-              <button
-                type="button"
-                onClick={() => pick(place)}
-                className="tw-flex tw-w-full tw-items-center tw-justify-between tw-gap-2 tw-rounded-lg tw-px-2.5 tw-py-2 tw-text-left tw-text-[13px] tw-text-cink hover:tw-bg-surface-2"
-              >
-                <span className="tw-truncate">{place.name}</span>
-                <span className="tw-ml-2 tw-shrink-0 tw-text-[11px] tw-text-cink-faint">{place.category || place.slots?.[0] || ''}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
+      {/* position: absolute 오버레이 — 문서 흐름 밖이라 후보가 몇 개든 위 카드 높이에 안 잡힌다. */}
+      {showOverlay && (
+        <div
+          ref={overlayRef}
+          className="tw-absolute tw-left-0 tw-right-0 tw-top-full tw-z-20 tw-mt-2 tw-max-h-64 tw-overflow-y-auto tw-rounded-lg tw-border tw-border-cline tw-bg-surface tw-p-1.5 tw-shadow-lg"
+        >
+          {suggestions.length > 0 && (
+            <ul className="tw-flex tw-flex-col tw-gap-1">
+              {suggestions.map((place) => (
+                <li key={place.name}>
+                  <button
+                    type="button"
+                    onClick={() => pick(place)}
+                    className="tw-flex tw-w-full tw-items-center tw-justify-between tw-gap-2 tw-rounded-lg tw-px-2.5 tw-py-2 tw-text-left tw-text-[13px] tw-text-cink hover:tw-bg-surface-2"
+                  >
+                    <span className="tw-truncate">{place.name}</span>
+                    <span className="tw-ml-2 tw-shrink-0 tw-text-[11px] tw-text-cink-faint">{place.category || place.slots?.[0] || ''}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
 
-      {status === 'error' && <p className="tw-mt-2 tw-text-[12px] tw-text-red-500">{message}</p>}
-      {status !== 'error' && query.trim() && suggestions.length === 0 && (
-        <p className="tw-mt-2 tw-text-[12px] tw-text-cink-faint">추천 목록에 없으면 "추가"를 눌러 위치를 직접 찾아볼게요.</p>
+          {status === 'error' && <p className="tw-px-2 tw-py-1.5 tw-text-[12px] tw-text-red-500">{message}</p>}
+          {status !== 'error' && query.trim() && suggestions.length === 0 && (
+            <p className="tw-px-2 tw-py-1.5 tw-text-[12px] tw-text-cink-faint">추천 목록에 없으면 "추가"를 눌러 위치를 직접 찾아볼게요.</p>
+          )}
+        </div>
       )}
     </div>
   )
