@@ -21,7 +21,7 @@ import {
 } from './communityStore.js'
 import { enrichPlaces } from './placeEnrich.js'
 import { fetchGoogleHoursMany, googlePhotoPath, isPhotoRef, resolveGooglePhotoUri } from './googlePlaces.js'
-import { findCityPool, toPoolPlace, updatePlaceImages, upsertPlaces } from './placeCache.js'
+import { findCachedByIds, findCityPool, toPoolPlace, updatePlaceImages, upsertPlaces } from './placeCache.js'
 import { getCityTrends } from './naverTrend.js'
 import { searchTransitPath } from './odsay.js'
 import { searchWalkPath } from './tmap.js'
@@ -413,6 +413,40 @@ function cityCenter(places) {
   return { lat: sum.lat / withLocation.length, lng: sum.lng / withLocation.length }
 }
 
+// PlaceCache 에 JSON 배열 문자열로 저장된 칼럼(themes/budgetTiers)을 배열로 되돌린다.
+function parseJsonArray(value) {
+  try {
+    const parsed = JSON.parse(value || '[]')
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
+
+// 이미 Gemini 보강을 받아 DB 에 저장된 장소의 추천문구/테마/예산대를 꺼내온다. -> Map(id -> enriched)
+// 이 값들은 시간이 지나도 변하지 않는데(영업시간·폐업과 달리), 7일 staleness 갱신 때마다
+// 도시 전체를 다시 Gemini 로 보내면 무료 티어 할당량이 새로 얻는 것 없이 나간다.
+// 재사용 판별은 themes 가 비어있지 않은지로 한다 — 응답 스키마상 테마는 1~3개가 항상 붙으므로,
+// 보강이 실패해 폴백 문구만 저장된 행은 "[]" 로 남아 있어 다음 갱신 때 자연히 다시 시도된다.
+async function loadCachedEnrichment(ids) {
+  const rows = await findCachedByIds(ids).catch((error) => {
+    console.warn(`[course-pool] 기존 보강 조회 실패 — 전부 새로 생성합니다: ${error.message}`)
+    return []
+  })
+  const cached = new Map()
+  for (const row of rows) {
+    const themes = parseJsonArray(row.themes)
+    if (themes.length === 0) continue
+    cached.set(row.id, {
+      reason: row.reason || '',
+      caution: row.caution || '',
+      themes,
+      budgetTiers: parseJsonArray(row.budgetTiers),
+    })
+  }
+  return cached
+}
+
 // 외부 API/LLM 을 다 돌려 도시 하나의 장소 풀을 만들고 DB 에 저장한다. -> 저장한 rows
 // (prewarm 스크립트에서도 직접 부른다.)
 export async function buildCityPoolRows(cityKey) {
@@ -428,11 +462,18 @@ export async function buildCityPoolRows(cityKey) {
     throw new Error(`${cityKey}에서 장소를 찾지 못했어요.`)
   }
 
+  // 이미 보강된 장소는 Gemini 에 다시 보내지 않는다. 갱신 때 신규 장소가 없으면 호출 자체가 0번이 된다.
+  const cachedEnrichment = await loadCachedEnrichment(rawPlaces.map((place) => place.id))
+  const needsEnrichment = rawPlaces.filter((place) => !cachedEnrichment.has(place.id))
+  if (cachedEnrichment.size > 0) {
+    console.log(`[course-pool] ${cityKey}: 기존 보강 재사용 ${cachedEnrichment.size}곳, Gemini 신규 ${needsEnrichment.length}곳`)
+  }
+
   // 동시에 조회: 추천 텍스트(Gemini) · 관광지 주차·영업시간(TourAPI detailIntro2) ·
   // 음식점·카페 영업시간(Google Places) · 대중교통 접근성(카카오).
   // Gemini(추천문구·테마)는 실패해도 코스는 만들 수 있으므로(규칙 기반 슬롯/카테고리로 대체) 치명적으로 보지 않는다.
   const [enrichment, detailByPlaceId, googleHoursByPlaceId, transitByPlaceId] = await Promise.all([
-      enrichPlaces(rawPlaces.map((place) => ({ id: place.id, name: place.name, category: place.category }))).catch(
+      enrichPlaces(needsEnrichment.map((place) => ({ id: place.id, name: place.name, category: place.category }))).catch(
         (error) => {
           console.warn(`[course-pool] Gemini 보강 건너뜀: ${error.message?.slice(0, 120)}`)
           return new Map()
@@ -445,7 +486,9 @@ export async function buildCityPoolRows(cityKey) {
 
     const rows = rawPlaces
       .map((place) => {
-        const enriched = enrichment.get(place.id) || { reason: '', caution: '', themes: [], budgetTiers: [] }
+        // 이번에 새로 생성한 것 > DB 에 있던 기존 보강 > 폴백 순.
+        const enriched =
+          enrichment.get(place.id) || cachedEnrichment.get(place.id) || { reason: '', caution: '', themes: [], budgetTiers: [] }
         const slots = Array.isArray(place.slots) && place.slots.length > 0 ? place.slots : [place.slot || '오전']
         const defaults = SLOT_DEFAULTS[slots[0]] || SLOT_DEFAULTS['오전']
         const transit = transitByPlaceId.get(place.id) || { transitStation: null, transitDistanceM: null, transitScore: 'none' }
