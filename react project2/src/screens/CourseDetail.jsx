@@ -416,12 +416,23 @@ function AddPlaceRow({ pool = [], excludeNames, onAdd, onGeocode }) {
     return pool.filter((place) => !excludeNames?.has(place.name) && place.name.includes(q)).slice(0, 6)
   }, [pool, excludeNames, query])
 
-  // 검색창을 열 때, 그리고 후보 목록·안내 문구가 나타나거나 사라져서 이 영역의 높이가 바뀔 때마다
-  // 화면에 보이는 자리로 스크롤한다. 이 카드가 목록 맨 아래(장소 추가 버튼 자리)에 있다 보니,
-  // 직접 스크롤해서 내리지 않으면 방금 뜬 검색 결과가 화면 밖에 가려진 채로 안 보일 수 있어서다.
+  // 검색창을 열 때 한 번 화면에 보이는 자리로 스크롤한다. 이 카드가 목록 맨 아래(장소 추가
+  // 버튼 자리)에 있다 보니, 직접 스크롤해서 내리지 않으면 입력창 자체가 화면 밖에 가려질 수 있다.
   useEffect(() => {
     if (open) rowRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
-  }, [open, suggestions.length, status])
+  }, [open])
+
+  // 후보 목록이 "없다가 처음 나타날 때"만 한 번 더 스크롤한다. 글자를 한 자씩 칠 때마다
+  // 후보 개수(6→4→6…)가 계속 바뀌는데, 그때마다 스크롤하면 타이핑 중에 화면이 계속 튀어서
+  // 어지럽다 — 그래서 "목록이 있다/없다"가 바뀌는 경계에서만 움직이고, 개수 변화 자체는 무시한다.
+  const hasSuggestions = suggestions.length > 0
+  const hadSuggestionsRef = useRef(false)
+  useEffect(() => {
+    if (open && hasSuggestions && !hadSuggestionsRef.current) {
+      rowRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    }
+    hadSuggestionsRef.current = hasSuggestions
+  }, [open, hasSuggestions])
 
   const pick = (place) => {
     onAdd({ name: place.name, assignedSlot: place.slots?.[0] })
