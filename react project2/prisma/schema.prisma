@@ -86,6 +86,11 @@ model PlaceCache {
   themes      String // JSON 배열 문자열, 예: ["step","view"]
   budgetTiers String // JSON 배열 문자열, 예: ["저예산","보통"]
   createdAt   DateTime @default(now())
+  // Google Places 를 마지막으로 조회한 시각. 영업시간은 변하니 주기적으로 다시 봐야 하지만,
+  // 갱신할 때마다 도시 전체를 다시 부르면 유료 SKU 호출이 그대로 비용이 된다.
+  // createdAt 은 upsert 로 갱신되지 않아(최초 생성 시각 고정) 이 판단에 쓸 수 없어서 따로 둔다.
+  // null 이면 아직 조회한 적 없음 — 관광지(TourAPI 출처)는 Google 을 안 쓰므로 계속 null 이다.
+  hoursFetchedAt DateTime?
 
   @@index([cityKey])
 }
