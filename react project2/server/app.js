@@ -447,6 +447,39 @@ async function loadCachedEnrichment(ids) {
   return cached
 }
 
+// 한 번 돌 때 Gemini 로 보낼 장소 수 상한. 풀은 수백 곳이 될 수 있지만 코스에 실제로 쓰이는 건
+// 하루 4곳 x 여행일수뿐이라 전부 보강할 이유가 없고, 무료 티어에서는 호출 수가 곧 비용이다.
+// 상한에 걸려 밀린 장소는 다음 갱신 때 자연히 차례가 온다 — 이미 보강된 곳은 후보에서 빠지므로
+// 갱신할 때마다 커버리지가 조금씩 넓어진다.
+const ENRICH_LIMIT_PER_RUN = 80
+
+// 상한 안에서 슬롯이 한쪽으로 쏠리지 않게 고른다.
+// 그냥 앞에서부터 자르면 검색 결과 순서상 카페만 잔뜩 뽑혀 '저녁'·'점심' 슬롯엔 테마가 안 붙는다.
+// 슬롯별로 돌아가며 한 곳씩 집어서, 모든 슬롯이 고르게 보강되도록 한다.
+function selectForEnrichment(places, limit) {
+  if (places.length <= limit) return places
+
+  const bySlot = new Map()
+  for (const place of places) {
+    const slot = place.slot || place.slots?.[0] || '오전'
+    if (!bySlot.has(slot)) bySlot.set(slot, [])
+    bySlot.get(slot).push(place)
+  }
+
+  const queues = [...bySlot.values()]
+  const picked = []
+  while (picked.length < limit) {
+    const before = picked.length
+    for (const queue of queues) {
+      if (picked.length >= limit) break
+      const next = queue.shift()
+      if (next) picked.push(next)
+    }
+    if (picked.length === before) break // 모든 큐가 비었다
+  }
+  return picked
+}
+
 // 외부 API/LLM 을 다 돌려 도시 하나의 장소 풀을 만들고 DB 에 저장한다. -> 저장한 rows
 // (prewarm 스크립트에서도 직접 부른다.)
 export async function buildCityPoolRows(cityKey) {
@@ -464,10 +497,12 @@ export async function buildCityPoolRows(cityKey) {
 
   // 이미 보강된 장소는 Gemini 에 다시 보내지 않는다. 갱신 때 신규 장소가 없으면 호출 자체가 0번이 된다.
   const cachedEnrichment = await loadCachedEnrichment(rawPlaces.map((place) => place.id))
-  const needsEnrichment = rawPlaces.filter((place) => !cachedEnrichment.has(place.id))
-  if (cachedEnrichment.size > 0) {
-    console.log(`[course-pool] ${cityKey}: 기존 보강 재사용 ${cachedEnrichment.size}곳, Gemini 신규 ${needsEnrichment.length}곳`)
-  }
+  const pending = rawPlaces.filter((place) => !cachedEnrichment.has(place.id))
+  const needsEnrichment = selectForEnrichment(pending, ENRICH_LIMIT_PER_RUN)
+  console.log(
+    `[course-pool] ${cityKey}: 풀 ${rawPlaces.length}곳 | 보강 재사용 ${cachedEnrichment.size} | ` +
+      `Gemini 신규 ${needsEnrichment.length}${pending.length > needsEnrichment.length ? ` (대기 ${pending.length - needsEnrichment.length})` : ''}`,
+  )
 
   // 동시에 조회: 추천 텍스트(Gemini) · 관광지 주차·영업시간(TourAPI detailIntro2) ·
   // 음식점·카페 영업시간(Google Places) · 대중교통 접근성(카카오).

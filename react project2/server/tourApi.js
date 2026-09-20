@@ -20,7 +20,7 @@ async function searchKeyword(keyword, contentTypeId) {
     MobileOS: 'ETC',
     MobileApp: '발길따라',
     _type: 'json',
-    numOfRows: '30',
+    numOfRows: '100', // 코스는 하루 4슬롯 x 여행일수만큼 장소가 필요하다. 30 이면 3일 이상에서 후보가 말라붙는다.
     pageNo: '1',
     arrange: 'Q', // 조회순
     keyword,

@@ -1,17 +1,25 @@
 import { matchesCityRegion } from './cityRegion.js'
-import { timeoutSignal } from './concurrency.js'
+import { mapLimit, timeoutSignal } from './concurrency.js'
 import { slotsForKakaoPlace } from './placeSlots.js'
 
 const kakaoRestApiKey = process.env.KAKAO_REST_API_KEY
 
-// 맛집/카페 키워드 검색 (카카오 로컬). category_group_code: FD6=음식점, CE7=카페.
-async function searchKeyword(query, categoryGroupCode) {
+// 카카오 로컬 키워드 검색의 페이지 제약 (실측):
+// - size 는 최대 15 (45 를 넣으면 400 Request validation is failed)
+// - 검색어 하나당 pageable_count 가 45 로 고정 — 즉 3페이지가 끝이고 그 뒤는 is_end=true.
+// 그래서 한 검색어로는 45건이 천장이고, 더 받으려면 검색어 자체를 바꿔야 한다.
+const PAGE_SIZE = 15
+const MAX_PAGES = 3
+
+// 맛집/카페 키워드 검색 한 페이지. category_group_code: FD6=음식점, CE7=카페.
+async function searchKeywordPage(query, categoryGroupCode, page) {
   if (!kakaoRestApiKey) throw new Error('KAKAO_REST_API_KEY가 설정되지 않았어요.')
 
   const params = new URLSearchParams({
     query,
     category_group_code: categoryGroupCode,
-    size: '15',
+    size: String(PAGE_SIZE),
+    page: String(page),
     sort: 'accuracy',
   })
 
@@ -24,7 +32,40 @@ async function searchKeyword(query, categoryGroupCode) {
     throw new Error(data?.message || '카카오 로컬 검색에 실패했어요.')
   }
 
-  return data.documents || []
+  return { documents: data.documents || [], isEnd: Boolean(data.meta?.is_end) }
+}
+
+// 검색어 하나를 끝까지(최대 45건) 훑는다. 페이지는 순서대로 — 앞 페이지가 끝이면 더 안 부른다.
+async function searchKeyword(query, categoryGroupCode) {
+  const collected = []
+  for (let page = 1; page <= MAX_PAGES; page += 1) {
+    const { documents, isEnd } = await searchKeywordPage(query, categoryGroupCode, page)
+    collected.push(...documents)
+    if (isEnd || documents.length < PAGE_SIZE) break
+  }
+  return collected
+}
+
+// 검색어 여러 개를 돌려 "검색어당 45건" 천장을 넘긴다. 검색어끼리 결과가 많이 겹치므로 id 로 중복 제거한다.
+// 검색어 하나가 실패해도 나머지 결과는 살린다 — 장소는 많을수록 좋지만 없으면 코스를 못 짠다.
+async function searchKeywordVariants(queries, categoryGroupCode) {
+  const results = await mapLimit(queries, 2, (query) =>
+    searchKeyword(query, categoryGroupCode).catch((error) => {
+      console.warn(`[kakao] "${query}" 검색 실패 — 건너뜁니다: ${error.message}`)
+      return []
+    }),
+  )
+
+  const seen = new Set()
+  const merged = []
+  for (const documents of results) {
+    for (const doc of documents) {
+      if (seen.has(doc.id)) continue
+      seen.add(doc.id)
+      merged.push(doc)
+    }
+  }
+  return merged
 }
 
 // 카카오 로컬 키워드 검색도 텍스트 매칭이라 "{도시} 맛집" 검색에 상호명만 도시명을 포함하고
@@ -130,15 +171,21 @@ export async function searchParkingNear(lat, lng, radius = 700, limit = 3) {
   return items.slice(0, limit)
 }
 
+// 검색어를 나눠 던지는 이유: "{도시} 맛집" 하나로는 45건이 천장인데, 그중 상당수가
+// 주소 필터(isInCity)에서 떨어져 나가 실제로 쓸 수 있는 건 훨씬 적다.
+// 결이 다른 검색어를 섞으면 겹치는 결과를 빼고도 후보가 눈에 띄게 늘어난다.
+const RESTAURANT_QUERIES = (city) => [`${city} 맛집`, `${city} 현지인 맛집`, `${city} 한식`, `${city} 저녁 맛집`]
+const CAFE_QUERIES = (city) => [`${city} 카페`, `${city} 디저트`, `${city} 베이커리`, `${city} 분위기 좋은 카페`]
+
 export async function searchRestaurants(cityName) {
-  const documents = await searchKeyword(`${cityName} 맛집`, 'FD6')
+  const documents = await searchKeywordVariants(RESTAURANT_QUERIES(cityName), 'FD6')
   return documents
     .filter((doc) => isInCity(doc, cityName))
     .map((doc) => toKakaoPlace(doc, 'FD6'))
 }
 
 export async function searchCafes(cityName) {
-  const documents = await searchKeyword(`${cityName} 카페`, 'CE7')
+  const documents = await searchKeywordVariants(CAFE_QUERIES(cityName), 'CE7')
   return documents
     .filter((doc) => isInCity(doc, cityName))
     .map((doc) => toKakaoPlace(doc, 'CE7'))
