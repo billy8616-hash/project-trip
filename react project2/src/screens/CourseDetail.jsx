@@ -481,7 +481,7 @@ function AddPlaceRow({ pool = [], excludeNames, onAdd, onGeocode }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="tw-mt-1 tw-flex tw-w-full tw-items-center tw-justify-center tw-gap-1.5 tw-rounded-cxl tw-border tw-border-dashed tw-border-cline tw-py-3 tw-text-[13px] tw-font-semibold tw-text-cink-muted tw-transition-colors hover:tw-border-caccent/50 hover:tw-text-caccent"
+        className="tw-mb-3 tw-flex tw-w-full tw-items-center tw-justify-center tw-gap-1.5 tw-rounded-cxl tw-border tw-border-dashed tw-border-cline tw-py-3 tw-text-[13px] tw-font-semibold tw-text-cink-muted tw-transition-colors hover:tw-border-caccent/50 hover:tw-text-caccent"
       >
         <Icon name="plus" size={15} /> 장소 추가
       </button>
@@ -489,7 +489,7 @@ function AddPlaceRow({ pool = [], excludeNames, onAdd, onGeocode }) {
   }
 
   return (
-    <div ref={rowRef} className="tw-relative tw-mt-1 tw-rounded-cxl tw-border tw-border-cline tw-bg-surface tw-p-3 tw-shadow-ccard">
+    <div ref={rowRef} className="tw-relative tw-mb-3 tw-rounded-cxl tw-border tw-border-cline tw-bg-surface tw-p-3 tw-shadow-ccard">
       <form onSubmit={submit} className="tw-flex tw-items-center tw-gap-2">
         <input
           ref={inputRef}
@@ -562,6 +562,11 @@ function TimelinePanel({
     <div className="tw-flex tw-min-h-0 tw-flex-1 tw-flex-col tw-border-cline lg:tw-flex-none lg:tw-w-[47%] lg:tw-min-w-[360px] lg:tw-max-w-[620px] lg:tw-border-r">
       <DaySummaryHeader day={day} days={days} activeDay={activeDay} onSelectDay={onSelectDay} count={places.length} />
       <div className="tw-min-h-0 tw-flex-1 tw-overflow-y-auto tw-px-5 tw-py-5">
+        {/* 맨 위에 둔다 — 목록 끝(스크롤을 한참 내려야 하는 자리)에 있으면 검색 결과가 화면
+            밖으로 가려지기 쉽고, 찾기도 번거롭다. 여기 있으면 화면을 열자마자 바로 보인다.
+            시간대 순서는 그대로 지켜진다 — 여기서 골라도 실제로는 CourseDetail 을 부르는 쪽에서
+            assignedSlot(오전/점심/오후/저녁)에 맞는 자리에 알아서 끼워 넣는다(insertManualBySlot). */}
+        {onAddPlace && <AddPlaceRow pool={pool} excludeNames={excludeNames} onAdd={onAddPlace} onGeocode={onGeocode} />}
         {places.length === 0 && (
           <p className="tw-py-10 tw-text-center tw-text-sm tw-text-cink-faint">이 날은 아직 장소가 없어요.</p>
         )}
@@ -579,7 +584,6 @@ function TimelinePanel({
             />
           </div>
         ))}
-        {onAddPlace && <AddPlaceRow pool={pool} excludeNames={excludeNames} onAdd={onAddPlace} onGeocode={onGeocode} />}
       </div>
     </div>
   )
