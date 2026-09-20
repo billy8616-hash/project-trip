@@ -257,6 +257,7 @@ function App() {
     setAuthPassword,
     authMessage,
     authLoading,
+    socialLoading,
     submitLogin,
     signOut,
     signInWithGoogle,
@@ -508,6 +509,16 @@ function App() {
     closeAuthPanel()
     setScreen('signup')
   }
+
+  // 로그인 팝오버는 바깥 클릭(.auth-backdrop) 말고 Esc 로도 닫힌다 — 모달 관례에 맞춘다.
+  useEffect(() => {
+    if (!authOpen) return undefined
+    const onKeyDown = (event) => {
+      if (event.key === 'Escape') closeAuthPanel()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [authOpen, closeAuthPanel])
 
   // 홈 화면 '여행 시작하기': 입력한 목적지로 바로 코스로 가지 않고
   // 테마 -> 예산 -> 날짜(날씨) -> 코스 순서의 단계 흐름으로 들어간다.
@@ -813,7 +824,7 @@ function App() {
           <button className={screen === 'community' ? 'active' : ''} type="button" onClick={() => setScreen('community')}>커뮤니티</button>
         </div>
         <div className="top-actions">
-          {user && <span className="user-email">{user.email}</span>}
+          {user && <span className="user-email">{user.email || user.name}</span>}
           {user ? (
             <button className="auth-button" type="button" onClick={signOut}>로그아웃</button>
           ) : (
@@ -828,59 +839,105 @@ function App() {
       </nav>
 
       {authOpen && !user && (
-        <section className="auth-panel" aria-label="member auth">
-          <div className="auth-card">
-            <div className="auth-tabs">
-              <button className="selected" type="button">
-                로그인
+        <>
+          {/* 뒤를 살짝 눌러 주는 막 — 클릭하면 닫힌다. 화면을 가리지 않을 만큼만 어둡게. */}
+          <div className="auth-backdrop" onClick={closeAuthPanel} aria-hidden="true" />
+          <section className="auth-panel" role="dialog" aria-modal="true" aria-label="로그인">
+            <div className="auth-card">
+              <button className="auth-close" type="button" onClick={closeAuthPanel} aria-label="닫기">
+                <svg viewBox="0 0 16 16" aria-hidden="true">
+                  <path d="M4 4l8 8M12 4l-8 8" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                </svg>
               </button>
-              <button type="button" onClick={goToSignup}>
-                회원가입
-              </button>
+
+              <div className="auth-head">
+                <img src={balgilLogoMark} alt="" aria-hidden="true" className="auth-logo" />
+                <div className="auth-head-text">
+                  <p className="auth-welcome">다시 만나 반가워요</p>
+                  <p className="auth-sub">로그인하고 나만의 여행 기록을 이어가세요</p>
+                </div>
+              </div>
+
+              <div className="auth-tabs">
+                <button className="selected" type="button" aria-current="page">
+                  로그인
+                </button>
+                <button type="button" onClick={goToSignup}>
+                  회원가입
+                </button>
+              </div>
+
+              <form onSubmit={submitLogin}>
+                <label>
+                  <span className="auth-field-label">이메일</span>
+                  <input
+                    type="email"
+                    value={authEmail}
+                    onChange={(event) => setAuthEmail(event.target.value)}
+                    placeholder="travel@balgil.kr"
+                    autoComplete="email"
+                    required
+                  />
+                </label>
+                <label>
+                  <span className="auth-field-label">비밀번호</span>
+                  <input
+                    type="password"
+                    value={authPassword}
+                    onChange={(event) => setAuthPassword(event.target.value)}
+                    placeholder="6자 이상"
+                    autoComplete="current-password"
+                    minLength="6"
+                    required
+                  />
+                </label>
+                {authMessage && <p className="auth-message">{authMessage}</p>}
+                <button type="submit" disabled={authLoading}>
+                  {authLoading ? '처리 중...' : '로그인'}
+                </button>
+              </form>
+
+              <div className="auth-divider">
+                <span>또는</span>
+              </div>
+
+              <div className="auth-social">
+                <button
+                  type="button"
+                  className="auth-social-button is-google"
+                  onClick={signInWithGoogle}
+                  disabled={Boolean(socialLoading)}
+                >
+                  <svg className="auth-social-icon" viewBox="0 0 18 18" aria-hidden="true">
+                    <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.7-1.57 2.68-3.88 2.68-6.62z" />
+                    <path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.8.54-1.84.86-3.04.86-2.34 0-4.32-1.58-5.03-3.7H.96v2.33A9 9 0 0 0 9 18z" />
+                    <path fill="#FBBC05" d="M3.97 10.72a5.4 5.4 0 0 1 0-3.44V4.95H.96a9 9 0 0 0 0 8.1l3.01-2.33z" />
+                    <path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .96 4.95l3.01 2.33C4.68 5.16 6.66 3.58 9 3.58z" />
+                  </svg>
+                  {socialLoading === 'google' ? '구글로 연결 중...' : '구글로 계속하기'}
+                </button>
+                <button
+                  type="button"
+                  className="auth-social-button is-kakao"
+                  onClick={signInWithKakao}
+                  disabled={Boolean(socialLoading)}
+                >
+                  <svg className="auth-social-icon" viewBox="0 0 18 18" aria-hidden="true">
+                    <path fill="#3C1E1E" d="M9 1.5c-4.14 0-7.5 2.6-7.5 5.82 0 2.06 1.38 3.87 3.46 4.9-.15.53-.55 1.98-.63 2.29-.1.38.14.38.3.27.12-.08 1.9-1.28 2.67-1.8.55.08 1.12.13 1.7.13 4.14 0 7.5-2.6 7.5-5.79S13.14 1.5 9 1.5z" />
+                  </svg>
+                  {socialLoading === 'kakao' ? '카카오로 연결 중...' : '카카오로 계속하기'}
+                </button>
+              </div>
+
+              <p className="auth-hint">
+                아직 계정이 없으신가요?{' '}
+                <button type="button" className="auth-link" onClick={goToSignup}>
+                  회원가입하기
+                </button>
+              </p>
             </div>
-            <form onSubmit={submitLogin}>
-              <label>
-                이메일
-                <input
-                  type="email"
-                  value={authEmail}
-                  onChange={(event) => setAuthEmail(event.target.value)}
-                  autoComplete="email"
-                  required
-                />
-              </label>
-              <label>
-                비밀번호
-                <input
-                  type="password"
-                  value={authPassword}
-                  onChange={(event) => setAuthPassword(event.target.value)}
-                  autoComplete="current-password"
-                  minLength="6"
-                  required
-                />
-              </label>
-              {authMessage && <p className="auth-message">{authMessage}</p>}
-              <button type="submit" disabled={authLoading}>
-                {authLoading ? '처리 중...' : '로그인'}
-              </button>
-            </form>
-            <div className="auth-social">
-              <button type="button" className="auth-social-button" onClick={signInWithGoogle}>
-                구글로 계속하기
-              </button>
-              <button type="button" className="auth-social-button" onClick={signInWithKakao}>
-                카카오로 계속하기
-              </button>
-            </div>
-            <p className="auth-hint">
-              계정이 없으신가요?{' '}
-              <button type="button" className="auth-link" onClick={goToSignup}>
-                회원가입하기
-              </button>
-            </p>
-          </div>
-        </section>
+          </section>
+        </>
       )}
 
       {needsProfile ? (
