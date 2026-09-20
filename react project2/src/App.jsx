@@ -9,7 +9,7 @@ import { formatStay } from './lib/stayTime.js'
 import { formatDurationMin } from './lib/travelTime.js'
 import { estimateDayCost, feeLabelOf } from './lib/cost.js'
 import { transitLabelOf } from './lib/transit.js'
-import { resolveImageUrl } from './lib/api.js'
+import { fetchGeocode, resolveImageUrl } from './lib/api.js'
 import { addDaysISO, durationLabelFromNights, formatShortDate, nightsBetween, parseDayCount, todayISO } from './lib/datetime.js'
 import { useAuth } from './hooks/useAuth.js'
 import { useCityHighlights, useCityWeather } from './hooks/useCityHighlights.js'
@@ -132,6 +132,24 @@ function shortRegionOf(address, fallback = '') {
   return hit || fallback
 }
 
+// optimizeRouteOrder 로 거리 최적화를 끝낸 추천 코스 순서(ordered)에, 직접 추가한 장소(manual)를
+// 각자의 assignedSlot(오전/점심/오후/저녁) 자리에 끼워 넣는다.
+// optimizeRouteOrder 는 좌표 거리만 보고 순서를 짜기 때문에, 직접 추가한 장소를 그 계산에 같이
+// 넣으면 라벨(오전/저녁 등)과 무관하게 아무 자리에나 꽂힐 수 있다 — 그래서 추천 코스는 거리 기준
+// 순서를 그대로 두고, 직접 추가한 장소만 시간대가 맞는 자리를 찾아 따로 삽입한다.
+function insertManualBySlot(ordered, manualPlaces) {
+  if (manualPlaces.length === 0) return ordered
+  const result = ordered.slice()
+  for (const manual of manualPlaces) {
+    const slotIndex = SLOT_LABELS.indexOf(manual.assignedSlot)
+    // 이 장소보다 시간대가 늦은 첫 자리 앞에 끼워 넣는다. 그런 자리가 없으면(가장 늦은 시간대면) 맨 뒤.
+    let insertAt = result.findIndex((place) => SLOT_LABELS.indexOf(place.assignedSlot) > slotIndex)
+    if (insertAt === -1) insertAt = result.length
+    result.splice(insertAt, 0, manual)
+  }
+  return result
+}
+
 function App() {
   const [screen, setScreen] = useState('home')
   const [leaving, setLeaving] = useState(false)
@@ -174,6 +192,10 @@ function App() {
   const [routeLegs, setRouteLegs] = useState([])
   // 타임라인에서 사용자가 편집한 결과. currentTimelineDays[일자] = 그 날의 방문 목록.
   const [currentTimelineDays, setCurrentTimelineDays] = useState([])
+  // 사용자가 순서를 직접 바꾼 날(day index)의 집합. 이 날은 displayPlaces 가 거리 최적화
+  // (optimizeRouteOrder)를 건너뛰고 사용자가 정한 순서를 그대로 쓴다 — 안 그러면 위/아래로
+  // 옮긴 바로 다음 렌더에서 거리 계산이 다시 원래 순서로 되돌려버린다.
+  const [manualOrderDays, setManualOrderDays] = useState(() => new Set())
   // "여행 일정 미리보기" 패널: 기본은 요약만, 눌러야 하루 전체 타임라인이 펼쳐진다.
   const [previewExpanded, setPreviewExpanded] = useState(false)
   // 지도 위 장소 정렬: 'distance'(이동거리 최소) | 'slot'(오전→저녁 시간대 순).
@@ -284,6 +306,17 @@ function App() {
         : null),
     [cityData, journeyTheme, budget, mustVisit, courseAnchors, transport, tripStartDate, dayCount, dayStartMin, wetDays],
   )
+  // 도시/테마/예산/일수가 바뀌면 추천 코스 자체가 달라지므로, 타임라인에서 손으로 편집한 결과는
+  // 버리고 새 추천으로 되돌아간다. (예전 ScheduleTimeline 은 이 조합을 key 로 묶어 컴포넌트를
+  // 통째로 재마운트하는 방식으로 같은 일을 했다. 여기선 렌더 중에 비교해서 같은 일을 한다 —
+  // effect 안에서 setState 하면 렌더가 한 번 더 도는데, 렌더 중에 판단하면 그럴 필요가 없다.)
+  const timelineResetKey = `${cityKey}:${journeyTheme || '-'}:${budget || '-'}:${dayCount}`
+  const [lastTimelineResetKey, setLastTimelineResetKey] = useState(timelineResetKey)
+  if (timelineResetKey !== lastTimelineResetKey) {
+    setLastTimelineResetKey(timelineResetKey)
+    setCurrentTimelineDays([])
+    setManualOrderDays(new Set())
+  }
   const placeByName = useMemo(
     () => new Map((cityData?.pool || []).map((place) => [place.name, place])),
     [cityData],
@@ -303,18 +336,29 @@ function App() {
       ...place,
       assignedSlot: place.assignedSlot || SLOT_LABELS[Math.min(index, SLOT_LABELS.length - 1)],
     }))
-    const ordered = sortMode === 'slot'
-      ? merged
-          .map((place, index) => ({ place, index }))
-          .sort(
-            (a, b) =>
-              SLOT_LABELS.indexOf(a.place.assignedSlot) - SLOT_LABELS.indexOf(b.place.assignedSlot) ||
-              a.index - b.index,
-          )
-          .map((entry) => entry.place)
-      : optimizeRouteOrder(merged, courseAnchors)
+    let ordered
+    if (sortMode === 'slot') {
+      ordered = merged
+        .map((place, index) => ({ place, index }))
+        .sort(
+          (a, b) =>
+            SLOT_LABELS.indexOf(a.place.assignedSlot) - SLOT_LABELS.indexOf(b.place.assignedSlot) ||
+            a.index - b.index,
+        )
+        .map((entry) => entry.place)
+    } else if (manualOrderDays.has(selectedDay)) {
+      // 사용자가 이 날의 순서를 위/아래 버튼으로 직접 바꿨으면, 거리 최적화를 건너뛰고
+      // 저장된 순서를 그대로 쓴다 — 안 그러면 바로 다음 렌더에서 optimizeRouteOrder 가 되돌려버린다.
+      ordered = merged
+    } else {
+      // 거리 최적화(optimizeRouteOrder)는 추천 코스 장소만 대상으로 한다. 직접 추가한 장소를
+      // 같이 넣으면 좌표가 가깝다는 이유만으로 시간대 라벨과 무관하게 아무 자리에나 꽂힌다.
+      const recommended = merged.filter((place) => !place.manual)
+      const manual = merged.filter((place) => place.manual)
+      ordered = insertManualBySlot(optimizeRouteOrder(recommended, courseAnchors), manual)
+    }
     return scheduleDay(ordered, { dayStartMin, transport })
-  }, [activeDayPlaces, placeByName, dayStartMin, transport, sortMode, courseAnchors])
+  }, [activeDayPlaces, placeByName, dayStartMin, transport, sortMode, courseAnchors, manualOrderDays, selectedDay])
   // "여행 일정 미리보기" 패널용: 모든 날짜를 한 번에 시각까지 매겨 슬롯별로 묶는다.
   const allDaysScheduled = useMemo(() => {
     const daysSource = currentTimelineDays.length
@@ -329,6 +373,12 @@ function App() {
       return scheduleDay(merged, { dayStartMin, transport })
     })
   }, [currentTimelineDays, course, placeByName, dayStartMin, transport])
+  // 지금까지 어느 날에든 들어간 장소 이름(추천 코스 + 편집 결과) 전체.
+  // "장소 추가" 검색에서 이미 일정에 있는 곳은 후보로 다시 띄우지 않으려고 쓴다.
+  const usedPlaceNames = useMemo(
+    () => new Set(allDaysScheduled.flatMap((dayPlaces) => dayPlaces.map((place) => place.name))),
+    [allDaysScheduled],
+  )
   const journeyThemeLabel = (journeyThemes.find((item) => item.id === journeyTheme) || {}).label || ''
 
   // 새 코스 상세 화면(CourseDetail)이 쓰는 모양으로 변환한다.
@@ -688,6 +738,53 @@ function App() {
     setRouteLegs([])
   }, [])
 
+  // 아직 한 번도 손으로 편집한 적 없으면, 지금 추천 코스(course.days)를 편집 가능한 형태로 복제해
+  // 그 자리에서 시작한다. name/location/assignedSlot 만 남기는 이유는 나머지(영업시간·사진 등)는
+  // placeByName 으로 다시 채워지기 때문 — course.days 의 스냅샷이 아니라 항상 최신 풀 데이터를 보여준다.
+  const editableDaysFromCourse = useCallback(
+    () =>
+      (course?.days || []).map((day) =>
+        day.places.map((place) => ({ name: place.name, location: place.location, assignedSlot: place.assignedSlot })),
+      ),
+    [course],
+  )
+
+  // 코스 화면에서 "장소 추가"로 고른 장소(도시 풀에서 골랐거나, geocode 로 좌표만 확보한 곳)를
+  // 그 날 일정 맨 뒤에 붙인다. candidate: { name, location?, assignedSlot? }
+  const handleAddPlace = useCallback((dayIndex, candidate) => {
+    const base = currentTimelineDays.length ? currentTimelineDays : editableDaysFromCourse()
+    if (!base[dayIndex]) return
+    const next = base.map((list) => list.slice())
+    // manual: true 로 표시해 둔다 — 거리 최적화(optimizeRouteOrder)에는 안 넣고, 시간대 자리에
+    // 따로 끼워 넣기 위해 추천 코스 장소와 구분해야 한다 (insertManualBySlot 참고).
+    next[dayIndex] = [...next[dayIndex], { ...candidate, manual: true }]
+    handleTimelineDaysChange(next)
+  }, [currentTimelineDays, editableDaysFromCourse, handleTimelineDaysChange])
+
+  // 지금 보고 있는 날(selectedDay)에서 카드를 위/아래로 옮긴다. fromIndex/toIndex 는 화면에 보이는
+  // displayPlaces 기준 — 사용자가 실제로 보는 순서와 저장되는 순서가 항상 같아야 하므로 그대로 쓴다.
+  const handleMovePlace = useCallback((fromIndex, toIndex) => {
+    if (toIndex < 0 || toIndex >= displayPlaces.length || fromIndex === toIndex) return
+    const next = displayPlaces.map((place) => ({
+      name: place.name,
+      location: place.location,
+      assignedSlot: place.assignedSlot,
+      manual: place.manual,
+    }))
+    const [moved] = next.splice(fromIndex, 1)
+    next.splice(toIndex, 0, moved)
+
+    const baseDays = currentTimelineDays.length ? currentTimelineDays.map((list) => list.slice()) : editableDaysFromCourse()
+    if (!baseDays[selectedDay]) return
+    baseDays[selectedDay] = next
+    setManualOrderDays((prev) => {
+      const nextSet = new Set(prev)
+      nextSet.add(selectedDay)
+      return nextSet
+    })
+    handleTimelineDaysChange(baseDays)
+  }, [displayPlaces, currentTimelineDays, editableDaysFromCourse, selectedDay, handleTimelineDaysChange])
+
   // 타임라인 카드 클릭: 그 날로 전환하면서 해당 장소를 선택한다.
   const handleTimelineSelect = useCallback((day, index) => {
     setSelectedDay(day)
@@ -951,6 +1048,11 @@ function App() {
             routes={courseRoutes}
             selectedIndex={safeSelectedPlace}
             onPickPlace={(index) => selectPlace(index)}
+            onMovePlace={handleMovePlace}
+            pool={cityData?.pool || []}
+            excludeNames={usedPlaceNames}
+            onAddPlace={(candidate) => handleAddPlace(selectedDay, candidate)}
+            onGeocode={fetchGeocode}
             moveLabel={transport}
             transport={transport}
             onChangeTransport={setTransport}
