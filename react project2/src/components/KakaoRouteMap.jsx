@@ -256,7 +256,7 @@ export default function KakaoRouteMap({ course, places, origin, endPoint, transp
         if (stops.length < 2) {
           stops.forEach(placeStopMarker)
           fitToStops()
-          onRouteReady([])
+          onRouteReady?.([])
           setDrawn({ stops, transport, status: 'ready', source: 'estimate' })
           return
         }
@@ -299,7 +299,7 @@ export default function KakaoRouteMap({ course, places, origin, endPoint, transp
 
           placeStopMarker(stops[stops.length - 1])
           fitToStops()
-          onRouteReady(nextLegs)
+          onRouteReady?.(nextLegs)
           setDrawn({ stops, transport, status: 'ready', source: 'estimate' })
           traceLegs()
         }
@@ -347,7 +347,7 @@ export default function KakaoRouteMap({ course, places, origin, endPoint, transp
               placeStopMarker(stops[stops.length - 1])
               stops.forEach((stop) => bounds.extend(new kakao.maps.LatLng(stop.location.lat, stop.location.lng)))
               map.setBounds(bounds, 80, 80, 80, 80)
-              onRouteReady(nextLegs)
+              onRouteReady?.(nextLegs)
               setDrawn({ stops, transport, status: 'ready', source: 'car' })
               traceLegs()
             })
@@ -410,7 +410,7 @@ export default function KakaoRouteMap({ course, places, origin, endPoint, transp
               placeStopMarker(stops[stops.length - 1])
               stops.forEach((stop) => bounds.extend(new kakao.maps.LatLng(stop.location.lat, stop.location.lng)))
               map.setBounds(bounds, 80, 80, 80, 80)
-              onRouteReady(nextLegs)
+              onRouteReady?.(nextLegs)
               setDrawn({ stops, transport, status: 'ready', source: 'transit' })
               traceLegs()
             })
@@ -474,7 +474,7 @@ export default function KakaoRouteMap({ course, places, origin, endPoint, transp
               placeStopMarker(stops[stops.length - 1])
               stops.forEach((stop) => bounds.extend(new kakao.maps.LatLng(stop.location.lat, stop.location.lng)))
               map.setBounds(bounds, 80, 80, 80, 80)
-              onRouteReady(nextLegs)
+              onRouteReady?.(nextLegs)
               setDrawn({ stops, transport, status: 'ready', source: 'walk' })
               traceLegs()
             })
