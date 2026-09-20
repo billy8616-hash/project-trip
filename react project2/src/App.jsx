@@ -1,24 +1,21 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import SignupScreen from './SignupScreen.jsx'
-import { budgets, journeyThemes, SLOT_LABELS, transports } from './data/travelOptions.js'
+import { budgets, journeyThemes, SLOT_LABELS } from './data/travelOptions.js'
 import { allDestinations, destinationCatalog, destinationGroups, fallbackCity } from './data/destinations.js'
 import { buildCourse } from './lib/course.js'
 import { placeKindOf } from './lib/placeKind.js'
 import { formatClock, parseClock, scheduleDay } from './lib/schedule.js'
 import { formatStay } from './lib/stayTime.js'
-import { formatDurationMin } from './lib/travelTime.js'
-import { estimateDayCost, feeLabelOf } from './lib/cost.js'
+import { feeLabelOf } from './lib/cost.js'
 import { transitLabelOf } from './lib/transit.js'
 import { fetchGeocode, resolveImageUrl } from './lib/api.js'
 import { addDaysISO, durationLabelFromNights, formatShortDate, nightsBetween, parseDayCount, todayISO } from './lib/datetime.js'
 import { useAuth } from './hooks/useAuth.js'
-import { useCityHighlights, useCityWeather } from './hooks/useCityHighlights.js'
-import { useNearbyParking } from './hooks/useNearbyParking.js'
+import { useCityHighlights } from './hooks/useCityHighlights.js'
 import { useTripForecast } from './hooks/useTripForecast.js'
 import { useCityPool } from './hooks/useCityPool.js'
 import { useTripPlan } from './hooks/useTripPlan.js'
-import { legColor } from './lib/kakaoMaps.js'
-import { haversineKm, optimizeRouteOrder } from './lib/geo.js'
+import { optimizeRouteOrder } from './lib/geo.js'
 import CoursePoolNotice from './components/CoursePoolNotice.jsx'
 import Icon from './components/Icon.jsx'
 import KakaoRouteMap from './components/KakaoRouteMap.jsx'
@@ -83,54 +80,13 @@ const SHARE_LABEL = '커뮤니티에 공유'
 
 // 지도 위 장소 정렬 방식.
 const SORT_MODES = ['distance', 'slot']
-const SORT_LABELS = { distance: '이동거리 최소 순서', slot: '시간대 순서' }
 
-// 구간 이동 뱃지에 붙일 교통수단 아이콘.
-const TRANSPORT_ICON = { 도보: '🚶', 대중교통: '🚌', 자차: '🚗' }
 
-// "73분" 같은 문자열에서 숫자를 뽑아 "N시간 M분"으로. 파싱 실패 시 원문 유지.
-function railDurationLabel(raw) {
-  const min = Number.parseInt(raw, 10)
-  return Number.isFinite(min) ? formatDurationMin(min) : raw
-}
 
-// "여행 일정 미리보기"는 스크랩북 지면처럼 하루를 오전/오후/저녁 세 칸으로만 접어서 보여준다.
-// 내부 슬롯(점심 맛집·오후 카페)은 "오후" 한 칸으로 합친다.
-const PREVIEW_BUCKETS = [
-  { key: '오전', label: '오전', icon: '☀️', slots: ['오전'] },
-  { key: '오후', label: '오후', icon: '⛅', slots: ['점심 맛집', '오후 카페'] },
-  { key: '저녁', label: '저녁', icon: '🌙', slots: ['저녁'] },
-]
 
-// 하루치 방문 목록(방문 순서대로)을 오전/오후/저녁 칸으로 나눈다.
-function bucketByPreview(places) {
-  return PREVIEW_BUCKETS.map((bucket) => ({
-    ...bucket,
-    items: places.filter((place) => bucket.slots.includes(place.assignedSlot || '오전')),
-  }))
-}
 
-// 코스 안내 문구 앞에 붙일 아이콘 — 문구 내용으로 종류를 추정한다.
-function noticeIcon(message) {
-  if (/비·눈|비\/눈|☔|우천|실내 위주/.test(message)) return '☔'
-  if (/지하철|대중교통|자차/.test(message)) return '🚇'
-  if (/쉬는 곳|휴무|정기 휴무/.test(message)) return '🗓️'
-  if (/늦어|마감|문을 닫는/.test(message)) return '⏰'
-  if (/넉넉지|채우지 못|직접 추가/.test(message)) return '✏️'
-  return '💡'
-}
 
-// km -> "약 52km" 형태의 짧은 문자열 (10km 미만은 소수 1자리).
-function formatKm(km) {
-  return km >= 10 ? `${Math.round(km)}km` : `${km.toFixed(1)}km`
-}
 
-// 주소 문자열에서 "시/군/구" 단위 지역명만 뽑는다 (예: "제주특별자치도 서귀포시 성산읍..." -> "서귀포시").
-function shortRegionOf(address, fallback = '') {
-  const tokens = String(address || '').trim().split(/\s+/)
-  const hit = tokens.find((token, index) => index > 0 && token.length <= 5 && /(시|군|구)$/.test(token))
-  return hit || fallback
-}
 
 // optimizeRouteOrder 로 거리 최적화를 끝낸 추천 코스 순서(ordered)에, 직접 추가한 장소(manual)를
 // 각자의 assignedSlot(오전/점심/오후/저녁) 자리에 끼워 넣는다.
@@ -189,23 +145,13 @@ function App() {
   const [savedName, setSavedName] = useState('')
   const [copyState, setCopyState] = useState('공유')
   const [saveState, setSaveState] = useState(SAVE_LABEL) // 평상시 SAVE_LABEL, 누르면 저장 중… → 저장됨 ✓ / 로그인 필요 / 저장 실패
-  const [routeLegs, setRouteLegs] = useState([])
   // 타임라인에서 사용자가 편집한 결과. currentTimelineDays[일자] = 그 날의 방문 목록.
   const [currentTimelineDays, setCurrentTimelineDays] = useState([])
   // 사용자가 순서를 직접 바꾼 날(day index)의 집합. 이 날은 displayPlaces 가 거리 최적화
   // (optimizeRouteOrder)를 건너뛰고 사용자가 정한 순서를 그대로 쓴다 — 안 그러면 위/아래로
   // 옮긴 바로 다음 렌더에서 거리 계산이 다시 원래 순서로 되돌려버린다.
   const [manualOrderDays, setManualOrderDays] = useState(() => new Set())
-  // "여행 일정 미리보기" 패널: 기본은 요약만, 눌러야 하루 전체 타임라인이 펼쳐진다.
-  const [previewExpanded, setPreviewExpanded] = useState(false)
-  // 지도 위 장소 정렬: 'distance'(이동거리 최소) | 'slot'(오전→저녁 시간대 순).
-  const [sortMode, setSortMode] = useState('distance')
-  const [sortOpen, setSortOpen] = useState(false)
-  // 코스 화면 지도 카드: "교통 정보" 체크박스(이동 시간/거리 요약 표시) + 지도 확대/축소·처음 위치 버튼.
-  const [trafficOn, setTrafficOn] = useState(true)
   const mapInstRef = useRef(null)
-  // 지도 밑 장소 카드를 누르면 뜨는 상세 모달이 가리키는 장소 인덱스(null 이면 닫힘).
-  const [detailPlaceIndex, setDetailPlaceIndex] = useState(null)
   // 장소 카드 줄 끝의 "장소 추가" 카드가 아래 편집 타임라인으로 스크롤할 때 쓴다.
   const scheduleRef = useRef(null)
   const scrollToSchedule = useCallback(() => {
@@ -268,7 +214,6 @@ function App() {
   const cityKey = allDestinations.find((item) => destination.includes(item.name))?.name || fallbackCity
   const { data: cityData, status: cityPoolStatus, retry: retryCityPool } = useCityPool(cityKey)
   const { photos: cityPhotos, trends: cityTrends } = useCityHighlights()
-  const weather = useCityWeather(cityKey, cityData?.center)
 
   // "오늘의 추천 AI 코스" — 날짜로 도시·테마를 회전시켜 매일 다른 1일 코스를 보여준다.
   const todayCity = TODAY_CITY
@@ -338,16 +283,7 @@ function App() {
       assignedSlot: place.assignedSlot || SLOT_LABELS[Math.min(index, SLOT_LABELS.length - 1)],
     }))
     let ordered
-    if (sortMode === 'slot') {
-      ordered = merged
-        .map((place, index) => ({ place, index }))
-        .sort(
-          (a, b) =>
-            SLOT_LABELS.indexOf(a.place.assignedSlot) - SLOT_LABELS.indexOf(b.place.assignedSlot) ||
-            a.index - b.index,
-        )
-        .map((entry) => entry.place)
-    } else if (manualOrderDays.has(selectedDay)) {
+    if (manualOrderDays.has(selectedDay)) {
       // 사용자가 이 날의 순서를 위/아래 버튼으로 직접 바꿨으면, 거리 최적화를 건너뛰고
       // 저장된 순서를 그대로 쓴다 — 안 그러면 바로 다음 렌더에서 optimizeRouteOrder 가 되돌려버린다.
       ordered = merged
@@ -359,7 +295,7 @@ function App() {
       ordered = insertManualBySlot(optimizeRouteOrder(recommended, courseAnchors), manual)
     }
     return scheduleDay(ordered, { dayStartMin, transport })
-  }, [activeDayPlaces, placeByName, dayStartMin, transport, sortMode, courseAnchors, manualOrderDays, selectedDay])
+  }, [activeDayPlaces, placeByName, dayStartMin, transport, courseAnchors, manualOrderDays, selectedDay])
   // "여행 일정 미리보기" 패널용: 모든 날짜를 한 번에 시각까지 매겨 슬롯별로 묶는다.
   const allDaysScheduled = useMemo(() => {
     const daysSource = currentTimelineDays.length
@@ -451,58 +387,9 @@ function App() {
       map.setLevel(5)
     }
   }
-  // 지도가 실제 경로를 그리면 routeLegs 를 쓰고(출발·복귀 앵커 포함), 아직이면 장소들만 이어 임시 구간을 만든다.
-  const legsForDisplay = routeLegs.length
-    ? routeLegs
-    : displayPlaces.slice(0, -1).map((place, index) => ({
-        from: displayPlaces[index].name,
-        to: displayPlaces[index + 1].name,
-        fromLabel: `${index + 1}`,
-        toLabel: `${index + 2}`,
-        duration: `${place.travelToNextMin || Number.parseInt(place.time, 10) || 0}분`,
-        focusIndex: index + 1,
-        summary: null,
-      }))
-  const totalTime = legsForDisplay.reduce((sum, leg) => sum + (Number.parseInt(leg.duration, 10) || 0), 0)
-  // 총 이동 거리(직선 기준 추정) — 출발지 + 방문지들 + 복귀지를 순서대로 이은 거리 합.
-  const totalKm = useMemo(() => {
-    const pts = []
-    if (routeStartPoint && Number.isFinite(routeStartPoint.lat)) {
-      pts.push({ lat: routeStartPoint.lat, lng: routeStartPoint.lng })
-    }
-    displayPlaces.forEach((place) => {
-      if (place.location && Number.isFinite(place.location.lat)) pts.push(place.location)
-    })
-    if (routeEndPoint && Number.isFinite(routeEndPoint.lat)) {
-      pts.push({ lat: routeEndPoint.lat, lng: routeEndPoint.lng })
-    }
-    let km = 0
-    for (let i = 1; i < pts.length; i += 1) km += haversineKm(pts[i - 1], pts[i])
-    return km
-  }, [displayPlaces, routeStartPoint, routeEndPoint])
-  // 구간 리스트에서 노드 시퀀스를 복원한다: [첫 구간의 출발점, 이후 각 구간의 도착점].
-  // 지도 아래 "레일"이 이 노드들 사이에 구간 시간을 끼워 1차원으로 펼친다 (지도 위에 겹칠 일 없음).
-  const railNodes = legsForDisplay.length
-    ? [
-        {
-          label: legsForDisplay[0].fromLabel ?? '출발',
-          name: legsForDisplay[0].from,
-          isTerminus: !/^\d+$/.test(legsForDisplay[0].fromLabel ?? '출발'),
-          focusIndex: 0,
-        },
-        ...legsForDisplay.map((leg, index) => ({
-          label: leg.toLabel ?? `${index + 1}`,
-          name: leg.to,
-          isTerminus: !/^\d+$/.test(leg.toLabel ?? `${index + 1}`),
-          focusIndex: leg.focusIndex ?? index,
-        })),
-      ]
-    : []
   // selectedPlace 는 그대로 두고, 읽을 때만 현재 날의 장소 수에 맞춰 눌러 쓴다 (날 전환·타임라인 편집으로 범위가 줄어도 안전).
   const safeSelectedPlace = Math.min(selectedPlace, Math.max(displayPlaces.length - 1, 0))
   const detail = displayPlaces[safeSelectedPlace] || displayPlaces[0] || null
-  // 선택한 장소 주변 주차장 (좌표가 있을 때만). 상세 박스 "주변 주차장" 줄에 쓴다.
-  const nearbyParking = useNearbyParking(detail?.location?.lat, detail?.location?.lng)
 
 
   const goToSignup = () => {
@@ -595,7 +482,6 @@ function App() {
     setDestination(dest)
     setSelectedPlace(0)
     setSelectedDay(0)
-    setRouteLegs([])
     setCurrentTimelineDays([])
     setSavedName(`${dest} ${themeObj ? themeObj.label : ''} 여행`.replace(/\s+/g, ' ').trim())
     slideTo('mustvisit')
@@ -738,7 +624,6 @@ function App() {
     setTripLodging(null)
     setSelectedPlace(0)
     setSelectedDay(0)
-    setRouteLegs([])
     setCurrentTimelineDays([])
     setSavedName(title || `${dest} 여행`.trim())
     setScreen('course')
@@ -746,7 +631,6 @@ function App() {
 
   const handleTimelineDaysChange = useCallback((nextDays) => {
     setCurrentTimelineDays(nextDays)
-    setRouteLegs([])
   }, [])
 
   // 아직 한 번도 손으로 편집한 적 없으면, 지금 추천 코스(course.days)를 편집 가능한 형태로 복제해
@@ -796,14 +680,8 @@ function App() {
     handleTimelineDaysChange(baseDays)
   }, [displayPlaces, currentTimelineDays, editableDaysFromCourse, selectedDay, handleTimelineDaysChange])
 
-  // 타임라인 카드 클릭: 그 날로 전환하면서 해당 장소를 선택한다.
-  const handleTimelineSelect = useCallback((day, index) => {
-    setSelectedDay(day)
-    setSelectedPlace(index)
-  }, [])
 
   const mapUrl = detail ? `https://map.kakao.com/link/search/${encodeURIComponent(`${cityKey} ${detail.name}`)}` : ''
-  const naverUrl = detail ? `https://map.naver.com/p/search/${encodeURIComponent(`${cityKey} ${detail.name}`)}` : ''
 
   return (
     <main className={darkMode ? 'app dark' : 'app'}>
@@ -1133,7 +1011,6 @@ function App() {
                 selectedPlace={safeSelectedPlace}
                 selectPulse={selectPulse}
                 onSelectPlace={selectPlace}
-                onRouteReady={setRouteLegs}
                 onMapReady={(map) => {
                   mapInstRef.current = map
                 }}
