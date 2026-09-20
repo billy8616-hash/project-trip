@@ -12,6 +12,8 @@ export function useAuth() {
   const [authPassword, setAuthPassword] = useState('')
   const [authMessage, setAuthMessage] = useState('')
   const [authLoading, setAuthLoading] = useState(false)
+  // 소셜 로그인 리다이렉트를 기다리는 동안 어떤 버튼을 눌렀는지 ('google' | 'kakao' | '').
+  const [socialLoading, setSocialLoading] = useState('')
 
   // 새로고침해도, 소셜 로그인 리다이렉트로 돌아와도 Supabase 가 세션 복원을 알려준다.
   useEffect(() => {
@@ -79,13 +81,37 @@ export function useAuth() {
     [authEmail, authPassword],
   )
 
-  const signInWithGoogle = useCallback(() => {
-    return supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin } })
+  // 소셜 로그인은 성공하면 브라우저가 provider 로 떠나 버리므로, 여기서 처리할 건 '실패'뿐이다.
+  // 예전엔 Promise 를 그냥 반환해서, Supabase 대시보드에 provider 가 꺼져 있으면(=가장 흔한 상황)
+  // 버튼을 눌러도 아무 일도 안 일어난 것처럼 보였다. 이제 실패 사유를 패널에 띄운다.
+  const signInWithProvider = useCallback((provider, label) => {
+    setSocialLoading(provider)
+    setAuthMessage('')
+
+    // scopes 를 여기서 줄일 수는 없다 — Supabase 의 Kakao provider 는 서버 쪽에
+    // account_email + profile_image + profile_nickname 을 고정으로 보내고, 클라이언트가 넘긴 값을
+    // 덧붙이기만 한다. 따라서 이 세 항목 모두 카카오 콘솔의 '동의항목'에 설정돼 있어야 한다.
+    return supabase.auth
+      .signInWithOAuth({ provider, options: { redirectTo: window.location.origin } })
+      .then(({ error }) => {
+        if (error) throw error
+        // 성공 시에는 리다이렉트가 일어나므로 socialLoading 을 풀지 않는다 (버튼이 계속 '연결 중'으로 남는다).
+      })
+      .catch((error) => {
+        setSocialLoading('')
+        const reason = error?.message || ''
+        const notEnabled = /unsupported provider|provider is not enabled|not enabled/i.test(reason)
+        setAuthMessage(
+          notEnabled
+            ? `${label} 로그인이 아직 연결되지 않았어요. (관리자: Supabase → Authentication → Providers 에서 ${label} 를 켜주세요)`
+            : `${label} 로그인에 실패했어요. ${reason}`,
+        )
+      })
   }, [])
 
-  const signInWithKakao = useCallback(() => {
-    return supabase.auth.signInWithOAuth({ provider: 'kakao', options: { redirectTo: window.location.origin } })
-  }, [])
+  const signInWithGoogle = useCallback(() => signInWithProvider('google', '구글'), [signInWithProvider])
+
+  const signInWithKakao = useCallback(() => signInWithProvider('kakao', '카카오'), [signInWithProvider])
 
   const signOut = useCallback(async () => {
     await supabase.auth.signOut().catch(() => null)
@@ -97,6 +123,7 @@ export function useAuth() {
     setAuthOpen(false)
     setAuthMessage('')
     setAuthPassword('')
+    setSocialLoading('')
   }, [])
 
   return {
@@ -111,6 +138,7 @@ export function useAuth() {
     setAuthPassword,
     authMessage,
     authLoading,
+    socialLoading,
     submitLogin,
     signOut,
     signInWithGoogle,
