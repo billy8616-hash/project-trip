@@ -428,16 +428,21 @@ function parseJsonArray(value) {
 // 도시 전체를 다시 Gemini 로 보내면 무료 티어 할당량이 새로 얻는 것 없이 나간다.
 // 재사용 판별은 themes 가 비어있지 않은지로 한다 — 응답 스키마상 테마는 1~3개가 항상 붙으므로,
 // 보강이 실패해 폴백 문구만 저장된 행은 "[]" 로 남아 있어 다음 갱신 때 자연히 다시 시도된다.
-async function loadCachedEnrichment(ids) {
+async function loadCachedRows(ids) {
   const rows = await findCachedByIds(ids).catch((error) => {
-    console.warn(`[course-pool] 기존 보강 조회 실패 — 전부 새로 생성합니다: ${error.message}`)
+    console.warn(`[course-pool] 기존 캐시 조회 실패 — 전부 새로 받아옵니다: ${error.message}`)
     return []
   })
+  return new Map(rows.map((row) => [row.id, row]))
+}
+
+// 캐시 행에서 재사용 가능한 Gemini 보강만 추려낸다. -> Map(id -> enriched)
+function enrichmentFromRows(cachedRows) {
   const cached = new Map()
-  for (const row of rows) {
+  for (const [id, row] of cachedRows) {
     const themes = parseJsonArray(row.themes)
     if (themes.length === 0) continue
-    cached.set(row.id, {
+    cached.set(id, {
       reason: row.reason || '',
       caution: row.caution || '',
       themes,
@@ -445,6 +450,53 @@ async function loadCachedEnrichment(ids) {
     })
   }
   return cached
+}
+
+// Google Places 는 장소 1곳당 유료 호출 1번이고, 영업시간·사진·평점을 한 번에 받아온다.
+// 풀이 수백 곳으로 커진 뒤로는 도시 하나를 갱신할 때마다 그 수만큼 과금되므로,
+// 한 번 받아둔 장소는 이 기간 동안 DB 값을 그대로 쓴다. (영업시간은 변하지만 매주 변하진 않는다.)
+const GOOGLE_REFRESH_MS = 30 * 24 * 60 * 60 * 1000
+// 한 번 돌 때 Google 을 부를 최대 장소 수. 넘긴 장소는 이번엔 캐시 값을 쓰고 다음 갱신 때 차례가 온다.
+const GOOGLE_LIMIT_PER_RUN = 60
+
+// Google 을 실제로 불러야 하는 장소를 고른다.
+// 캐시가 아예 없는 신규 장소를 먼저(영업시간 정보가 0인 상태라 코스 품질에 바로 영향),
+// 그 다음 오래된 순으로 채운다.
+function selectForGoogle(kakaoPlaces, cachedRows, limit) {
+  const fresh = []
+  const brandNew = []
+  const stale = []
+
+  for (const place of kakaoPlaces) {
+    const row = cachedRows.get(place.id)
+    const fetchedAt = row?.hoursFetchedAt ? new Date(row.hoursFetchedAt).getTime() : 0
+    if (!row || !fetchedAt) brandNew.push(place)
+    else if (Date.now() - fetchedAt > GOOGLE_REFRESH_MS) stale.push({ place, fetchedAt })
+    else fresh.push(place)
+  }
+
+  stale.sort((a, b) => a.fetchedAt - b.fetchedAt)
+  const targets = [...brandNew, ...stale.map((entry) => entry.place)].slice(0, limit)
+  return { targets, skipped: kakaoPlaces.length - targets.length, fresh: fresh.length }
+}
+
+// 캐시 행을 Google 응답과 같은 모양으로 되돌린다 (재사용 시 rows 빌드 코드를 그대로 쓰려고).
+function hoursFromRow(row) {
+  return {
+    openHoursText: row.openHoursText,
+    closedDayText: row.closedDayText,
+    opensAt: row.opensAt,
+    closesAt: row.closesAt,
+    alwaysOpen: row.alwaysOpen,
+    closedWeekdays: parseJsonArray(row.closedWeekdays),
+    feeText: row.feeText,
+    costTier: row.costTier,
+    rating: row.rating,
+    userRatingCount: row.userRatingCount,
+    editorialSummary: row.editorialSummary,
+    websiteUrl: row.websiteUrl,
+    photoRef: null, // 사진은 imageUrl 로 이미 저장돼 있어 다시 만들 필요가 없다.
+  }
 }
 
 // 한 번 돌 때 Gemini 로 보낼 장소 수 상한. 풀은 수백 곳이 될 수 있지만 코스에 실제로 쓰이는 건
@@ -495,13 +547,23 @@ export async function buildCityPoolRows(cityKey) {
     throw new Error(`${cityKey}에서 장소를 찾지 못했어요.`)
   }
 
+  // DB 캐시를 한 번만 읽어 Gemini 보강과 Google 영업시간 재사용 판단에 함께 쓴다.
+  const cachedRows = await loadCachedRows(rawPlaces.map((place) => place.id))
+
   // 이미 보강된 장소는 Gemini 에 다시 보내지 않는다. 갱신 때 신규 장소가 없으면 호출 자체가 0번이 된다.
-  const cachedEnrichment = await loadCachedEnrichment(rawPlaces.map((place) => place.id))
+  const cachedEnrichment = enrichmentFromRows(cachedRows)
   const pending = rawPlaces.filter((place) => !cachedEnrichment.has(place.id))
   const needsEnrichment = selectForEnrichment(pending, ENRICH_LIMIT_PER_RUN)
+
+  // Google 도 마찬가지 — 최근에 받아둔 장소는 DB 값을 그대로 쓴다.
+  const kakaoPlaces = rawPlaces.filter((place) => place.source === 'kakao')
+  const google = selectForGoogle(kakaoPlaces, cachedRows, GOOGLE_LIMIT_PER_RUN)
+
   console.log(
-    `[course-pool] ${cityKey}: 풀 ${rawPlaces.length}곳 | 보강 재사용 ${cachedEnrichment.size} | ` +
-      `Gemini 신규 ${needsEnrichment.length}${pending.length > needsEnrichment.length ? ` (대기 ${pending.length - needsEnrichment.length})` : ''}`,
+    `[course-pool] ${cityKey}: 풀 ${rawPlaces.length}곳 | ` +
+      `Gemini 재사용 ${cachedEnrichment.size}·신규 ${needsEnrichment.length}` +
+      `${pending.length > needsEnrichment.length ? `(대기 ${pending.length - needsEnrichment.length})` : ''} | ` +
+      `Google 호출 ${google.targets.length}/${kakaoPlaces.length}곳 (재사용 ${google.skipped})`,
   )
 
   // 동시에 조회: 추천 텍스트(Gemini) · 관광지 주차·영업시간(TourAPI detailIntro2) ·
@@ -515,7 +577,7 @@ export async function buildCityPoolRows(cityKey) {
         },
       ),
       fetchPlaceDetailsMany(rawPlaces.filter((place) => place.source === 'tourapi')),
-      fetchGoogleHoursMany(rawPlaces.filter((place) => place.source === 'kakao')),
+      fetchGoogleHoursMany(google.targets),
       fetchTransitAccessMany(rawPlaces),
     ])
 
@@ -528,8 +590,12 @@ export async function buildCityPoolRows(cityKey) {
         const defaults = SLOT_DEFAULTS[slots[0]] || SLOT_DEFAULTS['오전']
         const transit = transitByPlaceId.get(place.id) || { transitStation: null, transitDistanceM: null, transitScore: 'none' }
         const detail = detailByPlaceId.get(place.id) || {}
+        const cachedRow = cachedRows.get(place.id)
         // 영업시간 출처: 카카오 장소는 Google Places, 관광지·문화시설은 TourAPI detailIntro2.
-        const hours = googleHoursByPlaceId.get(place.id) || detail
+        // 이번에 Google 을 건너뛴 카카오 장소는 지난번에 받아 DB 에 넣어둔 값을 그대로 쓴다.
+        const googleHours = googleHoursByPlaceId.get(place.id)
+        const reusedHours = !googleHours && cachedRow && place.source === 'kakao' ? hoursFromRow(cachedRow) : null
+        const hours = googleHours || reusedHours || detail
         return {
           id: place.id,
           source: place.source,
@@ -556,7 +622,7 @@ export async function buildCityPoolRows(cityKey) {
           transitDistanceM: transit.transitDistanceM,
           transitScore: transit.transitScore,
           // 대표 사진: 관광지·문화시설은 TourAPI 가 준 절대 URL, 맛집·카페는 Google 사진 프록시 경로.
-          imageUrl: place.image || googlePhotoPath(hours.photoRef) || null,
+          imageUrl: place.image || googlePhotoPath(hours.photoRef) || cachedRow?.imageUrl || null,
           // 카드 딥데이터 — 지금은 Google 소스(맛집·카페)만 채워진다. TourAPI(관광지)는 이 필드들이 없어 전부 null.
           rating: hours.rating ?? null,
           userRatingCount: hours.userRatingCount ?? null,
@@ -566,6 +632,9 @@ export async function buildCityPoolRows(cityKey) {
           caution: enriched.caution || '방문 전 영업시간과 휴무일을 확인해 주세요.',
           themes: JSON.stringify(enriched.themes || []),
           budgetTiers: JSON.stringify(enriched.budgetTiers || []),
+          // 이번에 Google 을 실제로 부른 장소만 시각을 새로 찍는다. 건너뛴 장소는 기존 시각을 유지해야
+          // 다음 갱신 때 "오래된 순"에서 제 차례가 온다. (관광지는 Google 을 안 쓰므로 계속 null)
+          hoursFetchedAt: googleHours ? new Date() : (cachedRow?.hoursFetchedAt ?? null),
         }
       })
 
