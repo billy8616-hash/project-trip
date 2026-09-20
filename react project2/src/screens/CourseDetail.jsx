@@ -182,7 +182,7 @@ function Thumb({ place }) {
 }
 
 /* 장소 카드 */
-function PlaceCard({ place, isFirst, isLast, isActive, onPick, onMoveUp, onMoveDown }) {
+function PlaceCard({ place, isLast, isActive, onPick, onMoveDown }) {
   // 처음엔 다 접힌 채로 보여준다. 카드 자체를 누르면 펼침/접힘 + 지도 선택이 같이 일어난다.
   const [open, setOpen] = useState(false)
   const k = kindStyle(place.kind)
@@ -194,19 +194,13 @@ function PlaceCard({ place, isFirst, isLast, isActive, onPick, onMoveUp, onMoveD
 
   return (
     <div id={`course-place-${place.id}`} className="tw-grid tw-grid-cols-[32px_1fr] tw-gap-3">
-      {/* 순번 마커 + 위/아래 이동 버튼 + 세로 연결선. 이 칼럼은 옆의 role="button" 카드와
-          형제 요소라서, 카드 클릭(펼침/접힘)과 겹치지 않고 독립적으로 누를 수 있다. */}
+      {/* 순번 마커 + 아래로 이동 버튼 + 세로 연결선. 이 칼럼은 옆의 role="button" 카드와
+          형제 요소라서, 카드 클릭(펼침/접힘)과 겹치지 않고 독립적으로 누를 수 있다.
+          "위로 이동" 버튼은 따로 안 둔다 — "N번을 아래로"와 "N+1번을 위로"는 결국 같은
+          동작(둘을 맞바꾸기)이라, 위 칸의 이동수단 배지 바로 밑처럼 여유 없는 자리에 억지로
+          끼워 넣으면 배지 아이콘에 딱 붙어 보여 헷갈렸다. 아래로 버튼은 연결선이 지나가는
+          여유 공간에 놓이니 그 문제가 없다. */}
       <div className="tw-flex tw-flex-col tw-items-center">
-        {onMoveUp && !isFirst && (
-          <button
-            type="button"
-            onClick={onMoveUp}
-            aria-label="위로 이동"
-            className="tw-mb-1 tw-grid tw-h-5 tw-w-5 tw-place-items-center tw-rounded-full tw-text-cink-faint tw-transition-colors hover:tw-bg-surface-2 hover:tw-text-caccent"
-          >
-            <Icon name="chevron" size={11} className="tw--rotate-90" />
-          </button>
-        )}
         <div className={`tw-grid tw-h-7 tw-w-7 tw-place-items-center tw-rounded-full tw-text-[13px] tw-font-bold tw-tabular-nums ${
           isActive ? 'tw-bg-caccent tw-text-white tw-ring-2 tw-ring-caccent/30' : 'tw-bg-caccent tw-text-white'
         }`}>
@@ -216,13 +210,13 @@ function PlaceCard({ place, isFirst, isLast, isActive, onPick, onMoveUp, onMoveD
           <button
             type="button"
             onClick={onMoveDown}
-            aria-label="아래로 이동"
-            className="tw-mt-1 tw-grid tw-h-5 tw-w-5 tw-place-items-center tw-rounded-full tw-text-cink-faint tw-transition-colors hover:tw-bg-surface-2 hover:tw-text-caccent"
+            aria-label="다음 장소와 순서 바꾸기"
+            className="tw-mt-1.5 tw-grid tw-h-5 tw-w-5 tw-place-items-center tw-rounded-full tw-text-cink-faint tw-transition-colors hover:tw-bg-surface-2 hover:tw-text-caccent"
           >
             <Icon name="chevron" size={11} className="tw-rotate-90" />
           </button>
         )}
-        {!isLast && <div className="tw-mt-1 tw-w-px tw-flex-1 tw-bg-cline" />}
+        {!isLast && <div className="tw-mt-1.5 tw-w-px tw-flex-1 tw-bg-cline" />}
       </div>
 
       {/* 카드 전체가 하나의 버튼: 누르면 지도 선택 + 상세 펼침/접힘이 함께 일어난다. */}
@@ -575,11 +569,9 @@ function TimelinePanel({
             {i > 0 && <RouteBadge route={routeByFrom[places[i - 1].id]} />}
             <PlaceCard
               place={place}
-              isFirst={i === 0}
               isLast={i === places.length - 1}
               isActive={i === selectedIndex}
               onPick={() => onPick && onPick(i, place)}
-              onMoveUp={onMovePlace ? () => onMovePlace(i, i - 1) : undefined}
               onMoveDown={onMovePlace ? () => onMovePlace(i, i + 1) : undefined}
             />
           </div>
