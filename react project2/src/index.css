@@ -9334,3 +9334,447 @@ input[type="button"]:active,
 .diary-title {
   font-size: clamp(24px, 2.9vw, 39px);
 }
+
+/* ============================================================================
+   로그인 팝오버 — 페이지 테마(따뜻한 종이 + 손글씨 한 스푼)로 재단장
+   앞쪽에 흩어져 있던 .auth-* 규칙(웹툰 톤: 흔들린 모서리 · 하드 그림자 · 원형 탭)을
+   파일 맨 아래에서 같은 특이도로 덮는다. 상단바 버튼과 같은 언어(Jua · 얇은 잉크선 ·
+   부드럽게 퍼지는 그림자)를 쓰고, 색은 카드 안 토큰(--auth-*)으로만 다뤄
+   다크모드는 토큰 재정의 한 번으로 끝낸다.
+   ============================================================================ */
+
+.auth-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 19;
+  background: rgba(48, 34, 20, 0.2);
+  backdrop-filter: blur(1.5px);
+  animation: authFadeIn 0.2s ease both;
+}
+
+.auth-panel {
+  position: fixed;
+  top: 76px;
+  /* 상단바 좌우 여백(clamp(18px, 8vw, 118px))과 같은 값 — 카드 오른쪽 끝이 로그인 버튼과 맞는다. */
+  right: clamp(18px, 8vw, 118px);
+  z-index: 21;
+  width: min(356px, calc(100vw - 32px));
+  animation: authPopIn 0.22s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+.auth-card {
+  --auth-paper: #fffdf8;
+  --auth-field: #ffffff;
+  --auth-track: rgba(201, 117, 47, 0.1);
+  --auth-edge: rgba(58, 42, 26, 0.14);
+  --auth-ink: #2b211a;
+  --auth-muted: #8b7a65;
+  --auth-amber: #e79a55;
+  --auth-amber-deep: #c0702c;
+
+  position: relative;
+  padding: 22px 22px 18px;
+  border: 1px solid var(--auth-edge);
+  border-radius: 20px;
+  background:
+    radial-gradient(ellipse 70% 50% at 18% 0%, rgba(201, 152, 96, 0.07), transparent 70%),
+    var(--auth-paper);
+  box-shadow:
+    0 20px 44px rgba(56, 40, 24, 0.18),
+    0 2px 6px rgba(56, 40, 24, 0.06);
+  color: var(--auth-ink);
+}
+
+/* 로그인 버튼 쪽을 가리키는 작은 꼭지 — 이 창이 어디서 열렸는지 알려 준다. */
+.auth-card::before {
+  content: "";
+  position: absolute;
+  top: -7px;
+  right: 34px;
+  width: 13px;
+  height: 13px;
+  border-top: 1px solid var(--auth-edge);
+  border-left: 1px solid var(--auth-edge);
+  border-radius: 3px 0 0 0;
+  background: var(--auth-paper);
+  transform: rotate(45deg);
+}
+
+.auth-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--auth-muted);
+  transition: background 0.14s ease, color 0.14s ease;
+}
+
+.auth-close svg {
+  width: 15px;
+  height: 15px;
+}
+
+.auth-close:hover {
+  background: rgba(58, 42, 26, 0.08);
+  color: var(--auth-ink);
+}
+
+.auth-head {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin-bottom: 16px;
+  padding-right: 26px;
+}
+
+.auth-logo {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.auth-head-text {
+  min-width: 0;
+}
+
+/* 손글씨는 이 한 줄에만 — "한 스푼". 나머지는 본문 서체로 깔끔하게 간다. */
+.auth-welcome {
+  margin: 0;
+  color: var(--auth-ink);
+  font-family: Gaegu, sans-serif;
+  font-size: 23px;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.auth-sub {
+  margin: 3px 0 0;
+  color: var(--auth-muted);
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+/* 탭 — 도장 버튼이 아니라 세그먼트 컨트롤. 트랙 위를 흰 알약이 차지한다. */
+.auth-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  margin-bottom: 18px;
+  padding: 4px;
+  border-radius: 12px;
+  background: var(--auth-track);
+}
+
+.auth-tabs button {
+  min-height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--auth-muted);
+  box-shadow: none;
+  font-family: Jua, Pretendard, sans-serif;
+  font-size: 15px;
+  font-weight: 400;
+  transition: background 0.16s ease, color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.auth-tabs button:hover {
+  color: var(--auth-amber-deep);
+}
+
+.auth-tabs button.selected {
+  background: var(--auth-paper);
+  color: var(--auth-amber-deep);
+  box-shadow: 0 1px 3px rgba(58, 42, 26, 0.16);
+}
+
+.auth-tabs button:active,
+.auth-tabs button.selected:active {
+  transform: none;
+  box-shadow: 0 1px 3px rgba(58, 42, 26, 0.16);
+}
+
+.auth-card form {
+  display: grid;
+  gap: 13px;
+}
+
+.auth-card label {
+  display: grid;
+  gap: 6px;
+  color: var(--auth-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.auth-field-label {
+  font-family: Pretendard, system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.auth-card input {
+  min-height: 46px;
+  padding: 0 13px;
+  border: 1px solid var(--auth-edge);
+  border-radius: 11px;
+  background: var(--auth-field);
+  color: var(--auth-ink);
+  font-size: 14px;
+  font-weight: 500;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.auth-card input::placeholder {
+  color: rgba(43, 33, 26, 0.3);
+  font-weight: 400;
+}
+
+.auth-card input:focus {
+  border-color: var(--auth-amber);
+  box-shadow: 0 0 0 3px rgba(231, 154, 85, 0.2);
+}
+
+/* 주 버튼 — 흔들린 테두리·하드 그림자 대신 앰버 그라데이션 + 낮게 퍼지는 그림자. */
+.auth-card form > button {
+  min-height: 48px;
+  margin-top: 3px;
+  border: 0;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #f0a862, #e18f46);
+  color: #3a2410;
+  box-shadow: 0 3px 10px rgba(193, 115, 46, 0.28);
+  font-family: Jua, Pretendard, sans-serif;
+  font-size: 17px;
+  font-weight: 400;
+  transition: filter 0.15s ease, box-shadow 0.15s ease, transform 0.12s ease;
+}
+
+.auth-card form > button:hover:not(:disabled) {
+  filter: brightness(1.04);
+  box-shadow: 0 5px 14px rgba(193, 115, 46, 0.32);
+}
+
+.auth-card form > button:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow: 0 2px 6px rgba(193, 115, 46, 0.26);
+}
+
+.auth-card form > button:disabled {
+  cursor: wait;
+  box-shadow: none;
+  opacity: 0.62;
+}
+
+.auth-card .auth-message {
+  margin: 0;
+  padding: 9px 12px;
+  border-radius: 10px;
+  color: var(--auth-amber-deep);
+  background: rgba(231, 154, 85, 0.14);
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 16px 0 12px;
+  color: var(--auth-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--auth-edge);
+}
+
+.auth-social {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border-top: 0;
+}
+
+.auth-social-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--auth-edge);
+  border-radius: 11px;
+  background: var(--auth-field);
+  color: var(--auth-ink);
+  font-size: 14px;
+  font-weight: 600;
+  transition: transform 0.12s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.auth-social-icon {
+  width: 17px;
+  height: 17px;
+  flex-shrink: 0;
+}
+
+.auth-social-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(56, 40, 24, 0.12);
+}
+
+.auth-social-button:active {
+  transform: none;
+  box-shadow: none;
+}
+
+/* 리다이렉트를 기다리는 동안 — 두 버튼 모두 잠근다 (중복 클릭 방지). */
+.auth-social-button:disabled {
+  cursor: progress;
+  opacity: 0.55;
+  transform: none;
+  box-shadow: none;
+}
+
+/* 카카오는 브랜드 노란색 그대로 — 종이 팔레트와도 잘 붙는다. */
+.auth-social-button.is-kakao {
+  border-color: rgba(58, 42, 26, 0.1);
+  background: #fee500;
+  color: #3c1e1e;
+}
+
+.auth-hint {
+  margin: 14px 0 0;
+  color: var(--auth-muted);
+  font-size: 12.5px;
+  font-weight: 500;
+  text-align: center;
+}
+
+.auth-card .auth-link {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--auth-amber-deep);
+  font-size: 12.5px;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
+
+/* --- 다크모드: 토큰만 갈아 끼운다 --- */
+.app.dark .auth-backdrop {
+  background: rgba(10, 14, 18, 0.44);
+}
+
+.app.dark .auth-card {
+  --auth-paper: #2c333b;
+  --auth-field: #232a31;
+  --auth-track: rgba(240, 173, 99, 0.14);
+  --auth-edge: rgba(242, 231, 213, 0.18);
+  --auth-ink: #f2e7d5;
+  --auth-muted: #b5a892;
+  --auth-amber: #f0ad63;
+  --auth-amber-deep: #f0b878;
+
+  background:
+    radial-gradient(ellipse 70% 50% at 18% 0%, rgba(240, 173, 99, 0.07), transparent 70%),
+    var(--auth-paper);
+  box-shadow: 0 20px 46px rgba(0, 0, 0, 0.5);
+}
+
+.app.dark .auth-card input::placeholder {
+  color: rgba(242, 231, 213, 0.34);
+}
+
+.app.dark .auth-close:hover {
+  background: rgba(242, 231, 213, 0.12);
+}
+
+.app.dark .auth-card form > button {
+  color: #2a1c0c;
+}
+
+.app.dark .auth-social-button.is-kakao {
+  border-color: rgba(0, 0, 0, 0.2);
+}
+
+@keyframes authFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes authPopIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes authSheetIn {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-panel,
+  .auth-backdrop {
+    animation: none;
+  }
+}
+
+/* 모바일·태블릿: 버튼 밑 팝오버 대신 화면 아래에서 올라오는 시트로. */
+@media (max-width: 720px) {
+  .auth-panel {
+    top: auto;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    width: auto;
+    animation: authSheetIn 0.26s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+  }
+
+  .auth-card {
+    padding: 20px 18px calc(18px + env(safe-area-inset-bottom, 0px));
+    border-bottom: 0;
+    border-radius: 20px 20px 0 0;
+  }
+
+  .auth-card::before {
+    display: none;
+  }
+}
