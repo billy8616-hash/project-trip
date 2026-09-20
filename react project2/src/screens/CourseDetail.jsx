@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 /* ============================================================================
  *  코스 상세 화면 — 좌우 2분할 (왼쪽: 스크롤 타임라인 / 오른쪽: 고정 지도)
@@ -182,7 +182,7 @@ function Thumb({ place }) {
 }
 
 /* 장소 카드 */
-function PlaceCard({ place, isLast, isActive, onPick }) {
+function PlaceCard({ place, isFirst, isLast, isActive, onPick, onMoveUp, onMoveDown }) {
   // 처음엔 다 접힌 채로 보여준다. 카드 자체를 누르면 펼침/접힘 + 지도 선택이 같이 일어난다.
   const [open, setOpen] = useState(false)
   const k = kindStyle(place.kind)
@@ -194,13 +194,34 @@ function PlaceCard({ place, isLast, isActive, onPick }) {
 
   return (
     <div id={`course-place-${place.id}`} className="tw-grid tw-grid-cols-[32px_1fr] tw-gap-3">
-      {/* 순번 마커 + 세로 연결선 */}
+      {/* 순번 마커 + 위/아래 이동 버튼 + 세로 연결선. 이 칼럼은 옆의 role="button" 카드와
+          형제 요소라서, 카드 클릭(펼침/접힘)과 겹치지 않고 독립적으로 누를 수 있다. */}
       <div className="tw-flex tw-flex-col tw-items-center">
+        {onMoveUp && !isFirst && (
+          <button
+            type="button"
+            onClick={onMoveUp}
+            aria-label="위로 이동"
+            className="tw-mb-1 tw-grid tw-h-5 tw-w-5 tw-place-items-center tw-rounded-full tw-text-cink-faint tw-transition-colors hover:tw-bg-surface-2 hover:tw-text-caccent"
+          >
+            <Icon name="chevron" size={11} className="tw--rotate-90" />
+          </button>
+        )}
         <div className={`tw-grid tw-h-7 tw-w-7 tw-place-items-center tw-rounded-full tw-text-[13px] tw-font-bold tw-tabular-nums ${
           isActive ? 'tw-bg-caccent tw-text-white tw-ring-2 tw-ring-caccent/30' : 'tw-bg-caccent tw-text-white'
         }`}>
           {place.order}
         </div>
+        {onMoveDown && !isLast && (
+          <button
+            type="button"
+            onClick={onMoveDown}
+            aria-label="아래로 이동"
+            className="tw-mt-1 tw-grid tw-h-5 tw-w-5 tw-place-items-center tw-rounded-full tw-text-cink-faint tw-transition-colors hover:tw-bg-surface-2 hover:tw-text-caccent"
+          >
+            <Icon name="chevron" size={11} className="tw-rotate-90" />
+          </button>
+        )}
         {!isLast && <div className="tw-mt-1 tw-w-px tw-flex-1 tw-bg-cline" />}
       </div>
 
@@ -366,7 +387,136 @@ function PlaceCard({ place, isLast, isActive, onPick }) {
   )
 }
 
-function TimelinePanel({ day, days, activeDay, onSelectDay, places, routes, selectedIndex, onPick }) {
+// "장소 추가" — 평소엔 작은 버튼 하나만 보이고, 누르면 검색창이 펼쳐진다.
+// pool(도시 장소 풀)에서 이름이 겹치는 후보를 즉시 보여주고, 고르면 그 장소 그대로(영업시간·
+// 사진·평점 포함) 일정에 붙는다. 목록에 없는 곳은 "추가"를 눌러 geocode 로 좌표만 찾아 붙인다 —
+// 이 경우 영업시간·사진 같은 정보는 없이 이름과 위치만 가진 채로 들어간다.
+function AddPlaceRow({ pool = [], excludeNames, onAdd, onGeocode }) {
+  const [open, setOpen] = useState(false)
+  const [query, setQuery] = useState('')
+  const [status, setStatus] = useState('idle') // idle | searching | error
+  const [message, setMessage] = useState('')
+  const inputRef = useRef(null)
+
+  useEffect(() => {
+    if (open) inputRef.current?.focus()
+  }, [open])
+
+  const close = () => {
+    setOpen(false)
+    setQuery('')
+    setStatus('idle')
+    setMessage('')
+  }
+
+  const suggestions = useMemo(() => {
+    const q = query.trim()
+    if (!q) return []
+    return pool.filter((place) => !excludeNames?.has(place.name) && place.name.includes(q)).slice(0, 6)
+  }, [pool, excludeNames, query])
+
+  const pick = (place) => {
+    onAdd({ name: place.name, assignedSlot: place.slots?.[0] })
+    close()
+  }
+
+  const submit = async (event) => {
+    event.preventDefault()
+    const value = query.trim()
+    if (!value) {
+      close()
+      return
+    }
+    // 화면에 뜬 후보 중 이름이 정확히 같은 게 있으면 그걸 그대로 쓴다(직접 다 타이핑한 경우 대비).
+    const exact = suggestions.find((place) => place.name === value)
+    if (exact) {
+      pick(exact)
+      return
+    }
+    if (!onGeocode) {
+      close()
+      return
+    }
+    setStatus('searching')
+    setMessage('')
+    try {
+      const { lat, lng } = await onGeocode(value)
+      onAdd({ name: value, location: { lat, lng } })
+      close()
+    } catch (error) {
+      setStatus('error')
+      setMessage(error.message || '이 장소를 찾지 못했어요.')
+    }
+  }
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="tw-mt-1 tw-flex tw-w-full tw-items-center tw-justify-center tw-gap-1.5 tw-rounded-cxl tw-border tw-border-dashed tw-border-cline tw-py-3 tw-text-[13px] tw-font-semibold tw-text-cink-muted tw-transition-colors hover:tw-border-caccent/50 hover:tw-text-caccent"
+      >
+        <Icon name="plus" size={15} /> 장소 추가
+      </button>
+    )
+  }
+
+  return (
+    <div className="tw-mt-1 tw-rounded-cxl tw-border tw-border-cline tw-bg-surface tw-p-3 tw-shadow-ccard">
+      <form onSubmit={submit} className="tw-flex tw-items-center tw-gap-2">
+        <input
+          ref={inputRef}
+          value={query}
+          onChange={(event) => {
+            setQuery(event.target.value)
+            setStatus('idle')
+            setMessage('')
+          }}
+          onKeyDown={(event) => {
+            if (event.key === 'Escape') close()
+          }}
+          placeholder="가고 싶은 곳 이름을 입력하세요"
+          className="tw-min-w-0 tw-flex-1 tw-rounded-lg tw-border tw-border-cline tw-bg-cbg tw-px-3 tw-py-2 tw-text-[14px] tw-text-cink tw-outline-none focus:tw-border-caccent"
+        />
+        <button
+          type="submit"
+          disabled={status === 'searching'}
+          className="tw-shrink-0 tw-rounded-lg tw-bg-caccent tw-px-3 tw-py-2 tw-text-[13px] tw-font-semibold tw-text-white disabled:tw-opacity-50"
+        >
+          {status === 'searching' ? '찾는 중…' : '추가'}
+        </button>
+        <button type="button" onClick={close} aria-label="취소" className="tw-shrink-0 tw-rounded-lg tw-px-2 tw-py-2 tw-text-cink-faint hover:tw-text-cink">×</button>
+      </form>
+
+      {suggestions.length > 0 && (
+        <ul className="tw-mt-2 tw-flex tw-flex-col tw-gap-1">
+          {suggestions.map((place) => (
+            <li key={place.name}>
+              <button
+                type="button"
+                onClick={() => pick(place)}
+                className="tw-flex tw-w-full tw-items-center tw-justify-between tw-gap-2 tw-rounded-lg tw-px-2.5 tw-py-2 tw-text-left tw-text-[13px] tw-text-cink hover:tw-bg-surface-2"
+              >
+                <span className="tw-truncate">{place.name}</span>
+                <span className="tw-ml-2 tw-shrink-0 tw-text-[11px] tw-text-cink-faint">{place.category || place.slots?.[0] || ''}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {status === 'error' && <p className="tw-mt-2 tw-text-[12px] tw-text-red-500">{message}</p>}
+      {status !== 'error' && query.trim() && suggestions.length === 0 && (
+        <p className="tw-mt-2 tw-text-[12px] tw-text-cink-faint">추천 목록에 없으면 "추가"를 눌러 위치를 직접 찾아볼게요.</p>
+      )}
+    </div>
+  )
+}
+
+function TimelinePanel({
+  day, days, activeDay, onSelectDay, places, routes, selectedIndex, onPick, onMovePlace,
+  pool, excludeNames, onAddPlace, onGeocode,
+}) {
   const routeByFrom = useMemo(() => {
     const m = {}
     ;(routes || []).forEach((r) => { m[r.from] = r })
@@ -385,12 +535,16 @@ function TimelinePanel({ day, days, activeDay, onSelectDay, places, routes, sele
             {i > 0 && <RouteBadge route={routeByFrom[places[i - 1].id]} />}
             <PlaceCard
               place={place}
+              isFirst={i === 0}
               isLast={i === places.length - 1}
               isActive={i === selectedIndex}
               onPick={() => onPick && onPick(i, place)}
+              onMoveUp={onMovePlace ? () => onMovePlace(i, i - 1) : undefined}
+              onMoveDown={onMovePlace ? () => onMovePlace(i, i + 1) : undefined}
             />
           </div>
         ))}
+        {onAddPlace && <AddPlaceRow pool={pool} excludeNames={excludeNames} onAdd={onAddPlace} onGeocode={onGeocode} />}
       </div>
     </div>
   )
@@ -529,6 +683,11 @@ export default function CourseDetail({
   routes = MOCK_ROUTES,
   selectedIndex = -1,
   onPickPlace,
+  onMovePlace,
+  pool,
+  excludeNames,
+  onAddPlace,
+  onGeocode,
   mapSlot,
   moveLabel,
   transport,
@@ -549,7 +708,8 @@ export default function CourseDetail({
     <div className="course-detail-root tw-flex tw-h-full tw-flex-col tw-overflow-hidden tw-bg-cbg tw-font-csans tw-text-cink lg:tw-flex-row">
       <TimelinePanel
         day={day} days={days} activeDay={activeDay} onSelectDay={onSelectDay}
-        places={places} routes={routes} selectedIndex={selectedIndex} onPick={pick}
+        places={places} routes={routes} selectedIndex={selectedIndex} onPick={pick} onMovePlace={onMovePlace}
+        pool={pool} excludeNames={excludeNames} onAddPlace={onAddPlace} onGeocode={onGeocode}
       />
 
       <div className="tw-relative tw-h-[34vh] tw-w-full tw-shrink-0 lg:tw-h-auto lg:tw-flex-1">
