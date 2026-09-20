@@ -397,6 +397,7 @@ function AddPlaceRow({ pool = [], excludeNames, onAdd, onGeocode }) {
   const [status, setStatus] = useState('idle') // idle | searching | error
   const [message, setMessage] = useState('')
   const inputRef = useRef(null)
+  const rowRef = useRef(null)
 
   useEffect(() => {
     if (open) inputRef.current?.focus()
@@ -414,6 +415,13 @@ function AddPlaceRow({ pool = [], excludeNames, onAdd, onGeocode }) {
     if (!q) return []
     return pool.filter((place) => !excludeNames?.has(place.name) && place.name.includes(q)).slice(0, 6)
   }, [pool, excludeNames, query])
+
+  // 검색창을 열 때, 그리고 후보 목록·안내 문구가 나타나거나 사라져서 이 영역의 높이가 바뀔 때마다
+  // 화면에 보이는 자리로 스크롤한다. 이 카드가 목록 맨 아래(장소 추가 버튼 자리)에 있다 보니,
+  // 직접 스크롤해서 내리지 않으면 방금 뜬 검색 결과가 화면 밖에 가려진 채로 안 보일 수 있어서다.
+  useEffect(() => {
+    if (open) rowRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+  }, [open, suggestions.length, status])
 
   const pick = (place) => {
     onAdd({ name: place.name, assignedSlot: place.slots?.[0] })
@@ -462,7 +470,7 @@ function AddPlaceRow({ pool = [], excludeNames, onAdd, onGeocode }) {
   }
 
   return (
-    <div className="tw-mt-1 tw-rounded-cxl tw-border tw-border-cline tw-bg-surface tw-p-3 tw-shadow-ccard">
+    <div ref={rowRef} className="tw-mt-1 tw-rounded-cxl tw-border tw-border-cline tw-bg-surface tw-p-3 tw-shadow-ccard">
       <form onSubmit={submit} className="tw-flex tw-items-center tw-gap-2">
         <input
           ref={inputRef}
