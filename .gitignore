@@ -1,0 +1,29 @@
+# 이 저장소의 본 프로젝트는 `react project2/`(발길따라) 하나다.
+# 아래 항목들은 같은 폴더에 함께 있지만 프로젝트의 일부가 아니라서 추적하지 않는다.
+# (파일 자체는 로컬에 그대로 남아 있고, git 에서만 빠진다.)
+
+# 연습용으로 따로 만든 별개의 React 프로젝트들
+/react project3/
+/react project4/
+
+# 작업 중 생성된 산출물·참고 자료 (코드에서 참조하지 않음)
+/Claude outputs/
+/output/
+/22/
+/server/
+
+# 루트에 흩어져 있는 시안·원본 리소스
+# 실제로 쓰는 로고·폰트는 `react project2/src/assets/` 안에 있다.
+/*.png
+/*.jpg
+/*.jpeg
+/*.ttf
+/*.otf
+/*.pdf
+
+# 공통
+node_modules/
+.env
+.env.local
+.DS_Store
+Thumbs.db
