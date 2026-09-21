@@ -5,3 +5,9 @@ dist
 server/data/users.json
 server/data/*.db
 server/data/*.db-journal
+
+# 디자인 시안·작업 원본 (코드에서 참조하지 않음 — 실제 사용 자산은 webp 로 변환돼 있다)
+src/assets/_original/
+src/assets/home-original.png
+src/assets/home-approved-preview.png
+src/assets/home-typo-fixed.png
