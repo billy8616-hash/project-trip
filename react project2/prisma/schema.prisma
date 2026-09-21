@@ -37,7 +37,7 @@ model SavedCourse {
   @@index([userId])
 }
 
-// TourAPI/카카오 로컬에서 가져온 장소 원본 + Claude가 생성한 추천이유/주의사항/테마 태그 캐시.
+// TourAPI/카카오 로컬에서 가져온 장소 원본 + Gemini가 생성한 추천이유/주의사항/테마 태그 캐시.
 // 같은 장소를 다시 조회할 때 외부 API/LLM을 재호출하지 않기 위한 캐시 테이블.
 model PlaceCache {
   id          String   @id // "tour-<contentid>" 또는 "kakao-<id>"
