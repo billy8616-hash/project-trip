@@ -15,6 +15,7 @@ import { useCityHighlights } from './hooks/useCityHighlights.js'
 import { useTripForecast } from './hooks/useTripForecast.js'
 import { useCityPool } from './hooks/useCityPool.js'
 import { useTripPlan } from './hooks/useTripPlan.js'
+import { clearTripSession, loadTripSession, saveTripSession } from './lib/tripSession.js'
 import { optimizeRouteOrder } from './lib/geo.js'
 import CoursePoolNotice from './components/CoursePoolNotice.jsx'
 import Icon from './components/Icon.jsx'
@@ -107,14 +108,18 @@ function insertManualBySlot(ordered, manualPlaces) {
 }
 
 function App() {
-  const [screen, setScreen] = useState('home')
+  // 새로고침 복원 — 첫 렌더에서 한 번만 읽는다. null 이면 평소대로 홈에서 시작.
+  const [restored] = useState(loadTripSession)
+  const restoredScreen = restored?.screen || 'home'
+
+  const [screen, setScreen] = useState(restoredScreen)
   const [leaving, setLeaving] = useState(false)
 
   // 브라우저 뒤로/앞으로 버튼으로도 화면(screen)이 넘어가도록 History API 와 동기화한다.
   // popstate 로 들어온 화면 변경은 다시 pushState 하지 않도록 플래그로 걸러낸다.
   const skipHistoryPush = useRef(false)
   useEffect(() => {
-    window.history.replaceState({ screen: 'home' }, '')
+    window.history.replaceState({ screen: restoredScreen }, '')
     const onPopState = (event) => {
       skipHistoryPush.current = true
       setLeaving(false)
@@ -122,7 +127,7 @@ function App() {
     }
     window.addEventListener('popstate', onPopState)
     return () => window.removeEventListener('popstate', onPopState)
-  }, [])
+  }, [restoredScreen])
   useEffect(() => {
     if (skipHistoryPush.current) {
       skipHistoryPush.current = false
@@ -140,17 +145,17 @@ function App() {
     setSelectedPlace(index)
     setSelectPulse((n) => n + 1)
   }, [])
-  const [selectedDay, setSelectedDay] = useState(0)
-  const [dayStartTime, setDayStartTime] = useState('09:30')
-  const [savedName, setSavedName] = useState('')
+  const [selectedDay, setSelectedDay] = useState(restored?.view?.selectedDay || 0)
+  const [dayStartTime, setDayStartTime] = useState(restored?.meta?.dayStartTime || '09:30')
+  const [savedName, setSavedName] = useState(restored?.view?.savedName || '')
   const [copyState, setCopyState] = useState('공유')
   const [saveState, setSaveState] = useState(SAVE_LABEL) // 평상시 SAVE_LABEL, 누르면 저장 중… → 저장됨 ✓ / 로그인 필요 / 저장 실패
   // 타임라인에서 사용자가 편집한 결과. currentTimelineDays[일자] = 그 날의 방문 목록.
-  const [currentTimelineDays, setCurrentTimelineDays] = useState([])
+  const [currentTimelineDays, setCurrentTimelineDays] = useState(() => restored?.edits?.currentTimelineDays || [])
   // 사용자가 순서를 직접 바꾼 날(day index)의 집합. 이 날은 displayPlaces 가 거리 최적화
   // (optimizeRouteOrder)를 건너뛰고 사용자가 정한 순서를 그대로 쓴다 — 안 그러면 위/아래로
   // 옮긴 바로 다음 렌더에서 거리 계산이 다시 원래 순서로 되돌려버린다.
-  const [manualOrderDays, setManualOrderDays] = useState(() => new Set())
+  const [manualOrderDays, setManualOrderDays] = useState(() => new Set(restored?.edits?.manualOrderDays || []))
   const mapInstRef = useRef(null)
   // 장소 카드 줄 끝의 "장소 추가" 카드가 아래 편집 타임라인으로 스크롤할 때 쓴다.
   const scheduleRef = useRef(null)
@@ -189,7 +194,65 @@ function App() {
     routeStartPoint,
     routeEndPoint,
     courseAnchors,
-  } = useTripPlan()
+  } = useTripPlan(restored?.meta)
+
+  // 코스 화면에 머무는 동안 작업 상태를 로컬 스냅샷으로 남긴다. 새로고침하거나 실수로
+  // 탭을 닫았다 다시 열어도 보던 코스와 손으로 바꿔 놓은 순서가 그대로 돌아온다.
+  //
+  // 홈·목적지 화면으로 나가는 건 '새 여행을 시작한다'는 뜻이라 스냅샷을 지운다 — 안 그러면
+  // 홈에서 새로고침했는데 지난 코스가 튀어나온다. 그 밖의 화면(내 여행·커뮤니티 등)에서는
+  // 손대지 않아, 다녀와서 새로고침해도 편집이 살아 있게 한다.
+  useEffect(() => {
+    if (screen === 'home' || screen === 'destinations') {
+      clearTripSession()
+      return
+    }
+    if (screen !== 'course') return
+
+    saveTripSession({
+      screen,
+      meta: {
+        destination,
+        pickedDestination,
+        journeyTheme,
+        budget,
+        transport,
+        style,
+        tripStartDate,
+        tripEndDate,
+        duration,
+        dayStartTime,
+        mustVisit,
+        tripOrigin,
+        tripLodging,
+      },
+      edits: {
+        currentTimelineDays,
+        // Set 은 JSON 으로 못 내보내므로 배열로 펼쳐 저장한다.
+        manualOrderDays: [...manualOrderDays],
+      },
+      view: { selectedDay, savedName },
+    })
+  }, [
+    screen,
+    destination,
+    pickedDestination,
+    journeyTheme,
+    budget,
+    transport,
+    style,
+    tripStartDate,
+    tripEndDate,
+    duration,
+    dayStartTime,
+    mustVisit,
+    tripOrigin,
+    tripLodging,
+    currentTimelineDays,
+    manualOrderDays,
+    selectedDay,
+    savedName,
+  ])
 
   const {
     user,
