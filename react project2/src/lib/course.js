@@ -1,3 +1,24 @@
+// ─────────────────────────────────────────────────────────────
+// lib/course.js — 코스 생성의 핵심 (장소 스코어링 + 시간대 배치)
+//
+// 이 앱에서 가장 중요한 파일. "도시의 장소 목록"을 받아
+// "시간표가 붙은 하루 코스"로 바꾸는 일을 한다.
+//
+// 흐름 한눈에 보기
+//   1) 여행 날짜에 휴무인 장소를 후보에서 제외          (openingHours.js)
+//   2) 조건·맥락으로 장소마다 점수를 매김               (이 파일의 scoreOf)
+//        테마 +4 / 예산 +2 / 필수방문 +20 / 교통편 ± / 비·눈 ±
+//   3) 오전·점심·오후·저녁 슬롯마다 최고점 한 곳씩 선택 (pickOneDay)
+//   4) 이동거리가 짧아지도록 순서 재배열                (geo.js)
+//   5) 체류·이동시간을 누적해 도착 시각 계산            (schedule.js)
+//   6) 도착 시각에 이미 닫는 곳은 빼고 다른 곳으로 교체 → 다시 4~5 반복
+//
+// 점수 크기를 일부러 이렇게 잡았다: 필수방문(+20)은 다른 어떤 가감점으로도
+// 뒤집히지 않고, 나머지(테마·예산·날씨·교통)는 서로 경쟁할 수 있는 크기다.
+//
+// 쓰는 곳: App.jsx (코스 생성·다시 짜기)
+// ─────────────────────────────────────────────────────────────
+
 import { SLOT_LABELS } from '../data/travelOptions.js'
 import { budgetAdjust } from './cost.js'
 import { optimizeRouteOrder } from './geo.js'
@@ -42,6 +63,24 @@ export function transportAdjust(place, transport, cityHasTransit) {
   }
 }
 
+// optimizeRouteOrder 로 거리 최적화를 끝낸 추천 코스 순서(ordered)에, 직접 추가한 장소(manual)를
+// 각자의 assignedSlot(오전/점심/오후/저녁) 자리에 끼워 넣는다.
+// optimizeRouteOrder 는 좌표 거리만 보고 순서를 짜기 때문에, 직접 추가한 장소를 그 계산에 같이
+// 넣으면 라벨(오전/저녁 등)과 무관하게 아무 자리에나 꽂힐 수 있다 — 그래서 추천 코스는 거리 기준
+// 순서를 그대로 두고, 직접 추가한 장소만 시간대가 맞는 자리를 찾아 따로 삽입한다.
+export function insertManualBySlot(ordered, manualPlaces) {
+  if (manualPlaces.length === 0) return ordered
+  const result = ordered.slice()
+  for (const manual of manualPlaces) {
+    const slotIndex = SLOT_LABELS.indexOf(manual.assignedSlot)
+    // 이 장소보다 시간대가 늦은 첫 자리 앞에 끼워 넣는다. 그런 자리가 없으면(가장 늦은 시간대면) 맨 뒤.
+    let insertAt = result.findIndex((place) => SLOT_LABELS.indexOf(place.assignedSlot) > slotIndex)
+    if (insertAt === -1) insertAt = result.length
+    result.splice(insertAt, 0, manual)
+  }
+  return result
+}
+
 // 여행지 + 테마 + 예산 + 교통편 조건에 맞춰 시간대별로 한 곳씩 골라 코스를 만든다.
 // options:
 // - tripDate(YYYY-MM-DD): 그날 정기 휴무인 장소는 후보에서 뺀다.
@@ -61,7 +100,12 @@ export function buildCourse(base, themeId, budgetTier, mustVisit = [], anchors =
   const pool = openPool.length >= SLOT_LABELS.length ? openPool : base.pool
   const droppedForClosure = pool === openPool && openPool.length < base.pool.length
 
+  // 이 도시에 지하철이 있는지 판단한다. 한 곳이라도 역이 가까우면 지하철이 있는 도시로 본다.
+  // 경주처럼 지하철이 아예 없는 도시에서 "역이 멀다"고 감점하면 모든 장소가 똑같이 깎여 의미가 없다.
+
   const cityHasTransit = pool.some((place) => place.transitScore === 'good' || place.transitScore === 'ok')
+  // 장소 한 곳의 점수. 높을수록 코스에 먼저 들어간다.
+  // wet = 그날 비·눈 예보 여부(날짜마다 다르므로 매번 넘겨받는다).
   const scoreOf = (place, { wet = false } = {}) => {
     let score = 0
     if (themeId && place.themes.includes(themeId)) score += 4
@@ -74,9 +118,46 @@ export function buildCourse(base, themeId, budgetTier, mustVisit = [], anchors =
     return score
   }
 
+  // ── 꼭 가고 싶은 곳 확정 ────────────────────────────────────────────────
+  // 점수 +20 만으로는 부족하다. 같은 시간대에 어울리는 곳을 여러 개 적으면 한 곳만 뽑히고,
+  // 풀에 아예 없는 이름(작은 가게·신규 장소·상호 표기가 다른 곳)은 조용히 사라진다.
+  // 사용자가 직접 적은 곳이므로 알고리즘이 빼는 일이 없도록 여기서 먼저 확정해 둔다.
+  const matchesKeyword = (name, word) => name.includes(word) || word.includes(name)
+
+  const forcedPlaces = []      // 풀에서 찾은 곳 (좌표·영업시간을 그대로 쓴다)
+  const forcedMissing = []     // 풀에 없어서 이름만 아는 곳
+  const forcedClosed = []      // 찾긴 했는데 그날 휴무일 수 있는 곳
+
+  for (const word of keywords) {
+    // 휴무로 걸러낸 곳이라도 원래 풀(base.pool)에서 찾는다 — 사용자가 굳이 적은 곳이라
+    // 조용히 빼는 것보다 넣고 안내하는 편이 낫다.
+    const found = base.pool.find((place) => !used.has(place.name) && matchesKeyword(place.name, word))
+    if (!found) {
+      forcedMissing.push(word)
+      continue
+    }
+    used.add(found.name)
+    if (isClosedOnDate(found, tripDate)) forcedClosed.push(found.name)
+    forcedPlaces.push({ ...found, assignedSlot: found.slots?.[0] || SLOT_LABELS[0], mustVisit: true })
+  }
+
+  // 풀에 없는 곳은 이름만 가진 카드로 넣는다. 좌표가 없으니 거리 최적화에서 빼고(manual)
+  // 시간대 자리에만 끼워 넣는다 — 사용자가 타임라인에서 직접 추가한 장소와 같은 취급이다.
+  const forcedManual = forcedMissing.map((word) => ({
+    name: word,
+    manual: true,
+    mustVisit: true,
+    location: null,
+    slots: [SLOT_LABELS[0]],
+    assignedSlot: SLOT_LABELS[0],
+    themes: [],
+    budgetTiers: [],
+  }))
+
   // 하루치 장소를 시간대별로 한 곳씩 고른다. 이미 다른 날에 쓴 장소(used)는 건너뛴다.
-  const pickOneDay = (wet = false) =>
-    SLOT_LABELS.map((slot) => {
+  // skipSlots: 필수 방문이 이미 차지한 시간대 — 그 자리는 새로 뽑지 않는다.
+  const pickOneDay = (wet = false, skipSlots = new Set()) =>
+    SLOT_LABELS.filter((slot) => !skipSlots.has(slot)).map((slot) => {
       const candidates = pool
         .map((place, index) => ({ place, index }))
         .filter(({ place }) => !used.has(place.name) && place.slots.includes(slot))
@@ -91,7 +172,11 @@ export function buildCourse(base, themeId, budgetTier, mustVisit = [], anchors =
   const days = []
   let droppedForLateArrival = 0
   for (let d = 0; d < totalDays; d += 1) {
-    let dayPicks = pickOneDay(Boolean(wetDays[d]))
+    // 꼭 가고 싶은 곳은 첫날에 모아 넣는다. 며칠짜리 여행이라도 "언제 갈지"를 알 수 없으니,
+    // 가장 확실하게 지켜지는 첫날에 두고 사용자가 원하면 다른 날로 옮기게 한다.
+    const forcedToday = d === 0 ? [...forcedPlaces, ...forcedManual] : []
+    const takenSlots = new Set(forcedToday.map((place) => place.assignedSlot))
+    let dayPicks = [...forcedToday, ...pickOneDay(Boolean(wetDays[d]), takenSlots)]
     // 슬롯을 두 곳도 못 채웠으면 남은 풀에서 아무거나 끌어와 최소한의 하루는 만든다.
     if (dayPicks.length < 2) {
       const filler = pool
@@ -106,13 +191,23 @@ export function buildCourse(base, themeId, budgetTier, mustVisit = [], anchors =
     // 출발지/숙소 앵커가 있으면 그 사이에서, 없으면 첫 장소를 고정한 채 최적화한다.
     // 하루 시작 시각부터 체류·이동시간을 누적해 각 장소에 실제 도착 시각을 매기고,
     // 그 도착 시각을 영업시간과 대조해 안 맞으면 hoursNote 를 붙인다.
-    let scheduled = scheduleDay(optimizeRouteOrder(dayPicks, anchors), { dayStartMin, transport })
+    // 좌표가 없는 곳(이름만 아는 필수 방문)은 거리 최적화에 넣을 수 없다. 추천 장소만 최적화하고,
+    // 그 결과에 시간대가 맞는 자리를 찾아 끼워 넣는다.
+    const orderPicks = (list) => {
+      const located = list.filter((place) => !place.manual)
+      const manual = list.filter((place) => place.manual)
+      return insertManualBySlot(optimizeRouteOrder(located, anchors), manual)
+    }
+
+    let scheduled = scheduleDay(orderPicks(dayPicks), { dayStartMin, transport })
 
     // 늦게 출발하면 도착 시점에 이미 문을 닫는 곳이 생긴다. 그런 곳은 코스에서 빼고,
     // 그 슬롯에 그 시각에도 여는 다른 곳으로 교체한다. 한 곳 빼면 뒤 일정이 앞당겨지므로
     // 안정될 때까지(더 이상 마감 도착이 없을 때까지) 슬롯 수만큼 반복한다.
     for (let pass = 0; pass < SLOT_LABELS.length; pass += 1) {
-      const closedIndex = scheduled.findIndex((place) => arrivesAfterClose(place))
+      // 꼭 가고 싶다고 적은 곳은 여기서 빼지 않는다. 사용자가 직접 고른 곳을 앱이 대신
+      // 지워 버리면 안 되고, 마감 관련 경고는 hoursNote 로 카드에 이미 표시된다.
+      const closedIndex = scheduled.findIndex((place) => !place.mustVisit && arrivesAfterClose(place))
       if (closedIndex === -1) break
 
       const dropped = scheduled[closedIndex]
@@ -130,11 +225,15 @@ export function buildCourse(base, themeId, budgetTier, mustVisit = [], anchors =
         remaining = [...remaining, { ...replacement, assignedSlot: dropped.assignedSlot }]
       }
 
-      scheduled = scheduleDay(optimizeRouteOrder(remaining, anchors), { dayStartMin, transport })
+      scheduled = scheduleDay(orderPicks(remaining), { dayStartMin, transport })
     }
 
     days.push({ places: scheduled })
   }
+
+  // 코스를 짜면서 사용자에게 알려야 할 일이 생겼으면 안내 문구로 모은다.
+  // "왜 이 코스가 이렇게 나왔는지"를 설명해 주는 장치다 — 조용히 빼 버리면
+  // 사용자는 앱이 장소를 빠뜨린 것으로 오해한다.
 
   const notices = []
   if (usesTransit && !cityHasTransit) {
@@ -148,6 +247,14 @@ export function buildCourse(base, themeId, budgetTier, mustVisit = [], anchors =
   }
   if (wetDays.slice(0, totalDays).some(Boolean)) {
     notices.push('☔ 여행 날짜에 비·눈 예보가 있어, 그날은 실내 위주로 코스를 짰어요.')
+  }
+  if (forcedMissing.length > 0) {
+    notices.push(
+      `적어 주신 ${forcedMissing.map((word) => `'${word}'`).join('·')}은(는) 여행지 정보에 없어서 위치 없이 코스에 넣었어요. 타임라인에서 시간대를 옮길 수 있어요.`,
+    )
+  }
+  if (forcedClosed.length > 0) {
+    notices.push(`${forcedClosed.join('·')}은(는) 여행 날짜에 쉬는 날일 수 있지만, 꼭 가고 싶다고 하셔서 그대로 넣었어요.`)
   }
   if (days.some((day) => day.places.length < 2)) {
     notices.push('여행지 정보가 넉넉지 않아 일부 날은 코스를 다 채우지 못했어요. 타임라인에서 직접 추가해보세요.')

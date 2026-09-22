@@ -1,3 +1,14 @@
+// ─────────────────────────────────────────────────────────────
+// screens/MyTripsScreen.jsx — "내 여행" (저장한 코스 목록)
+//
+// 서버에 저장해 둔 코스를 다시 열어 보고, 이름을 바꾸거나 지우고,
+// 같은 조건으로 "다시 계획하기"를 할 수 있다.
+//
+// 저장된 코스에는 시각이 들어 있지 않다. 장소와 조건만 저장하고, 열어 볼 때마다
+// 저장 당시 조건(출발 시각·교통편)으로 시간표를 다시 계산한다(scheduleFromPayload).
+// 계산 규칙이 바뀌어도 예전 코스가 옛 규칙에 묶이지 않게 하려는 것이다.
+// ─────────────────────────────────────────────────────────────
+
 import { useCallback, useEffect, useState } from 'react'
 import { journeyThemes, SLOT_LABELS } from '../data/travelOptions.js'
 import { deleteTrip, listTrips, renameTrip } from '../lib/tripsApi.js'
@@ -6,6 +17,7 @@ import { formatShortDate, nightsBetween, durationLabelFromNights } from '../lib/
 
 const SLOT_EMOJI = { 오전: '🌤️', '점심 맛집': '🍽️', '오후 카페': '☕', 저녁: '🌙' }
 
+// 저장된 테마 id 를 사람이 읽는 라벨로. 없어진 테마면 빈 문자열.
 function themeLabel(id) {
   return journeyThemes.find((item) => item.id === id)?.label || ''
 }

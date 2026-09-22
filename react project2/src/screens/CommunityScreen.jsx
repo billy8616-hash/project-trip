@@ -1,3 +1,19 @@
+// ─────────────────────────────────────────────────────────────
+// screens/CommunityScreen.jsx — 커뮤니티 (코스 공유·후기·추천)
+//
+// 한 파일 안에 세 개의 화면이 들어 있고, 상태 하나로 전환한다.
+//   목록   PostCard 격자 + 도시·정렬 필터
+//   상세   PostView    — 코스 내용 + 후기 목록 + 후기 작성
+//   작성   ComposeView — "내 여행"에 저장한 코스를 골라 공유
+//
+// 로그인 처리 방식이 이 화면의 특징이다. 보기는 누구나 할 수 있고,
+// 추천·후기처럼 쓰기 동작을 눌렀을 때만 onRequireLogin 으로 로그인 창을 띄운다.
+// 처음부터 로그인을 요구하면 둘러보지도 못하고 막히기 때문이다.
+//
+// 공유되는 것은 코스 payload(JSON) 통째다. 그래서 다른 사람의 코스를
+// 그대로 "내 여행에 담기"로 가져올 수 있다.
+// ─────────────────────────────────────────────────────────────
+
 import { useCallback, useEffect, useState } from 'react'
 import { destinationCatalog } from '../data/destinations.js'
 import {
@@ -30,6 +46,7 @@ const fmtDate = (value) => {
 }
 
 /* ── 별점 ──────────────────────────────────────────────────────────── */
+// 별 하나. 채움 여부만 다르고 모양은 같아서 색만 바꿔 쓴다.
 function Star({ filled, size = 14 }) {
   return (
     <svg
@@ -42,6 +59,7 @@ function Star({ filled, size = 14 }) {
   )
 }
 
+// 별점 표시용(읽기 전용) 5개 묶음.
 function Stars({ value = 0, size = 14 }) {
   return (
     <span className="tw-inline-flex tw-items-center tw-gap-px" aria-label={`별점 ${value}점`}>
@@ -53,6 +71,7 @@ function Stars({ value = 0, size = 14 }) {
 }
 
 /* 입력용 별점 */
+// 별점 입력용. 누르면 그 개수만큼 채워진다.
 function StarPicker({ value, onChange }) {
   return (
     <span className="tw-inline-flex tw-items-center tw-gap-0.5">
@@ -69,6 +88,8 @@ function StarPicker({ value, onChange }) {
 }
 
 /* ── 목록 카드 ─────────────────────────────────────────────────────── */
+// 목록에 뿌려지는 코스 카드 한 장. 카드에서 바로 추천을 누를 수 있어서
+// 상세를 열지 않고도 반응을 남길 수 있다.
 function PostCard({ post, onOpen, onLike }) {
   return (
     <article
@@ -120,6 +141,8 @@ function PostCard({ post, onOpen, onLike }) {
 }
 
 /* ── 동선 미리보기 (payload.days) ──────────────────────────────────── */
+// 공유된 코스의 동선을 한 줄로 미리 보여 준다(장소1 → 장소2 → …).
+// 상세를 열기 전에 "이 코스가 내 취향인지" 판단할 근거를 주는 부분이다.
 function RoutePreview({ payload }) {
   const days = Array.isArray(payload?.days) ? payload.days : []
   if (days.length === 0) {
@@ -147,6 +170,8 @@ function RoutePreview({ payload }) {
 }
 
 /* ── 상세 ──────────────────────────────────────────────────────────── */
+// 코스 상세. 후기 작성·삭제, 추천, "내 여행에 담기"가 여기 모여 있다.
+// 변경이 생기면 onChanged 로 목록 쪽에 알려 숫자를 맞춘다.
 function PostView({ postId, user, onRequireLogin, onClose, onChanged }) {
   const [post, setPost] = useState(null)
   const [status, setStatus] = useState('loading') // loading | ready | error
@@ -422,6 +447,8 @@ function PostView({ postId, user, onRequireLogin, onClose, onChanged }) {
 }
 
 /* ── 글쓰기 — '내 여행'에 저장한 코스를 골라 커뮤니티에 공유 ─────────── */
+// 공유 작성 화면. 새로 코스를 짜는 게 아니라 "내 여행"에 이미 저장해 둔 코스 중
+// 하나를 골라 소개 글과 별점을 붙여 올린다.
 function ComposeView({ onClose, onDone }) {
   const [trips, setTrips] = useState([])
   const [status, setStatus] = useState('loading') // loading | ready | error

@@ -1,3 +1,24 @@
+// ─────────────────────────────────────────────────────────────
+// components/ScheduleTimeline.jsx — 코스 타임라인 (드래그 편집 + 시각 표시)
+//
+// 화면에서 가장 상호작용이 많은 부분. 하루를 오전·점심·오후·저녁 네 칸으로
+// 나눠 장소 카드를 보여 주고, 드래그로 순서를 바꾸거나 장소를 넣고 뺄 수 있다.
+//
+// 데이터 구조가 핵심이다:
+//   days[일자][슬롯][순서] = { id, name, location }
+// 3중 배열이라 "Day 2 의 점심 칸 두 번째 카드"를 좌표처럼 {d, s, i} 로 가리킬 수 있고,
+// 드래그 이동은 그 좌표에서 빼서 저 좌표에 꽂는 일이 된다(moveCard).
+//
+// 카드에는 이름·좌표만 들어 있고, 카테고리·영업시간 같은 정보는 App 이 넘겨준
+// placeInfoByName 에서 그때그때 끌어와 붙인다. 카드를 가볍게 유지해 localStorage
+// 저장·복원을 단순하게 만들기 위해서다.
+//
+// 시각(도착·이동시간·마감 경고)은 저장하지 않고 매 렌더마다 lib/schedule.js 로
+// 다시 계산한다 — 순서를 바꾸면 그 뒤 모든 시각이 달라지기 때문이다.
+//
+// 쓰는 곳: App.jsx (코스 화면)
+// ─────────────────────────────────────────────────────────────
+
 import { useEffect, useRef, useState } from 'react'
 import { SLOT_LABELS } from '../data/travelOptions.js'
 import { makeId } from '../lib/ids.js'
@@ -45,8 +66,12 @@ export default function ScheduleTimeline({
   selectedPlace,
   onSelectPlace,
 }) {
+  // 저장 키에 도시·테마·예산·일수를 전부 넣는다. 조건이 다르면 다른 일정이므로
+  // 서로의 편집 결과를 덮어쓰지 않게 하려는 것이다.
   const storageKey = `walkalong:schedule:${cityKey}:${themeId || '-'}:${budgetTier || '-'}:${dayCount}`
 
+  // 추천 코스를 편집 가능한 카드 배열로 바꾼다. 화면을 처음 열 때와
+  // "추천 코스로 초기화"를 눌렀을 때 쓴다.
   const buildSeed = () => {
     const emptyDay = () => SLOT_LABELS.map(() => [])
     const nextDays = Array.from({ length: dayCount }, emptyDay)
@@ -61,6 +86,7 @@ export default function ScheduleTimeline({
     return nextDays
   }
 
+  // 저장해 둔 편집 결과를 읽는다. 일수가 안 맞으면(조건이 바뀐 것) 버리고 새로 만든다.
   const readStore = () => {
     try {
       const raw = window.localStorage.getItem(storageKey)
@@ -104,8 +130,12 @@ export default function ScheduleTimeline({
     onDaysChange?.(days.map((slots) => slots.flat()))
   }, [days, onDaysChange])
 
+  // 3중 배열을 통째로 복사한다. React 상태는 직접 고치면 안 되므로,
+  // 카드를 옮기거나 지우기 전에 항상 이걸 거친다.
   const cloneDays = (prev) => prev.map((slots) => slots.map((list) => list.slice()))
 
+  // 드래그로 카드를 옮긴다. 같은 칸 안에서 뒤로 옮길 때 인덱스를 1 빼는 부분이 요점인데,
+  // 원래 자리에서 카드를 먼저 빼고 나면 그 뒤 항목들이 한 칸씩 당겨지기 때문이다.
   const moveCard = (to) => {
     const from = dragRef.current
     dragRef.current = null
@@ -121,6 +151,8 @@ export default function ScheduleTimeline({
     })
   }
 
+  // 사용자가 직접 입력한 장소를 추가한다. 추천 풀에 없는 곳이라 좌표가 없고(location: null),
+  // 그래서 이동시간은 교통편별 기본값으로 추정된다(lib/travelTime.js).
   const addPlace = (d, s, name) => {
     const value = name.trim()
     if (!value) return
@@ -139,6 +171,7 @@ export default function ScheduleTimeline({
     })
   }
 
+  // 편집 내용을 버리고 처음 추천받은 코스로 되돌린다.
   const resetSchedule = () => {
     try {
       window.localStorage.removeItem(storageKey)

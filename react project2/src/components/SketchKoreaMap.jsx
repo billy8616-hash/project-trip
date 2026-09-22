@@ -1,3 +1,16 @@
+// ─────────────────────────────────────────────────────────────
+// components/SketchKoreaMap.jsx — 손그림 느낌의 한국 지도 (인라인 SVG)
+//
+// 여행지를 목록이 아니라 지도에서 고를 수 있게 하는 화면 장식 겸 선택 도구.
+// 지도 API 가 아니라 직접 그린 SVG 다 — 실제 지리 정보가 필요 없고,
+// 종이 스케치 분위기를 내려면 오히려 손으로 그린 형태가 맞았다.
+//
+// <defs> 안의 gradient·filter·심볼(산·소나무)은 재사용 부품이다.
+// 한 번 정의해 두고 여러 곳에서 참조해 파일 크기를 줄인다.
+//
+// 쓰는 곳: DestinationsScreen
+// ─────────────────────────────────────────────────────────────
+
 export default function SketchKoreaMap({ activeCity, onPick }) {
   return (
     <div className="korea-map" aria-label="스케치 한국 지도">

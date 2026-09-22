@@ -1,3 +1,13 @@
+// ─────────────────────────────────────────────────────────────
+// server/naverTrend.js — 네이버 데이터랩 검색 트렌드
+//
+// 여행지 카드의 "🔥 지금 뜨는 중" 배지를 붙이는 데 쓴다.
+// 최근 3일 검색량을 30일 평균과 비교해서, 평소보다 많이 오른 도시에만 표시한다.
+//
+// 한 요청에 도시 5개까지만 보낼 수 있어서 묶어서 나눠 부른다(chunk).
+// 없어도 되는 API 다 — 실패하면 배지만 안 나온다.
+// ─────────────────────────────────────────────────────────────
+
 const NAVER_CLIENT_ID = process.env.NAVER_CLIENT_ID
 const NAVER_CLIENT_SECRET = process.env.NAVER_CLIENT_SECRET
 const BASE_URL = 'https://openapi.naver.com/v1/datalab/search'

@@ -1,3 +1,14 @@
+// ─────────────────────────────────────────────────────────────
+// server/prewarm.js — 캐시 미리 채우기 (운영용 스크립트)
+//
+// 그 도시를 처음 조회하는 사용자만 느린 경로(외부 API 를 다 거치는 길)를 밟는다.
+// 이 스크립트를 미리 돌려 두면 그 첫 사용자조차 캐시된 빠른 응답을 받는다.
+//
+//   npm run db:prewarm             캐시가 없는 도시만
+//   node server/prewarm.js --force 있어도 다시 만듦
+//   node server/prewarm.js 부산 제주  지정한 도시만
+// ─────────────────────────────────────────────────────────────
+
 import 'dotenv/config'
 import { allDestinations } from '../src/data/destinations.js'
 import { buildCityPoolRows } from './app.js'
