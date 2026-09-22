@@ -49,7 +49,7 @@ import { useTripForecast } from './hooks/useTripForecast.js'
 import { useCityPool } from './hooks/useCityPool.js'
 import { useTripPlan } from './hooks/useTripPlan.js'
 import { clearTripSession, loadTripSession, saveTripSession } from './lib/tripSession.js'
-import { optimizeRouteOrder } from './lib/geo.js'
+import { optimizeRouteOrderBySlot } from './lib/geo.js'
 import CoursePoolNotice from './components/CoursePoolNotice.jsx'
 import Icon from './components/Icon.jsx'
 import KakaoRouteMap from './components/KakaoRouteMap.jsx'
@@ -376,11 +376,11 @@ function App() {
       // 저장된 순서를 그대로 쓴다 — 안 그러면 바로 다음 렌더에서 optimizeRouteOrder 가 되돌려버린다.
       ordered = merged
     } else {
-      // 거리 최적화(optimizeRouteOrder)는 추천 코스 장소만 대상으로 한다. 직접 추가한 장소를
+      // 거리 최적화(optimizeRouteOrderBySlot)는 추천 코스 장소만 대상으로 한다. 직접 추가한 장소를
       // 같이 넣으면 좌표가 가깝다는 이유만으로 시간대 라벨과 무관하게 아무 자리에나 꽂힌다.
       const recommended = merged.filter((place) => !place.manual)
       const manual = merged.filter((place) => place.manual)
-      ordered = insertManualBySlot(optimizeRouteOrder(recommended, courseAnchors), manual)
+      ordered = insertManualBySlot(optimizeRouteOrderBySlot(recommended, courseAnchors), manual)
     }
     return scheduleDay(ordered, { dayStartMin, transport })
   }, [activeDayPlaces, placeByName, dayStartMin, transport, courseAnchors, manualOrderDays, selectedDay])
