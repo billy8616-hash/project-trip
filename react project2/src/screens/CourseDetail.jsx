@@ -171,7 +171,7 @@ function RouteBadge({ route }) {
   const icon = walk ? 'walk' : route.mode === 'car' ? 'car' : 'bus'
   const text = [route.line, route.duration, route.fare].filter(Boolean).join(' · ')
   return (
-    <div className="tw-grid tw-grid-cols-[32px_1fr] tw-items-center tw-gap-3">
+    <div className="tw-grid tw-grid-cols-[32px_minmax(0,1fr)] tw-items-center tw-gap-3">
       <div className="tw-flex tw-justify-center">
         <span className={`tw-grid tw-h-6 tw-w-6 tw-place-items-center tw-rounded-full tw-border ${
           walk ? 'tw-border-cwalk/30 tw-bg-cwalk-soft tw-text-cwalk' : 'tw-border-caccent/25 tw-bg-caccent-soft tw-text-caccent'
@@ -228,7 +228,7 @@ function PlaceCard({ place, isFirst, isLast, isActive, onPick, onMoveUp, onMoveD
   }
 
   return (
-    <div id={`course-place-${place.id}`} className="tw-grid tw-grid-cols-[32px_1fr] tw-gap-3">
+    <div id={`course-place-${place.id}`} className="tw-grid tw-grid-cols-[32px_minmax(0,1fr)] tw-gap-3">
       {/* 순번 마커 + 위/아래 이동 버튼 + 세로 연결선. 이 칼럼은 옆의 role="button" 카드와
           형제 요소라서, 카드 클릭(펼침/접힘)과 겹치지 않고 독립적으로 누를 수 있다.
           위로 버튼은 위 칸의 이동수단 배지 바로 밑에서 시작되는 자리라, mt(위쪽 여백)를 넉넉히
@@ -456,7 +456,7 @@ function AnchorCard({ anchor, position }) {
       : '마지막 일정을 마치고 출발지로 돌아와요'
 
   return (
-    <div className="tw-grid tw-grid-cols-[32px_1fr] tw-gap-3">
+    <div className="tw-grid tw-grid-cols-[32px_minmax(0,1fr)] tw-gap-3">
       <div className="tw-flex tw-flex-col tw-items-center">
         <div className="tw-grid tw-h-7 tw-w-7 tw-place-items-center tw-rounded-full tw-border tw-border-cline tw-bg-surface-2 tw-text-cink-muted">
           <Icon name={icon} size={14} stroke={2.2} />
@@ -652,7 +652,7 @@ function TimelinePanel({
   return (
     <div className="tw-flex tw-min-h-0 tw-flex-1 tw-flex-col tw-border-cline lg:tw-flex-none lg:tw-w-[47%] lg:tw-min-w-[360px] lg:tw-max-w-[620px] lg:tw-border-r">
       <DaySummaryHeader day={day} days={days} activeDay={activeDay} onSelectDay={onSelectDay} count={places.length} />
-      <div className="tw-min-h-0 tw-flex-1 tw-overflow-y-auto tw-px-5 tw-py-5">
+      <div className="tw-min-h-0 tw-flex-1 tw-overflow-y-auto tw-overflow-x-hidden tw-px-5 tw-py-5">
         {/* 맨 위에 둔다 — 목록 끝(스크롤을 한참 내려야 하는 자리)에 있으면 검색 결과가 화면
             밖으로 가려지기 쉽고, 찾기도 번거롭다. 여기 있으면 화면을 열자마자 바로 보인다.
             시간대 순서는 그대로 지켜진다 — 여기서 골라도 실제로는 CourseDetail 을 부르는 쪽에서
