@@ -126,8 +126,7 @@
 }
 
 /* ═══ 디자인 토큰 ═══════════════════════════════════════════════════════
-   색·그림자·테두리를 변수로 모아 둔 곳. 화면 톤을 바꿀 때 여기만 고치면 된다.
-   다크모드는 .app.dark 에서 같은 변수를 다시 정의하는 방식으로 처리한다. */
+   색·그림자·테두리를 변수로 모아 둔 곳. 화면 톤을 바꿀 때 여기만 고치면 된다. */
 
 :root {
   color: #2b2118;
@@ -192,29 +191,6 @@ button {
     var(--kraft);
 }
 
-.app.dark {
-  --navy: #efe3cf;
-  --ink: #efe3cf;
-  --ink-line: rgba(232, 214, 186, 0.28);
-  --hard: rgba(0, 0, 0, 0.32);
-  --muted: #b6a68d;
-  --paper: #2b2419;
-  --paper-strong: #332b1f;
-  --kraft: #211b12;
-  --kraft-deep: #191309;
-  --line: rgba(232, 214, 186, 0.20);
-  --amber: #e6b072;
-  --amber-dark: #d69a4c;
-  --coral: #eb7d6c;
-  --sage: #9bb488;
-  --sky: #8fb4d6;
-  --tape: rgba(150, 132, 86, 0.42);
-  --tape-alt: rgba(140, 158, 122, 0.4);
-  background:
-    radial-gradient(ellipse at 50% 0%, rgba(255, 255, 255, 0.05), transparent 60%),
-    var(--kraft);
-}
-
 /* ── 뷰포트 양 끝에 고정되는 빈티지 여행 소품 배경 ─────────────────────────
    position: fixed 라 스크롤해도 제자리. 소품이 몰린 쪽이 화면 바깥 가장자리를 향한다. */
 /* ═══ 2. 기본 레이아웃 ══════════════════════════════════════════════════
@@ -242,9 +218,6 @@ button {
   -webkit-mask-image: linear-gradient(to left, #000 86%, transparent 100%);
   mask-image: linear-gradient(to left, #000 86%, transparent 100%);
 }
-.app.dark .edge-bg {
-  filter: brightness(0.42) sepia(0.25);
-}
 /* 가운데 콘텐츠와 배경이 겹칠 만큼 좁아지면 배경을 숨긴다. */
 @media (max-width: 1160px) {
   .edge-bg { display: none; }
@@ -264,10 +237,6 @@ button {
   border-radius: 20px;
   box-shadow: 0 24px 60px -30px rgba(70, 50, 30, 0.4);
   backdrop-filter: blur(1.5px);
-}
-.app.dark .app-stage {
-  background: rgba(38, 31, 22, 0.9);
-  border-color: rgba(232, 214, 186, 0.14);
 }
 @media (max-width: 1040px) {
   .app-stage { margin: 0; border-radius: 0; border-left: 0; border-right: 0; }
@@ -292,11 +261,9 @@ button {
   border-bottom: 1px solid var(--line);
   border-radius: 20px 20px 0 0;
 }
-.app.dark .topbar { background: rgba(38, 31, 22, 0.92); }
 
 .brand,
 .nav-links button,
-.theme-toggle,
 .back-button {
   border: 0;
   background: transparent;
@@ -356,18 +323,6 @@ button {
   transform: translateX(-50%) rotate(-1.2deg);
 }
 
-.theme-toggle {
-  min-width: 106px;
-  min-height: 42px;
-  padding: 0 18px;
-  border: var(--outline-w) solid var(--ink-line);
-  border-radius: 14px 11px 15px 10px;
-  color: var(--ink);
-  background: var(--paper-strong);
-  box-shadow: 3px 3px 0 var(--hard);
-  font-weight: 800;
-}
-
 .top-actions {
   display: flex;
   align-items: center;
@@ -399,7 +354,6 @@ button {
 }
 
 /* 잉크 외곽선 버튼 공통 반응: 눌리면 그림자만큼 내려앉는다 (도장 찍히는 느낌). */
-.theme-toggle:active,
 .auth-button:active {
   box-shadow: 0 0 0 var(--hard);
   transform: translate(3px, 3px);
@@ -582,24 +536,10 @@ button {
   pointer-events: none;
 }
 
-.dark .hero-panel {
-  background:
-    repeating-linear-gradient(
-      0deg,
-      transparent 0 31px,
-      rgba(255, 255, 255, 0.05) 32px
-    ),
-    var(--paper-strong);
-}
-
 .eyebrow {
   margin: 0 0 6px;
   color: var(--amber-dark);
   font-weight: 800;
-}
-
-.dark .eyebrow {
-  color: var(--amber);
 }
 
 h1,
@@ -1073,12 +1013,6 @@ p {
   box-shadow: 0 8px 18px rgba(141, 86, 25, 0.14);
 }
 
-.dark .chip.selected,
-.dark .segment button.selected {
-  color: #ffd38f;
-  background: rgba(241, 173, 85, 0.16);
-}
-
 .planner-options {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -1450,9 +1384,6 @@ p {
   font-size: 13.5px;
   white-space: nowrap;
 }
-.dark .course-tag {
-  background: rgba(240, 173, 99, 0.12);
-}
 
 .course-actions {
   display: flex;
@@ -1732,21 +1663,6 @@ p {
   font-weight: 900;
 }
 
-.dark .route-map {
-  background:
-    radial-gradient(
-      circle at 25% 72%,
-      rgba(106, 161, 106, 0.22),
-      transparent 20%
-    ),
-    radial-gradient(
-      circle at 70% 28%,
-      rgba(109, 155, 211, 0.18),
-      transparent 18%
-    ),
-    linear-gradient(135deg, #11243b 0%, #183042 48%, #102135 100%);
-}
-
 .route-map svg {
   position: absolute;
   inset: 0;
@@ -1822,10 +1738,6 @@ p {
   transform: translate(-50%, -50%);
 }
 
-.dark .time-badge {
-  background: rgba(24, 37, 56, 0.92);
-}
-
 .map-district {
   position: absolute;
   z-index: 2;
@@ -1835,11 +1747,6 @@ p {
   background: rgba(255, 255, 255, 0.46);
   font-size: 14px;
   font-weight: 900;
-}
-
-.dark .map-district {
-  color: rgba(247, 237, 220, 0.72);
-  background: rgba(16, 28, 44, 0.54);
 }
 
 .district-a {
@@ -1940,7 +1847,6 @@ p {
   color: var(--amber-dark);
   line-height: 1.7;
 }
-.dark .tl-time { color: #f0c193; }
 
 .tl-node {
   width: 26px;
@@ -1979,7 +1885,6 @@ p {
   font-size: 12.5px;
   font-weight: 700;
 }
-.dark .tl-warn { background: rgba(240, 173, 99, 0.16); color: #f0a367; }
 
 /* 카드 사이의 이동 구간 — 번호 노드 아래에 점선으로 이어 붙여 "다음 장소로" 를 보여준다. */
 .tl-move {
@@ -2002,10 +1907,6 @@ p {
 /* Google Places 영업시간은 요일별 여러 줄로 온다 (줄바꿈 유지). */
 .detail-card dd.detail-hours {
   white-space: pre-line;
-}
-
-.dark .detail-card dd.detail-warn {
-  color: #f0a367;
 }
 
 .score-card {
@@ -2189,10 +2090,6 @@ dd {
   transform: translate(-50%, -50%);
 }
 
-.dark .map-notice {
-  background: rgba(24, 37, 56, 0.94);
-}
-
 .map-fallback-note {
   position: absolute;
   left: 50%;
@@ -2210,10 +2107,6 @@ dd {
   line-height: 1.4;
   text-align: center;
   transform: translateX(-50%);
-}
-
-.dark .map-fallback-note {
-  background: rgba(24, 37, 56, 0.94);
 }
 
 .map-notice b {
@@ -2482,9 +2375,6 @@ dd {
   white-space: nowrap;
   box-shadow: 0 1px 3px rgba(50, 35, 22, 0.1);
 }
-.dark .route-rail .rail-badge {
-  background: var(--paper-strong);
-}
 .route-rail .rail-seg .rail-sub {
   position: absolute;
   top: calc(50% + 14px);
@@ -2610,10 +2500,6 @@ dd {
   color: var(--amber-dark);
   font-weight: 900;
   text-decoration: underline;
-}
-
-.dark .auth-link {
-  color: var(--amber);
 }
 
 /* ═══ 회원가입 화면 ═════════════════════════════════════════════════════ */
@@ -2748,26 +2634,6 @@ dd {
     #f5efe0;
 }
 
-.app.dark {
-  --ink: #f2e7d5;
-  --muted: #c3b6a0;
-  --paper: #232b33;
-  --paper-strong: #2b343d;
-  --line: rgba(242, 231, 213, 0.28);
-  --amber: #f0ad63;
-  --amber-dark: #e0912f;
-  --coral: #ff8271;
-  --sage: #9cc389;
-  --sky: #8fbdd2;
-  background:
-    radial-gradient(
-      circle at 15% 12%,
-      rgba(214, 133, 47, 0.16),
-      transparent 32%
-    ),
-    #1d242b;
-}
-
 .app::before {
   content: "";
   position: fixed;
@@ -2776,9 +2642,6 @@ dd {
   pointer-events: none;
   opacity: 0.6;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0.4 0 0 0 0 0.32 0 0 0 0 0.2 0 0 0 0.06 0'/%3E%3C/filter%3E%3Crect width='150' height='150' filter='url(%23n)'/%3E%3C/svg%3E");
-}
-.app.dark::before {
-  opacity: 0.4;
 }
 
 .app {
@@ -2798,7 +2661,6 @@ dd {
   padding: 18px clamp(16px, 4vw, 40px) 10px;
   min-height: 64px;
 }
-.app.dark .topbar { background: transparent; }
 .brand {
   gap: 14px;
   color: var(--amber-dark);
@@ -2847,7 +2709,6 @@ dd {
   background: var(--amber);
 }
 
-.theme-toggle,
 .auth-button {
   min-width: auto;
   min-height: 50px;
@@ -2861,7 +2722,6 @@ dd {
   font-size: 18px;
   box-shadow: 2px 3px 0 rgba(58, 42, 26, 0.16);
 }
-.theme-toggle:hover,
 .auth-button:hover {
   background: #fff4e2;
 }
@@ -2890,9 +2750,6 @@ dd {
     6px 8px 0 rgba(58, 42, 26, 0.12),
     0 22px 44px rgba(87, 56, 25, 0.14);
   transform: rotate(-0.5deg);
-}
-.dark .hero-panel {
-  background: var(--paper);
 }
 .hero-panel::before,
 .hero-panel::after {
@@ -2942,9 +2799,6 @@ dd {
   background: var(--paper-strong);
   box-shadow: 3px 4px 0 rgba(58, 42, 26, 0.1);
 }
-.dark .hero-search label {
-  background: var(--paper);
-}
 .hero-search span {
   color: var(--amber-dark);
   font-family: Gaegu, sans-serif;
@@ -2980,9 +2834,6 @@ dd {
   background: #eef4f1;
   box-shadow: 4px 6px 0 rgba(58, 42, 26, 0.1);
 }
-.dark .korea-map {
-  background: #24303a;
-}
 .map-callout {
   position: absolute;
   top: -24px;
@@ -3001,9 +2852,6 @@ dd {
   text-align: center;
   transform: rotate(3deg);
 }
-.dark .map-callout {
-  background: var(--paper);
-}
 
 .destination-cards {
   max-width: 720px;
@@ -3017,10 +2865,6 @@ dd {
   box-shadow:
     3px 5px 0 rgba(58, 42, 26, 0.12),
     0 12px 22px rgba(48, 35, 21, 0.14);
-}
-.dark .destination-card {
-  background: #f3ece0;
-  color: #3a2a1a;
 }
 .destination-card:nth-child(odd) {
   transform: rotate(-1.6deg);
@@ -3056,9 +2900,6 @@ dd {
   border: 2px solid var(--line);
   border-radius: 12px 10px 14px 8px;
   background: rgba(255, 253, 247, 0.7);
-}
-.dark .segment {
-  background: rgba(43, 52, 61, 0.6);
 }
 .segment legend {
   font-family: Gaegu, sans-serif;
@@ -3280,10 +3121,6 @@ dd {
   text-align: left;
   transition: transform 0.15s ease;
 }
-.dark .dest-card {
-  background: #f3ece0;
-  color: #3a2a1a;
-}
 .dest-card:nth-child(3n) {
   transform: rotate(-1.4deg);
 }
@@ -3334,9 +3171,6 @@ dd {
   border-radius: 16px;
   background: var(--paper-strong);
   box-shadow: 3px 4px 0 rgba(58, 42, 26, 0.1);
-}
-.dark .origin-form label {
-  background: var(--paper);
 }
 .origin-form span {
   display: flex;
@@ -3515,9 +3349,6 @@ dd {
   background: var(--paper-strong);
   box-shadow: 3px 4px 0 rgba(58, 42, 26, 0.1);
 }
-.dark .date-form label {
-  background: var(--paper);
-}
 .date-form span {
   color: var(--amber-dark);
   font-family: Gaegu, sans-serif;
@@ -3553,7 +3384,6 @@ dd {
   text-align: left;
   transition: border-color 0.15s ease;
 }
-.dark .daterange-trigger { background: var(--paper); }
 .daterange-trigger:hover,
 .daterange.is-open .daterange-trigger { border-color: var(--amber-dark); }
 .dr-field { display: grid; gap: 4px; min-width: 0; }
@@ -3589,7 +3419,6 @@ dd {
   box-shadow: 5px 8px 0 rgba(58, 42, 26, 0.14), 0 18px 40px -20px rgba(58, 42, 26, 0.5);
   animation: drPop 0.16s ease both;
 }
-.dark .daterange-pop { background: var(--paper); }
 @keyframes drPop {
   from { opacity: 0; transform: translateX(-50%) translateY(-6px); }
 }
@@ -3608,7 +3437,6 @@ dd {
   border-left: 2px solid var(--line);
   border-top: 2px solid var(--line);
 }
-.dark .daterange-pop::before { background: var(--paper); }
 
 .dr-caption {
   display: flex;
@@ -3661,7 +3489,6 @@ dd {
   line-height: 1;
   cursor: pointer;
 }
-.dark .dr-nav button { background: var(--paper); }
 .dr-nav button:hover { background: var(--amber); color: #3a2a1a; }
 
 .dr-weekdays,
@@ -3819,9 +3646,6 @@ dd {
   text-align: center;
   animation: weatherPanelSlideIn 0.45s cubic-bezier(0.22, 0.61, 0.36, 1) both;
 }
-.dark .date-weather-panel {
-  background: var(--paper);
-}
 @keyframes weatherPanelSlideIn {
   from {
     transform: translateY(28px);
@@ -3863,9 +3687,6 @@ dd {
   border: 1px solid var(--line);
   border-radius: 12px;
   background: #fffdf7;
-}
-.dark .date-weather-day {
-  background: var(--paper-strong);
 }
 .date-weather-day b {
   font-family: Gaegu, sans-serif;
@@ -3915,9 +3736,6 @@ dd {
     transform 0.15s ease,
     background 0.15s ease;
 }
-.dark .theme-card {
-  background: var(--paper);
-}
 .theme-card:nth-child(odd) {
   transform: rotate(-1.3deg);
 }
@@ -3933,9 +3751,6 @@ dd {
   box-shadow:
     4px 6px 0 rgba(201, 117, 47, 0.3),
     0 14px 26px rgba(48, 35, 21, 0.16);
-}
-.dark .theme-card.selected {
-  background: rgba(240, 173, 99, 0.16);
 }
 .theme-ic {
   display: grid;
@@ -3984,9 +3799,6 @@ dd {
   background: rgba(255, 253, 247, 0.7);
   text-align: left;
 }
-.dark .must-visit {
-  background: rgba(43, 52, 61, 0.6);
-}
 .must-visit-head {
   display: grid;
   gap: 3px;
@@ -4016,9 +3828,6 @@ dd {
   color: var(--ink);
   outline: 0;
   font-size: 15px;
-}
-.dark .must-visit-input input {
-  background: var(--paper);
 }
 .must-visit-input button {
   flex: 0 0 auto;
@@ -4052,9 +3861,6 @@ dd {
   font-family: Gaegu, sans-serif;
   font-weight: 700;
   font-size: 14px;
-}
-.dark .must-visit-tags li {
-  background: rgba(240, 173, 99, 0.16);
 }
 .must-visit-tags li button {
   display: grid;
@@ -4093,9 +3899,6 @@ dd {
   font-weight: 700;
   font-size: 13px;
 }
-.dark .course-must-visit span {
-  background: rgba(240, 173, 99, 0.16);
-}
 
 .course-notice {
   margin: -4px 0 16px;
@@ -4107,9 +3910,6 @@ dd {
   font-family: Gaegu, sans-serif;
   font-weight: 700;
   font-size: 13px;
-}
-.dark .course-notice {
-  background: rgba(240, 173, 99, 0.16);
 }
 
 /* 여행 일자(Day 1 / Day 2 …) 선택 탭 */
@@ -4144,9 +3944,6 @@ dd {
   border-color: var(--amber-dark);
   background: #fff2df;
   color: var(--amber-dark);
-}
-.dark .day-tab.selected {
-  background: rgba(240, 173, 99, 0.16);
 }
 
 .timeline-empty {
@@ -4203,9 +4000,6 @@ dd {
   font-family: Gaegu, sans-serif;
   font-weight: 700;
 }
-.dark .schedule-head button {
-  background: var(--paper);
-}
 .schedule-days {
   display: grid;
   /* min(340px, 100%) — 뷰포트가 340px보다 좁을 때 트랙이 컨테이너보다 넓어져
@@ -4220,9 +4014,6 @@ dd {
   border-radius: 12px;
   background: rgba(255, 253, 247, 0.5);
 }
-.dark .sch-day {
-  background: rgba(43, 52, 61, 0.4);
-}
 .sch-day h3 {
   margin: 0 0 10px;
   font-family: Gaegu, sans-serif;
@@ -4236,9 +4027,6 @@ dd {
   padding: 2px 4px 4px;
   border: 0;
   border-radius: 0;
-  background: none;
-}
-.dark .sch-slot {
   background: none;
 }
 .sch-slot-label {
@@ -4296,9 +4084,6 @@ dd {
   box-shadow: 0 0 0 1px var(--ink-line);
   z-index: 1;
 }
-.dark .sch-card-wrap::before {
-  border-color: var(--paper);
-}
 .sch-card-wrap:has(.sch-card.selected)::before {
   background: var(--coral);
   box-shadow: 0 0 0 3px rgba(230, 92, 79, 0.22);
@@ -4319,10 +4104,6 @@ dd {
 .sch-card.selected {
   border-color: var(--coral);
   box-shadow: 0 0 0 3px rgba(230, 92, 79, 0.18);
-}
-.dark .sch-card {
-  background: #f3ece0;
-  color: #3a2a1a;
 }
 .sch-card:active {
   cursor: grabbing;
@@ -4409,10 +4190,6 @@ dd {
   font-weight: 700;
   font-size: 12px;
 }
-.dark .sch-clock {
-  background: rgba(201, 117, 47, 0.35);
-  color: #4a3218;
-}
 .sch-hours-warn {
   display: block;
   margin: 2px 0 0 4px;
@@ -4420,9 +4197,6 @@ dd {
   font-family: Gaegu, sans-serif;
   font-weight: 700;
   font-size: 12px;
-}
-.dark .sch-hours-warn {
-  color: #d9843f;
 }
 .sch-del {
   flex: 0 0 auto;
@@ -4454,9 +4228,6 @@ dd {
   font-size: 11px;
   font-weight: 700;
   line-height: 1.5;
-}
-.dark .sch-travel {
-  background: var(--paper-strong);
 }
 .sch-empty {
   padding: 6px 4px;
@@ -4609,10 +4380,6 @@ dd {
   text-align: center;
   font-size: 14px;
   opacity: 0.9;
-}
-.dark .course-notes {
-  background: var(--paper-strong);
-  color: var(--ink);
 }
 
 /* --- 버튼류 --------------------------------------------------- */
@@ -5683,8 +5450,7 @@ textarea:focus {
   font-weight: 700;
 }
 
-.auth-button,
-.theme-toggle {
+.auth-button {
   min-width: auto;
   min-height: 46px;
   padding: 0 22px;
@@ -5701,41 +5467,10 @@ textarea:focus {
   font-weight: 700;
 }
 
-.theme-toggle::before {
-  content: "";
-}
-
-.auth-button:hover,
-.theme-toggle:hover {
+.auth-button:hover {
   background:
     repeating-linear-gradient(-18deg, rgba(238, 161, 95, 0.12) 0 4px, transparent 4px 10px),
     #fff9eb;
-}
-
-.app.dark .topbar {
-  color: #f4e8d3;
-  background:
-    linear-gradient(180deg, rgba(32, 42, 52, 0.98), rgba(25, 34, 44, 0.96)),
-    repeating-linear-gradient(102deg, rgba(255, 244, 225, 0.045) 0 1px, transparent 1px 12px);
-  border-bottom-color: rgba(244, 232, 212, 0.24);
-}
-
-.app.dark .brand,
-.app.dark .nav-links button.active {
-  color: #f0a45f;
-}
-
-.app.dark .nav-links button,
-.app.dark .user-email,
-.app.dark .auth-button,
-.app.dark .theme-toggle {
-  color: #f4e8d3;
-}
-
-.app.dark .auth-button,
-.app.dark .theme-toggle {
-  background: #253341;
-  border-color: rgba(244, 232, 212, 0.34);
 }
 
 @media (max-width: 900px) {
@@ -5768,8 +5503,7 @@ textarea:focus {
     gap: 8px;
   }
 
-  .auth-button,
-  .theme-toggle {
+  .auth-button {
     min-height: 40px;
     padding: 0 14px;
     font-size: 16px;
@@ -7134,7 +6868,6 @@ textarea:focus {
   border-radius: 12px;
   background: rgba(241, 230, 211, 0.4);
 }
-.app.dark .diary-must { background: rgba(255, 255, 255, 0.04); }
 .diary-must-head b {
   font-family: Gaegu, sans-serif;
   font-size: 15px;
@@ -7302,13 +7035,7 @@ textarea:focus {
   content: none;
 }
 
-.app.dark .nav-links button.active {
-  background: rgba(240, 164, 95, 0.22);
-  color: #f2b878;
-}
-
-.auth-button,
-.theme-toggle {
+.auth-button {
   min-height: 38px;
   padding: 0 14px;
   border: 1.5px solid rgba(33, 24, 18, 0.72);
@@ -7869,9 +7596,6 @@ textarea:focus {
   box-shadow: 2px 3px 0 rgba(78, 51, 26, 0.14);
   color: var(--amber-dark);
   font-size: 0;
-}
-.app.dark .brand-mark {
-  background: var(--paper-strong);
 }
 .brand-mark::before,
 .brand-mark::after {
@@ -8807,9 +8531,6 @@ input[type="button"]:active,
   transform: rotate(-1deg);
   overflow: hidden;
 }
-.app.dark .place-modal-map {
-  background: #2c2417;
-}
 .place-modal-map-empty {
   display: grid;
   place-items: center;
@@ -9354,12 +9075,6 @@ input[type="button"]:active,
   .user-email {
     display: none;
   }
-  .theme-toggle {
-    min-width: 0;
-    min-height: 36px;
-    padding: 0 12px;
-    font-size: 13px;
-  }
 
   .sketch-home {
     padding: 12px 12px 0;
@@ -9468,12 +9183,6 @@ input[type="button"]:active,
 }
 .top-actions {
   flex-wrap: nowrap;
-}
-@media (min-width: 641px) {
-  .theme-toggle {
-    min-width: 0;
-    padding: 0 13px;
-  }
 }
 
 /* 소품 배경을 본문(다이어리 페이지)에서 조금 더 떼고, 안쪽 가장자리를 더 부드럽게 */
@@ -9860,41 +9569,6 @@ input[type="button"]:active,
 }
 
 /* --- 다크모드: 토큰만 갈아 끼운다 --- */
-.app.dark .auth-backdrop {
-  background: rgba(10, 14, 18, 0.44);
-}
-
-.app.dark .auth-card {
-  --auth-paper: #2c333b;
-  --auth-field: #232a31;
-  --auth-track: rgba(240, 173, 99, 0.14);
-  --auth-edge: rgba(242, 231, 213, 0.18);
-  --auth-ink: #f2e7d5;
-  --auth-muted: #b5a892;
-  --auth-amber: #f0ad63;
-  --auth-amber-deep: #f0b878;
-
-  background:
-    radial-gradient(ellipse 70% 50% at 18% 0%, rgba(240, 173, 99, 0.07), transparent 70%),
-    var(--auth-paper);
-  box-shadow: 0 20px 46px rgba(0, 0, 0, 0.5);
-}
-
-.app.dark .auth-card input::placeholder {
-  color: rgba(242, 231, 213, 0.34);
-}
-
-.app.dark .auth-close:hover {
-  background: rgba(242, 231, 213, 0.12);
-}
-
-.app.dark .auth-card form > button {
-  color: #2a1c0c;
-}
-
-.app.dark .auth-social-button.is-kakao {
-  border-color: rgba(0, 0, 0, 0.2);
-}
 
 @keyframes authFadeIn {
   from {
