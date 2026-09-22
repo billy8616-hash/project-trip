@@ -21,7 +21,7 @@
 
 import { SLOT_LABELS } from '../data/travelOptions.js'
 import { budgetAdjust } from './cost.js'
-import { optimizeRouteOrder } from './geo.js'
+import { optimizeRouteOrderBySlot } from './geo.js'
 import { isClosedOnDate } from './openingHours.js'
 import {
   placeKindOf,
@@ -63,11 +63,9 @@ export function transportAdjust(place, transport, cityHasTransit) {
   }
 }
 
-// optimizeRouteOrder 로 거리 최적화를 끝낸 추천 코스 순서(ordered)에, 직접 추가한 장소(manual)를
-// 각자의 assignedSlot(오전/점심/오후/저녁) 자리에 끼워 넣는다.
-// optimizeRouteOrder 는 좌표 거리만 보고 순서를 짜기 때문에, 직접 추가한 장소를 그 계산에 같이
-// 넣으면 라벨(오전/저녁 등)과 무관하게 아무 자리에나 꽂힐 수 있다 — 그래서 추천 코스는 거리 기준
-// 순서를 그대로 두고, 직접 추가한 장소만 시간대가 맞는 자리를 찾아 따로 삽입한다.
+// optimizeRouteOrderBySlot 으로 거리 최적화를 끝낸 추천 코스 순서(ordered)에, 직접 추가한
+// 장소(manual)를 각자의 assignedSlot(오전/점심/오후/저녁) 자리에 끼워 넣는다.
+// (좌표가 없는 manual 장소는 애초에 거리 최적화 대상이 아니라서 별도로 삽입해야 한다.)
 export function insertManualBySlot(ordered, manualPlaces) {
   if (manualPlaces.length === 0) return ordered
   const result = ordered.slice()
@@ -216,7 +214,7 @@ export function buildCourse(base, themeId, budgetTier, mustVisit = [], anchors =
     const orderPicks = (list) => {
       const located = list.filter((place) => !place.manual)
       const manual = list.filter((place) => place.manual)
-      return insertManualBySlot(optimizeRouteOrder(located, anchors), manual)
+      return insertManualBySlot(optimizeRouteOrderBySlot(located, anchors), manual)
     }
 
     let scheduled = scheduleDay(orderPicks(dayPicks), { dayStartMin, transport })

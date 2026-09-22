@@ -7,11 +7,14 @@
 // 넘겨 실제 도로 경로로 다시 그린다.
 //
 // 주요 함수
-//   haversineKm(a, b)              두 좌표 사이 직선거리(km)
-//   optimizeRouteOrder(places, …)  최근접이웃 + 2-opt 로 순서 재배열
+//   haversineKm(a, b)                    두 좌표 사이 직선거리(km)
+//   optimizeRouteOrder(places, …)        최근접이웃 + 2-opt 로 순서 재배열
+//   optimizeRouteOrderBySlot(places, …)  위 최적화를 시간대(오전→저녁) 순서 안에서만 적용
 //
-// 쓰는 곳: App.jsx (코스 생성·재정렬)
+// 쓰는 곳: App.jsx (코스 생성·재정렬) · lib/course.js
 // ─────────────────────────────────────────────────────────────
+
+import { SLOT_LABELS } from '../data/travelOptions.js'
 
 // 두 좌표 사이의 직선거리를 km 로 구한다(haversine 공식).
 // 지구를 반지름 6371km 인 구로 보고 위도·경도 차이를 호의 길이로 환산하는 방식이라,
@@ -93,4 +96,32 @@ export function optimizeRouteOrder(places, anchors = {}) {
   }
 
   return [...order, ...rest]
+}
+
+// optimizeRouteOrder 는 순수 직선거리 기준이라, 시간대(오전/점심/오후/저녁) 구분 없이 그냥 넘기면
+// "저녁 장소가 아침 장소보다 지리적으로 가깝다"는 이유만으로 하루 순서 자체가 뒤집힐 수 있다
+// (예: 저녁 술집이 첫 방문지가 되고, 오전 자연 명소가 한밤중으로 밀려남).
+// 그래서 assignedSlot 을 기준으로 먼저 오전→점심→오후→저녁 그룹으로 나누고, 거리 최적화는
+// 각 그룹 안에서만(보통 한 곳뿐이라 사실상 순서 고정) 적용한다. 그룹 사이는 이어 붙이면서
+// 앞 그룹의 마지막 장소를 다음 그룹의 시작 앵커로 넘겨, 그룹 경계에서도 동선이 이어지게 한다.
+export function optimizeRouteOrderBySlot(places, anchors = {}, slotOrder = SLOT_LABELS) {
+  const bucketed = slotOrder.map(() => [])
+  const unassigned = [] // slotOrder 에 없는 라벨(있어선 안 되지만) — 조용히 사라지지 않도록 맨 뒤에 붙인다.
+  places.forEach((place) => {
+    const index = slotOrder.indexOf(place.assignedSlot)
+    if (index === -1) unassigned.push(place)
+    else bucketed[index].push(place)
+  })
+  const groups = [...bucketed, unassigned].filter((group) => group.length > 0)
+
+  const result = []
+  let chainStart = anchors.start
+  groups.forEach((group, index) => {
+    const isLastGroup = index === groups.length - 1
+    const optimized = optimizeRouteOrder(group, { start: chainStart, end: isLastGroup ? anchors.end : undefined })
+    result.push(...optimized)
+    const last = optimized[optimized.length - 1]
+    if (last?.location) chainStart = { location: last.location }
+  })
+  return result
 }
