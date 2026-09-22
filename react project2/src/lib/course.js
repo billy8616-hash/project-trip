@@ -156,18 +156,38 @@ export function buildCourse(base, themeId, budgetTier, mustVisit = [], anchors =
 
   // 하루치 장소를 시간대별로 한 곳씩 고른다. 이미 다른 날에 쓴 장소(used)는 건너뛴다.
   // skipSlots: 필수 방문이 이미 차지한 시간대 — 그 자리는 새로 뽑지 않는다.
-  const pickOneDay = (wet = false, skipSlots = new Set()) =>
-    SLOT_LABELS.filter((slot) => !skipSlots.has(slot)).map((slot) => {
-      const candidates = pool
+  //
+  // 2단계로 나눠 고른다: 1단계에서 시간대 태그가 맞는 곳을 슬롯마다 먼저 다 확정해 두고,
+  // 그래도 후보가 없어 비어 있는 슬롯만 2단계에서 태그와 무관하게 채운다. 한 번에 순서대로
+  // 채우면, 아직 처리 안 한 뒤 슬롯(예: 저녁)에 정확히 맞는 곳이 앞 슬롯(오후 카페)의
+  // 대체용으로 먼저 가로채질 수 있기 때문이다.
+  const pickOneDay = (wet = false, skipSlots = new Set()) => {
+    const rankAndPick = (candidates) => {
+      const sorted = candidates
         .map((place, index) => ({ place, index }))
-        .filter(({ place }) => !used.has(place.name) && place.slots.includes(slot))
         .sort((a, b) => scoreOf(b.place, { wet }) - scoreOf(a.place, { wet }) || a.index - b.index)
-      const pick = candidates[0]?.place
-      if (!pick) return null
-      used.add(pick.name)
-      // 한 장소가 여러 슬롯에 어울릴 수 있으므로, 실제로 배정된 슬롯을 따로 기록해 둔다.
-      return { ...pick, assignedSlot: slot }
-    }).filter(Boolean)
+      return sorted[0]?.place || null
+    }
+
+    const slots = SLOT_LABELS.filter((slot) => !skipSlots.has(slot))
+    const picks = slots.map((slot) => {
+      const pick = rankAndPick(pool.filter((place) => !used.has(place.name) && place.slots.includes(slot)))
+      if (pick) used.add(pick.name)
+      return { slot, place: pick }
+    })
+
+    // 슬롯을 그냥 비워두면 뒤 시간대(특히 저녁 앵커, schedule.js)와의 사이에 몇 시간짜리
+    // 빈 시간이 생겨버리므로, 태그 후보가 없는 슬롯은 남은 곳 중 최고점으로 채운다.
+    return picks
+      .map(({ slot, place }) => {
+        const pick = place || rankAndPick(pool.filter((p) => !used.has(p.name)))
+        if (!pick) return null
+        if (!place) used.add(pick.name)
+        // 한 장소가 여러 슬롯에 어울릴 수 있으므로, 실제로 배정된 슬롯을 따로 기록해 둔다.
+        return { ...pick, assignedSlot: slot }
+      })
+      .filter(Boolean)
+  }
 
   const days = []
   let droppedForLateArrival = 0
