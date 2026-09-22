@@ -11,6 +11,7 @@
 /output/
 /22/
 /server/
+/team/
 
 # 루트에 흩어져 있는 시안·원본 리소스
 # 실제로 쓰는 로고·폰트는 `react project2/src/assets/` 안에 있다.
