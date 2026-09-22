@@ -157,8 +157,7 @@ function App() {
 
   // ── 화면 표시 상태 ──────────────────────────────────────────
   // 코스 자체가 아니라 "어떻게 보고 있는지"에 해당하는 값들.
-  // 다크모드, 선택한 장소·날짜, 저장·공유 버튼의 문구 등.
-  const [darkMode, setDarkMode] = useState(false)
+  // 선택한 장소·날짜, 저장·공유 버튼의 문구 등.
   const [selectedPlace, setSelectedPlace] = useState(0)
   // 지도 구간 트레이싱을 "누를 때마다" 다시 트리거하려고, 같은 번호를 눌러도 값이 바뀌는 카운터.
   const [selectPulse, setSelectPulse] = useState(0)
@@ -795,7 +794,7 @@ function App() {
   const mapUrl = detail ? `https://map.kakao.com/link/search/${encodeURIComponent(`${cityKey} ${detail.name}`)}` : ''
 
   return (
-    <main className={darkMode ? 'app dark' : 'app'}>
+    <main className="app">
       <div className="edge-bg edge-bg-left" style={{ backgroundImage: `url(${leftEdgeBg})` }} aria-hidden="true" />
       <div className="edge-bg edge-bg-right" style={{ backgroundImage: `url(${rightEdgeBg})` }} aria-hidden="true" />
 
@@ -821,9 +820,6 @@ function App() {
               로그인
             </button>
           )}
-          <button className="theme-toggle" type="button" onClick={() => setDarkMode((value) => !value)}>
-          {darkMode ? '라이트모드' : '다크모드'}
-          </button>
         </div>
       </nav>
 
