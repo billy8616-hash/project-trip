@@ -1,9 +1,30 @@
+// ─────────────────────────────────────────────────────────────
+// components/KakaoRouteMap.jsx — 코스 동선을 지도에 그리는 컴포넌트
+//
+// 이 파일에서 가장 설명할 만한 부분은 "교통 모드마다 경로 출처가 다르다"는 점이다.
+//   자차      카카오모빌리티 길찾기 → 실제 도로를 따라가는 실선
+//   대중교통  ODsay          → 실제 지하철·버스 노선을 따라가는 실선 + 노선명 배지
+//   도보      Tmap           → 실제 인도를 따라가는 실선
+//   실패·불가  좌표를 직선으로 이은 점선 + 추정 시간 (drawFallbackRoute)
+//
+// 셋 중 무엇이 실패해도 지도는 항상 무언가를 그린다. 외부 API 하나가 죽었다고
+// 지도가 빈 화면이 되지 않게 하려는 것이 설계 의도다. 어떤 경로를 쓰고 있는지는
+// drawn.source 에 기록해 화면에 "예상 경로"라고 알려 준다.
+//
+// 지도 조작은 React 가 아니라 카카오 SDK 가 한다. 그래서 마커·선 객체를 ref 에
+// 직접 보관하고(markersRef·polylinesRef), 다시 그리기 전에 손으로 지운다
+// (clearMapItems). 이걸 빼먹으면 이전 선이 지도에 그대로 남는다.
+//
+// 쓰는 곳: App.jsx · CourseDetail (코스 화면의 지도 영역)
+// ─────────────────────────────────────────────────────────────
+
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { fetchCarRoute, fetchTransitRoute, fetchWalkRoute } from '../lib/api.js'
 import { kakaoMapApiKey, legColor, loadKakaoMaps } from '../lib/kakaoMaps.js'
 import { estimateTravelMin, formatMinutes } from '../lib/travelTime.js'
 import MapNotice from './MapNotice.jsx'
 
+// 마커에 찍을 글자. 장소는 방문 순서 번호(1,2,3…), 앵커는 역할 이름으로 표시한다.
 function stopLabel(stop) {
   if (stop.kind === 'origin') return '출발'
   if (stop.kind === 'lodging') return '숙소'
@@ -64,6 +85,9 @@ function traceEntries(entries, { steps = 16, intervalMs = 22 } = {}) {
   }
 }
 
+// props 중 selectPulse 는 "같은 장소를 다시 눌렀을 때"를 감지하기 위한 값이다.
+// selectedPlace 만 보면 값이 그대로라 변화를 알 수 없어서, 누를 때마다 1씩 오르는
+// 숫자를 함께 받아 애니메이션을 다시 재생한다.
 export default function KakaoRouteMap({ course, places, origin, endPoint, transport, selectedPlace, selectPulse = 0, onSelectPlace, onRouteReady, onMapReady }) {
   const mapElementRef = useRef(null)
   const mapRef = useRef(null)
@@ -112,6 +136,8 @@ export default function KakaoRouteMap({ course, places, origin, endPoint, transp
     return list
   }, [places, origin, endPoint])
 
+  // 지금 지도에 그려진 것이 최신 상태인지 판단한다. stops 는 useMemo 로 만든 객체라
+  // 내용이 그대로면 참조도 그대로다 — 그래서 === 비교만으로 "바뀌었는지"를 알 수 있다.
   const isCurrent = Boolean(drawn) && drawn.stops === stops && drawn.transport === transport
   const mapStatus = !kakaoMapApiKey ? 'missing-key' : isCurrent ? drawn.status : 'loading'
   const routeSource = isCurrent ? drawn.source : 'estimate'
@@ -122,6 +148,8 @@ export default function KakaoRouteMap({ course, places, origin, endPoint, transp
 
     let isMounted = true
 
+    // 지도에 얹은 마커·선·진행 중인 애니메이션을 전부 걷어낸다.
+    // 카카오 SDK 객체는 React 가 정리해 주지 않으므로 직접 지워야 한다.
     const clearMapItems = () => {
       window.clearTimeout(traceTimerRef.current)
       clickTraceCancelRef.current?.()

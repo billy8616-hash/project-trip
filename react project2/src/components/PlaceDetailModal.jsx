@@ -1,3 +1,19 @@
+// ─────────────────────────────────────────────────────────────
+// components/PlaceDetailModal.jsx — 장소 상세 모달
+//
+// 코스의 장소 카드를 누르면 뜨는 창. 두 가지를 한 화면에 같이 보여 준다.
+//   왼쪽  이 장소 하나의 정보 — 미니 지도·추천 이유·주의사항·영업시간·주차·대중교통
+//   오른쪽 이 장소가 속한 날의 전체 일정 (오전·오후·저녁)
+//
+// 오른쪽을 같이 두는 이유: 장소 하나만 보면 "이걸 뺄까" 판단이 어렵다.
+// 그날 흐름 속에서 봐야 결정할 수 있다.
+//
+// createPortal 로 body 에 직접 붙인다 — 부모의 overflow·z-index 에 갇혀
+// 모달이 잘리는 일을 막기 위해서다.
+//
+// 쓰는 곳: App.jsx · CourseDetail
+// ─────────────────────────────────────────────────────────────
+
 import { useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { loadKakaoMaps, kakaoMapApiKey } from '../lib/kakaoMaps.js'
@@ -22,6 +38,7 @@ function shortRegion(address, fallback = '') {
   )
 }
 
+// "14:30 ~ 15:40" 처럼 머무는 시간대를 표기한다. 계산된 시각이 없으면 빈 문자열.
 function clockRange(place) {
   if (!Number.isFinite(place.arriveMin)) return ''
   return Number.isFinite(place.departMin)

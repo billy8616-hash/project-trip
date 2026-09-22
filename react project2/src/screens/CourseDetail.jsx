@@ -1,3 +1,27 @@
+// ─────────────────────────────────────────────────────────────
+// screens/CourseDetail.jsx — 완성된 코스를 보여 주는 화면 (좌: 타임라인 / 우: 지도)
+//
+// 이 프로젝트에서 유일하게 Tailwind 로 스타일링한 화면이다. 나머지 화면은 전부
+// 손으로 쓴 index.css 를 쓴다. 전역 도입은 기존 화면을 깨뜨리므로
+// preflight(전역 리셋)를 끄고 모든 유틸에 `tw-` 접두사를 붙여 충돌을 막았다
+// (tailwind.config.js 참고). 이 화면만 `course-detail-root` 스코프에서
+// 필요한 최소 리셋을 받는다.
+//
+// 설계 원칙: 이 화면은 "표시 전용"이다. 데이터도 지도도 동작도 전부 props 로 받는다.
+// 지도조차 mapSlot 이라는 슬롯으로 넘겨받아서, 이 파일은 카카오맵을 전혀 모른다.
+// 덕분에 지도 없이도(FallbackMap) 화면을 확인할 수 있다.
+//
+// 파일 안의 부품들 (아래에서 위로 조립된다)
+//   DaySummaryHeader  Day 탭과 요약
+//   PlaceCard         장소 카드 한 장 (펼치면 상세·이동 버튼)
+//   RouteBadge        카드 사이의 이동 구간 표시
+//   AddPlaceRow       장소 검색·추가
+//   TimelinePanel     왼쪽 전체
+//   FallbackMap       지도가 없을 때 쓰는 일러스트 지도
+//   TransportToggle · FloatingActions · ZoomControls  지도 위 컨트롤
+//   CourseDetail      맨 아래, 위 부품들을 배치하는 루트
+// ─────────────────────────────────────────────────────────────
+
 import { useEffect, useMemo, useRef, useState } from 'react'
 
 /* ============================================================================
@@ -41,6 +65,8 @@ function websiteMeta(url) {
 }
 
 /* ── MOCK (props 를 안 넘겼을 때만 쓰는 예시 데이터) ─────────────────────── */
+// props 없이 이 컴포넌트만 띄워도 레이아웃을 확인할 수 있게 둔 예시 데이터.
+// 실제 앱에서는 항상 props 가 들어오므로 쓰이지 않는다.
 const MOCK_DAY = { no: 1, date: '9월 12일 (토)', region: '강릉' }
 const MOCK_PLACES = [
   { id: 'p1', order: 1, name: '오죽헌', kind: 'history', bestTime: '오전', timeRange: '09:00 – 11:30',
@@ -76,6 +102,8 @@ const PATHS = {
   locate: <><circle cx="12" cy="12" r="7" /><path d="M12 2v3M12 19v3M2 12h3M19 12h3" /></>,
   calendar: <><rect x="3" y="4" width="18" height="17" rx="2" /><path d="M3 9h18M8 2v4M16 2v4" /></>,
   chevron: <><path d="M9 6l6 6-6 6" /></>,
+  bed: <><path d="M3 18V7M3 12h15a3 3 0 0 1 3 3v3M3 18h18" /><circle cx="7.5" cy="9.5" r="1.8" /><path d="M11 12V9.5h4" /></>,
+  flag: <><path d="M5 21V4M5 4h11l-2 3.5L16 11H5" /></>,
   parking: <><rect x="3" y="3" width="18" height="18" rx="3" /><path d="M9 17V7h4a3 3 0 0 1 0 6H9" /></>,
   globe: <><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" /></>,
   instagram: <><rect x="3" y="3" width="18" height="18" rx="5" /><circle cx="12" cy="12" r="4" /><circle cx="17.2" cy="6.8" r="1" fill="currentColor" stroke="none" /></>,
@@ -102,6 +130,7 @@ function Icon({ name, size = 18, stroke = 2, className = '' }) {
 /* ── 왼쪽 패널 ──────────────────────────────────────────────────────── */
 
 /* 일정 요약 헤더 (+ 여러 날이면 Day 탭) */
+// 타임라인 맨 위 고정 영역. 며칠짜리 여행이면 Day 탭이 함께 나온다.
 function DaySummaryHeader({ day, days, activeDay, onSelectDay, count }) {
   const multi = days && days.length > 1
   return (
@@ -134,6 +163,8 @@ function DaySummaryHeader({ day, days, activeDay, onSelectDay, count }) {
 }
 
 /* 이동 수단 배지 */
+// 카드와 카드 사이에 끼는 이동 정보(도보 12분 · 2호선 등).
+// 장소만 나열하면 "이 다음 어떻게 가지"가 빠지므로 사이사이에 넣었다.
 function RouteBadge({ route }) {
   if (!route) return null
   const walk = route.mode === 'walk'
@@ -157,6 +188,7 @@ function RouteBadge({ route }) {
 
 /* 썸네일 — 종류 색 자리표시 타일 위에 사진을 덮는다.
    사진을 받는 동안·URL 이 깨졌을 때도 빈칸 대신 타일이 그대로 보이도록 겹쳐 두는 구조다. */
+// 장소 사진. 주소가 깨졌거나 불러오기에 실패하면(broken) 기본 일러스트로 대체한다.
 function Thumb({ place }) {
   const k = kindStyle(place.kind)
   const [broken, setBroken] = useState(false)
@@ -182,6 +214,9 @@ function Thumb({ place }) {
 }
 
 /* 장소 카드 */
+// 장소 카드 한 장. 접힌 상태에서는 이름·시간·태그만, 펼치면 추천 이유·주의사항·
+// 영업시간·링크가 나온다. isFirst/isLast 는 위·아래 이동 버튼을 가리는 데 쓴다.
+// (여기서는 드래그 없이 ↑↓ 버튼으로 순서를 바꾼다)
 function PlaceCard({ place, isFirst, isLast, isActive, onPick, onMoveUp, onMoveDown }) {
   // 처음엔 다 접힌 채로 보여준다. 카드 자체를 누르면 펼침/접힘 + 지도 선택이 같이 일어난다.
   const [open, setOpen] = useState(false)
@@ -256,6 +291,13 @@ function PlaceCard({ place, isFirst, isLast, isActive, onPick, onMoveUp, onMoveD
                   {place.bestTime && (
                     <span className="tw-inline-flex tw-items-center tw-gap-1 tw-rounded-md tw-bg-surface-2 tw-px-1.5 tw-py-0.5 tw-text-[11px] tw-font-medium tw-text-cink-muted">
                       <Icon name="clock" size={11} />{place.bestTime}
+                    </span>
+                  )}
+                  {/* 사용자가 "꼭 가고 싶은 곳"에 직접 적은 장소. 추천으로 들어온 곳과 구분해 주면
+                      내가 적은 것이 반영됐는지 한눈에 확인할 수 있다. */}
+                  {place.mustVisit && (
+                    <span className="tw-inline-flex tw-items-center tw-gap-1 tw-rounded-md tw-bg-cmark/50 tw-px-1.5 tw-py-0.5 tw-text-[11px] tw-font-semibold tw-text-cink">
+                      <Icon name="spark" size={11} />꼭 가고 싶은 곳
                     </span>
                   )}
                 </div>
@@ -393,6 +435,51 @@ function PlaceCard({ place, isFirst, isLast, isActive, onPick, onMoveUp, onMoveD
 // pool(도시 장소 풀)에서 이름이 겹치는 후보를 즉시 보여주고, 고르면 그 장소 그대로(영업시간·
 // 사진·평점 포함) 일정에 붙는다. 목록에 없는 곳은 "추가"를 눌러 geocode 로 좌표만 찾아 붙인다 —
 // 이 경우 영업시간·사진 같은 정보는 없이 이름과 위치만 가진 채로 들어간다.
+// 장소 검색·추가 줄. 추천 풀(pool)에서 먼저 찾아보고, 없으면 지오코딩으로
+// 임의의 장소를 좌표까지 얻어서 추가한다.
+// 출발지·숙소 카드. 코스에 "들르는 장소"가 아니라 하루의 시작점·끝점이라서, 번호도 붙지 않고
+// 순서를 바꾸거나 지울 수도 없다. 장소 카드(PlaceCard)와 생김새를 일부러 다르게 해서
+// 사용자가 둘을 헷갈리지 않게 했다.
+//
+// 지도에도 같은 지점이 '출발'·'숙소' 마커로 찍혀 있다(KakaoRouteMap 의 stops).
+// 타임라인에만 빠져 있으면 "숙소를 적었는데 코스에 없다"고 느끼게 되므로 여기서 함께 보여 준다.
+function AnchorCard({ anchor, position }) {
+  if (!anchor?.name) return null
+
+  const isStart = position === 'start'
+  const icon = isStart ? 'flag' : anchor.kind === 'lodging' ? 'bed' : 'flag'
+  const label = isStart ? '출발' : anchor.kind === 'lodging' ? '숙소' : '복귀'
+  const hint = isStart
+    ? '여기서 하루를 시작해요'
+    : anchor.kind === 'lodging'
+      ? '마지막 일정을 마치고 숙소로 돌아가요'
+      : '마지막 일정을 마치고 출발지로 돌아와요'
+
+  return (
+    <div className="tw-grid tw-grid-cols-[32px_1fr] tw-gap-3">
+      <div className="tw-flex tw-flex-col tw-items-center">
+        <div className="tw-grid tw-h-7 tw-w-7 tw-place-items-center tw-rounded-full tw-border tw-border-cline tw-bg-surface-2 tw-text-cink-muted">
+          <Icon name={icon} size={14} stroke={2.2} />
+        </div>
+        {isStart && <div className="tw-mt-1.5 tw-w-px tw-flex-1 tw-bg-cline" />}
+      </div>
+
+      <div className="tw-mb-4 tw-rounded-cxl tw-border tw-border-dashed tw-border-cline tw-bg-surface-2 tw-px-4 tw-py-3">
+        <div className="tw-flex tw-items-center tw-gap-2">
+          <span className="tw-rounded-md tw-bg-surface tw-px-1.5 tw-py-0.5 tw-text-[11px] tw-font-semibold tw-text-cink-muted">
+            {label}
+          </span>
+          <b className="tw-truncate tw-text-[14px] tw-font-semibold tw-text-cink">{anchor.name}</b>
+        </div>
+        {anchor.address && (
+          <p className="tw-mt-1 tw-truncate tw-text-[12px] tw-text-cink-faint">{anchor.address}</p>
+        )}
+        <p className="tw-mt-1 tw-text-[12px] tw-text-cink-muted">{hint}</p>
+      </div>
+    </div>
+  )
+}
+
 function AddPlaceRow({ pool = [], excludeNames, onAdd, onGeocode }) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
@@ -550,9 +637,11 @@ function AddPlaceRow({ pool = [], excludeNames, onAdd, onGeocode }) {
   )
 }
 
+// 왼쪽 패널 전체. 카드 사이사이에 이동 정보를 끼워 넣는 일을 여기서 한다
+// (routeByFrom 으로 "이 장소에서 출발하는 구간"을 빠르게 찾는다).
 function TimelinePanel({
   day, days, activeDay, onSelectDay, places, routes, selectedIndex, onPick, onMovePlace,
-  pool, excludeNames, onAddPlace, onGeocode,
+  pool, excludeNames, onAddPlace, onGeocode, startAnchor, endAnchor,
 }) {
   const routeByFrom = useMemo(() => {
     const m = {}
@@ -572,6 +661,11 @@ function TimelinePanel({
         {places.length === 0 && (
           <p className="tw-py-10 tw-text-center tw-text-sm tw-text-cink-faint">이 날은 아직 장소가 없어요.</p>
         )}
+
+        {/* 하루의 시작점 — 출발지를 입력했을 때만 나온다.
+            장소가 하나도 없는 날에는 시작점·끝점만 덩그러니 남아 이상하므로 함께 감춘다. */}
+        {places.length > 0 && <AnchorCard anchor={startAnchor} position="start" />}
+
         {places.map((place, i) => (
           <div key={place.id}>
             {i > 0 && <RouteBadge route={routeByFrom[places[i - 1].id]} />}
@@ -586,6 +680,9 @@ function TimelinePanel({
             />
           </div>
         ))}
+
+        {/* 하루의 끝점 — 숙소를 입력했으면 숙소, 아니면 출발지로 복귀. */}
+        {places.length > 0 && <AnchorCard anchor={endAnchor} position="end" />}
       </div>
     </div>
   )
@@ -638,6 +735,7 @@ function FallbackMap({ places, routes, onPick }) {
   )
 }
 
+// 지도 위 범례. 이동수단에 따라 라벨이 바뀐다(버스·도보·자차).
 function MapLegend({ moveLabel = '버스' }) {
   return (
     <div className="tw-absolute tw-left-4 tw-top-4 tw-z-20 tw-flex tw-gap-4 tw-rounded-lg tw-border tw-border-cline tw-bg-surface/95 tw-px-3 tw-py-2 tw-text-[11px] tw-font-medium tw-text-cink-muted tw-shadow-ccard">
@@ -664,6 +762,7 @@ const TRANSPORT_OPTIONS = [
   { key: '대중교통', icon: 'bus' },
   { key: '도보', icon: 'walk' },
 ]
+// 지도 위에서 교통수단을 바꾸는 토글. 바꾸면 경로를 다시 받아 그린다.
 function TransportToggle({ value, onChange }) {
   if (!onChange) return null
   return (
@@ -691,6 +790,7 @@ function TransportToggle({ value, onChange }) {
   )
 }
 
+// 지도 오른쪽 아래 떠 있는 버튼들(저장·공유 등). 상위에서 넘긴 것만 표시한다.
 function FloatingActions({ actions = {} }) {
   const items = [
     { key: 'save', label: actions.saveLabel || '코스 저장', icon: 'bookmark', primary: true, on: actions.onSave },
@@ -729,6 +829,8 @@ export default function CourseDetail({
   excludeNames,
   onAddPlace,
   onGeocode,
+  startAnchor,
+  endAnchor,
   mapSlot,
   moveLabel,
   transport,
@@ -751,6 +853,7 @@ export default function CourseDetail({
         day={day} days={days} activeDay={activeDay} onSelectDay={onSelectDay}
         places={places} routes={routes} selectedIndex={selectedIndex} onPick={pick} onMovePlace={onMovePlace}
         pool={pool} excludeNames={excludeNames} onAddPlace={onAddPlace} onGeocode={onGeocode}
+        startAnchor={startAnchor} endAnchor={endAnchor}
       />
 
       <div className="tw-relative tw-h-[34vh] tw-w-full tw-shrink-0 lg:tw-h-auto lg:tw-flex-1">

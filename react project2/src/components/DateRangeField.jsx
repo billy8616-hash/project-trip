@@ -1,3 +1,18 @@
+// ─────────────────────────────────────────────────────────────
+// components/DateRangeField.jsx — 출발일·도착일 캘린더 (직접 구현)
+//
+// 날짜 선택 라이브러리를 쓰지 않고 직접 만들었다. 이유는 두 가지다.
+//   · 앱 전체가 종이 질감의 커스텀 디자인이라, 라이브러리 기본 스타일을
+//     덮어쓰는 비용이 직접 만드는 비용과 비슷했다
+//   · 필요한 기능이 "연속된 두 날짜 고르기" 하나뿐이었다
+//
+// 동작: 첫 클릭이 출발일, 두 번째 클릭이 도착일. 둘 다 정해지면 자동으로 닫히고
+// onChange 가 호출된다. 고르는 중에는 onChange 를 부르지 않는다 —
+// 중간 상태로 코스를 다시 계산하면 화면이 깜빡이기 때문이다.
+//
+// 쓰는 곳: DatesScreen
+// ─────────────────────────────────────────────────────────────
+
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { WEEKDAYS, formatShortDate, nightsBetween, durationLabelFromNights, todayISO } from '../lib/datetime.js'
 

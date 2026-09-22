@@ -1,3 +1,20 @@
+// ─────────────────────────────────────────────────────────────
+// lib/api.js — 로그인이 필요 없는 백엔드 호출 모음
+//
+// 외부 API 키는 전부 서버에만 있다. 브라우저는 여기 있는 함수로 우리 서버를
+// 부르고, 서버가 대신 TourAPI·카카오·ODsay·Tmap·OpenWeather 를 호출한다.
+// (로그인이 필요한 호출은 apiClient.js → tripsApi/communityApi/profileApi)
+//
+// 담당 영역
+//   장소 풀·썸네일·트렌드    fetchCityPool · fetchCityThumbnails · fetchCityTrends
+//   날씨                     fetchWeather · fetchWeatherForecast
+//   위치                     fetchGeocode · fetchNearbyParking
+//   길찾기(교통 모드별 3종)  fetchCarRoute · fetchTransitRoute · fetchWalkRoute
+//
+// 응답 처리 방식이 전부 같다 — fetch → json → 필요한 필드가 없으면 에러를 던진다.
+// 화면 쪽은 try/catch 한 번으로 "이 기능만 빠진 상태"를 표시하면 된다.
+// ─────────────────────────────────────────────────────────────
+
 // 프런트엔드가 쓰는 백엔드 엔드포인트 모음.
 // 비워두면 같은 오리진(/api)으로 요청하고 Vite 프록시가 백엔드로 전달한다.
 export const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || ''
@@ -69,6 +86,25 @@ export async function fetchNearbyParking(lat, lng, radius = 700) {
   return data.items
 }
 
+// 숙소 이름 자동완성 후보 (카카오 로컬 숙박 검색, server 경유).
+// center 를 주면 그 좌표 주변을 먼저 찾는다. signal 로 이전 요청을 취소할 수 있다 —
+// 타이핑 중에는 요청이 겹치는데, 늦게 도착한 옛 응답이 새 결과를 덮어쓰면 안 되기 때문이다.
+export async function fetchLodgingSuggestions(query, center, { signal } = {}) {
+  const trimmed = String(query || '').trim()
+  if (trimmed.length < 2) return []
+
+  const params = new URLSearchParams({ query: trimmed })
+  if (Number.isFinite(center?.lat) && Number.isFinite(center?.lng)) {
+    params.set('lat', String(center.lat))
+    params.set('lng', String(center.lng))
+  }
+
+  const response = await fetch(`${apiBaseUrl}/api/lodging?${params}`, { credentials: 'include', signal })
+  const data = await response.json().catch(() => null)
+  if (!response.ok || !Array.isArray(data?.items)) return []
+  return data.items
+}
+
 // 출발지·숙소 자유 입력 텍스트를 좌표로 바꾼다 (카카오 로컬 주소/키워드 검색, server 경유).
 export async function fetchGeocode(query) {
   const params = new URLSearchParams({ query })
@@ -81,6 +117,7 @@ export async function fetchGeocode(query) {
 }
 
 // 경유지를 포함한 좌표 목록을 origin/waypoints/destination 쿼리로 바꾼다.
+// 길찾기 3종(자차·대중교통·도보)이 모두 같은 쿼리 형식을 쓰므로 여기서 한 번만 만든다.
 function routeParams(routePlaces) {
   const toCoord = (place) => `${place.location.lng},${place.location.lat}`
   const params = new URLSearchParams({

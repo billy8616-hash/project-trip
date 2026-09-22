@@ -1,3 +1,18 @@
+// ─────────────────────────────────────────────────────────────
+// hooks/useAuth.js — 로그인 상태를 한곳에서 관리하는 훅
+//
+// 두 가지를 합쳐서 하나의 "사용자"로 보여 준다.
+//   session  Supabase Auth 가 주는 인증 정보 (이메일·토큰)
+//   profile  우리 DB 에 있는 앱 전용 정보 (이름·생년월일·성별·휴대폰)
+// 둘 다 있어야 user 로 취급한다.
+//
+// needsProfile 은 "로그인은 됐는데 이름이 없는" 상태다. 소셜 로그인으로 처음
+// 들어온 사용자가 여기 해당하고, 앱은 이때 추가 정보 입력 화면으로 보낸다.
+//
+// 화면(App.jsx)은 토큰이나 세션을 직접 다루지 않는다 — 이 훅이 돌려주는
+// user / 로그인 함수 / 로그아웃 함수만 쓴다.
+// ─────────────────────────────────────────────────────────────
+
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient.js'
 import { getMyProfile } from '../lib/profileApi.js'
@@ -33,6 +48,7 @@ export function useAuth() {
     }
   }, [])
 
+  // 우리 DB 쪽 프로필을 다시 읽어 온다. 회원가입 직후·프로필 수정 후에도 호출한다.
   const refreshProfile = useCallback(() => {
     return getMyProfile().then((data) => {
       setProfile(data)
@@ -53,6 +69,8 @@ export function useAuth() {
   // 로그인은 됐는데 프로필(이름)이 아직 없는 상태 — 소셜 로그인 첫 진입이 대표적인 경우.
   const needsProfile = Boolean(session && profile && !profile.name)
 
+  // 이메일·비밀번호 로그인. Supabase 의 영어 에러 메시지를 그대로 보여 주면 불친절해서,
+  // 가장 흔한 "Invalid login credentials" 만 한국어 문구로 바꿔 준다.
   const submitLogin = useCallback(
     (event) => {
       event.preventDefault()
@@ -113,6 +131,7 @@ export function useAuth() {
 
   const signInWithKakao = useCallback(() => signInWithProvider('kakao', '카카오'), [signInWithProvider])
 
+  // 로그아웃. Supabase 세션을 지우고 우리 쪽 프로필 상태도 함께 비운다.
   const signOut = useCallback(async () => {
     await supabase.auth.signOut().catch(() => null)
     setProfile(null)

@@ -1,3 +1,24 @@
+// ─────────────────────────────────────────────────────────────
+// lib/schedule.js — 코스에 "시각"을 붙이는 파일
+//
+// 장소 순서만으로는 시간표가 아니다. 하루 시작 시각부터
+//   (체류시간 → 다음 장소까지 이동시간) 을 계속 누적해서
+// 각 장소의 도착·출발 시각을 만든다.
+//
+// 여기서 처리하는 현실적인 예외 세 가지
+//   · 식사 앵커  — 점심 식당에 10시에 도착하지 않도록 12:00/18:00 이후로 민다
+//   · 개장 대기  — 곧 열리는 곳(75분 이내)은 기다렸다 입장으로 계산한다
+//   · 마감 경고  — 도착 시각이 마감 이후거나 머물 시간이 짧으면 안내를 붙인다
+//
+// 주요 함수
+//   scheduleDay(places, opts)  각 장소에 arriveMin/departMin/hoursNote 부여
+//   arrivesAfterClose(place)   도착 시점에 이미 마감인지 (코스에서 빼는 판단)
+//   isOpenAround(place, min)   대체 후보가 그 시각에 열려 있는지
+//   formatClock / parseClock   분 ↔ "HH:MM" 변환
+//
+// 쓰는 곳: lib/course.js · App.jsx · ScheduleTimeline
+// ─────────────────────────────────────────────────────────────
+
 import { estimateTravelMin } from './travelTime.js'
 import { stayMinutesFor } from './stayTime.js'
 
@@ -28,6 +49,8 @@ export function parseClock(text, fallback = DEFAULT_DAY_START_MIN) {
 
 // places: 방문 순서대로 정렬된 배열 (assignedSlot / category / opensAt·closesAt·alwaysOpen 포함).
 // -> 각 장소에 arriveMin / departMin / stayMin / travelToNextMin / hoursNote 를 붙인 새 배열.
+// 하루치 장소 배열을 받아 시각이 붙은 새 배열을 돌려준다.
+// cursor 변수 하나가 "지금 몇 시인지"를 들고 장소를 따라 흐르는 구조다.
 export function scheduleDay(places, { dayStartMin = DEFAULT_DAY_START_MIN, transport = '대중교통' } = {}) {
   let cursor = dayStartMin
 

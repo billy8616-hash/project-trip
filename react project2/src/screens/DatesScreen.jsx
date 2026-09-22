@@ -1,3 +1,16 @@
+// ─────────────────────────────────────────────────────────────
+// screens/DatesScreen.jsx — 여행 날짜·출발 시각 고르기 (조건 선택 4단계)
+//
+// 날짜는 단순한 표시용 값이 아니다. 세 군데에 영향을 준다.
+//   · 그날 휴무인 장소를 후보에서 제외 (요일 기준)
+//   · 비·눈 예보인 날은 실내 장소를 우선
+//   · 출발 시각부터 체류·이동시간을 누적해 도착 시각을 계산
+//
+// 그래서 이 화면에서 날씨 예보를 미리 보여 준다 — 날짜를 바꿀지 판단할 근거가 된다.
+//
+// 다음 화면: OriginScreen
+// ─────────────────────────────────────────────────────────────
+
 import { useState } from 'react'
 import DateRangeField from '../components/DateRangeField.jsx'
 import { destinationCatalog } from '../data/destinations.js'

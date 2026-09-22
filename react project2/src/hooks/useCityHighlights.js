@@ -1,3 +1,13 @@
+// ─────────────────────────────────────────────────────────────
+// hooks/useCityHighlights.js — 여행지 카드의 사진·인기 배지·날씨
+//
+// 전부 "있으면 좋고 없어도 그만"인 정보라서 실패를 조용히 삼킨다(.catch(() => {})).
+// 사진이 없으면 일러스트 썸네일로, 배지·날씨는 그냥 표시되지 않는다.
+// 부가 기능의 실패가 화면 전체를 막지 않게 하려는 의도적인 처리다.
+//
+// 쓰는 곳: DestinationsScreen(사진·배지) · App.jsx(날씨 배지)
+// ─────────────────────────────────────────────────────────────
+
 import { useEffect, useState } from 'react'
 import { destinationCatalog } from '../data/destinations.js'
 import { fetchCityThumbnails, fetchCityTrends, fetchWeather } from '../lib/api.js'

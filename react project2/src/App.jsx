@@ -1,8 +1,41 @@
+// ═════════════════════════════════════════════════════════════
+// App.jsx — 앱의 중심. 화면 전환 · 여행 조건 · 코스 생성과 편집
+//
+// 이 파일이 하는 일은 크게 다섯 가지다.
+//
+//  1) 화면 전환
+//     screen 이라는 문자열 하나로 홈·목적지·테마·예산·날짜·출발지·필수방문·
+//     코스·내 여행·커뮤니티·회원가입 화면을 갈아 끼운다. 라우터 라이브러리를
+//     쓰지 않는 대신 History API 와 직접 동기화해서 브라우저 뒤로가기도 동작한다.
+//
+//  2) 여행 조건 보관
+//     useTripPlan 훅이 조건 전부(여행지·테마·날짜·예산·교통편…)를 들고 있고,
+//     조건 선택 화면들은 그 값을 채우기만 한다.
+//
+//  3) 코스 생성
+//     조건이 갖춰지면 buildCourse(lib/course.js)를 호출해 코스를 만든다.
+//     useMemo 로 감싸 두어 조건이 바뀔 때만 다시 계산한다 — 코스 생성은
+//     수백 개 장소를 정렬하는 작업이라 매 렌더마다 돌리면 안 된다.
+//
+//  4) 편집 결과 관리
+//     사용자가 타임라인에서 순서를 바꾸면 그 결과(currentTimelineDays)가
+//     추천 코스보다 우선한다. 손으로 고친 날은 manualOrderDays 에 기록해 두고
+//     자동 거리 최적화에서 제외한다 — 사용자가 맞춰 놓은 순서를 앱이
+//     되돌려 버리는 일을 막기 위해서다.
+//
+//  5) 저장·공유
+//     완성된 코스를 "내 여행"에 저장하거나 커뮤니티에 공유한다.
+//
+// 상태 흐름 요약
+//     조건(useTripPlan) → 장소 풀(useCityPool) → buildCourse → course
+//       → 편집(currentTimelineDays) → displayPlaces → 타임라인·지도에 표시
+// ═════════════════════════════════════════════════════════════
+
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import SignupScreen from './SignupScreen.jsx'
 import { budgets, journeyThemes, SLOT_LABELS } from './data/travelOptions.js'
 import { allDestinations, destinationCatalog, destinationGroups, fallbackCity } from './data/destinations.js'
-import { buildCourse } from './lib/course.js'
+import { buildCourse, insertManualBySlot } from './lib/course.js'
 import { placeKindOf } from './lib/placeKind.js'
 import { formatClock, parseClock, scheduleDay } from './lib/schedule.js'
 import { formatStay } from './lib/stayTime.js'
@@ -80,6 +113,7 @@ const SAVE_LABEL = '현재 여행 코스 저장'
 const SHARE_LABEL = '커뮤니티에 공유'
 
 // 지도 위 장소 정렬 방식.
+// 코스 정렬 기준. distance = 이동거리 최소, slot = 시간대 순서 그대로.
 const SORT_MODES = ['distance', 'slot']
 
 
@@ -89,24 +123,8 @@ const SORT_MODES = ['distance', 'slot']
 
 
 
-// optimizeRouteOrder 로 거리 최적화를 끝낸 추천 코스 순서(ordered)에, 직접 추가한 장소(manual)를
-// 각자의 assignedSlot(오전/점심/오후/저녁) 자리에 끼워 넣는다.
-// optimizeRouteOrder 는 좌표 거리만 보고 순서를 짜기 때문에, 직접 추가한 장소를 그 계산에 같이
-// 넣으면 라벨(오전/저녁 등)과 무관하게 아무 자리에나 꽂힐 수 있다 — 그래서 추천 코스는 거리 기준
-// 순서를 그대로 두고, 직접 추가한 장소만 시간대가 맞는 자리를 찾아 따로 삽입한다.
-function insertManualBySlot(ordered, manualPlaces) {
-  if (manualPlaces.length === 0) return ordered
-  const result = ordered.slice()
-  for (const manual of manualPlaces) {
-    const slotIndex = SLOT_LABELS.indexOf(manual.assignedSlot)
-    // 이 장소보다 시간대가 늦은 첫 자리 앞에 끼워 넣는다. 그런 자리가 없으면(가장 늦은 시간대면) 맨 뒤.
-    let insertAt = result.findIndex((place) => SLOT_LABELS.indexOf(place.assignedSlot) > slotIndex)
-    if (insertAt === -1) insertAt = result.length
-    result.splice(insertAt, 0, manual)
-  }
-  return result
-}
 
+// ─── 앱 본체 ─────────────────────────────────────────────────
 function App() {
   // 새로고침 복원 — 첫 렌더에서 한 번만 읽는다. null 이면 평소대로 홈에서 시작.
   const [restored] = useState(loadTripSession)
@@ -137,6 +155,9 @@ function App() {
     window.history.pushState({ screen }, '')
   }, [screen])
 
+  // ── 화면 표시 상태 ──────────────────────────────────────────
+  // 코스 자체가 아니라 "어떻게 보고 있는지"에 해당하는 값들.
+  // 다크모드, 선택한 장소·날짜, 저장·공유 버튼의 문구 등.
   const [darkMode, setDarkMode] = useState(false)
   const [selectedPlace, setSelectedPlace] = useState(0)
   // 지도 구간 트레이싱을 "누를 때마다" 다시 트리거하려고, 같은 번호를 눌러도 값이 바뀌는 카운터.
@@ -279,6 +300,8 @@ function App() {
   const { photos: cityPhotos, trends: cityTrends } = useCityHighlights()
 
   // "오늘의 추천 AI 코스" — 날짜로 도시·테마를 회전시켜 매일 다른 1일 코스를 보여준다.
+  // ── 오늘의 추천 코스 ────────────────────────────────────────
+  // 조건을 하나도 고르지 않은 사람에게 결과부터 보여 주기 위한 코스.
   const todayCity = TODAY_CITY
   const todayThemeId = TODAY_THEME_ID
   const { data: todayPool, status: todayStatus, retry: retryTodayPool } = useCityPool(todayCity)
@@ -290,6 +313,9 @@ function App() {
     [todayPool, todayThemeId],
   )
 
+  // ── 코스 생성 ───────────────────────────────────────────────
+  // 아래 블록이 이 앱의 본체다. 조건 → 장소 풀 → 날씨 → buildCourse 순으로
+  // 재료를 모아 코스를 만든다.
   const dayCount = parseDayCount(duration)
   const dayStartMin = parseClock(dayStartTime)
 
@@ -393,6 +419,8 @@ function App() {
         name: place.name,
         kind: placeKindOf(place),
         bestTime: place.assignedSlot,
+        // 사용자가 직접 적은 "꼭 가고 싶은 곳"인지 — 타임라인 카드에 배지로 표시된다.
+        mustVisit: Boolean(place.mustVisit),
         timeRange: Number.isFinite(place.arriveMin)
           ? `${formatClock(place.arriveMin)} – ${formatClock(place.departMin)}`
           : '',
@@ -597,6 +625,8 @@ function App() {
     const days = (allDaysScheduled.length ? allDaysScheduled : (course?.days || []).map((day) => day.places)).map(
       (dayPlaces) => dayPlaces.map((place) => ({ name: place.name, assignedSlot: place.assignedSlot || null })),
     )
+    // 출발지·숙소는 일부러 담지 않는다. 출발지에는 집 주소를, 숙소에는 실제 묵는 곳을
+    // 적는 경우가 많아서, 공개되는 글에 그대로 실리면 안 된다.
     const payload = {
       meta: {
         destination: pickedDestination || destination,
@@ -650,6 +680,12 @@ function App() {
         duration,
         dayStartTime,
         mustVisit,
+        // 출발지·숙소도 함께 저장한다. days 에는 들르는 장소만 들어 있어서, 이게 없으면
+        // 다시 열었을 때 동선의 시작점·끝점이 사라진다(숙소를 적은 것이 없던 일이 된다).
+        // "내 여행"은 본인만 보는 기록이라 주소를 담아도 된다 — 커뮤니티 공유 쪽은
+        // 집 주소가 공개될 수 있어 일부러 빼 두었다.
+        tripOrigin,
+        tripLodging,
       },
       days,
     }
@@ -683,8 +719,10 @@ function App() {
     setDuration(meta.duration || '당일')
     setDayStartTime(meta.dayStartTime || '09:30')
     setMustVisit(Array.isArray(meta.mustVisit) ? meta.mustVisit : [])
-    setTripOrigin(null)
-    setTripLodging(null)
+    // 저장할 때 함께 담아 둔 출발지·숙소를 되살린다. 예전에 저장한 코스에는 이 값이 없어서
+    // (그때는 저장하지 않았다) null 로 떨어지고, 그러면 앵커 없이 코스를 다시 짠다.
+    setTripOrigin(meta.tripOrigin || null)
+    setTripLodging(meta.tripLodging || null)
     setSelectedPlace(0)
     setSelectedDay(0)
     setCurrentTimelineDays([])
@@ -702,7 +740,15 @@ function App() {
   const editableDaysFromCourse = useCallback(
     () =>
       (course?.days || []).map((day) =>
-        day.places.map((place) => ({ name: place.name, location: place.location, assignedSlot: place.assignedSlot })),
+        // manual·mustVisit 플래그도 같이 넘긴다. 이게 빠지면 좌표 없는 장소(직접 적은 곳)가
+        // 거리 최적화 대상으로 들어가 시간대와 무관하게 맨 뒤로 밀려난다.
+        day.places.map((place) => ({
+          name: place.name,
+          location: place.location,
+          assignedSlot: place.assignedSlot,
+          manual: place.manual,
+          mustVisit: place.mustVisit,
+        })),
       ),
     [course],
   )
@@ -744,6 +790,8 @@ function App() {
   }, [displayPlaces, currentTimelineDays, editableDaysFromCourse, selectedDay, handleTimelineDaysChange])
 
 
+  // ── 화면 그리기 ─────────────────────────────────────────────
+  // 아래부터는 JSX. screen 값에 따라 해당 화면 컴포넌트를 하나씩 보여 준다.
   const mapUrl = detail ? `https://map.kakao.com/link/search/${encodeURIComponent(`${cityKey} ${detail.name}`)}` : ''
 
   return (
@@ -1030,6 +1078,21 @@ function App() {
             </button>
           </div>
 
+          {/* 코스를 짜면서 생긴 안내(휴무로 뺀 곳, 비 오는 날 실내 위주, 위치를 못 찾은 필수 방문 등).
+              buildCourse 가 만들어 두기만 하고 화면에 나오지 않던 것을 여기서 보여 준다 —
+              "왜 이렇게 나왔는지"를 알려 주지 않으면 앱이 빠뜨린 것으로 오해하게 된다. */}
+          {(course?.notices || []).length > 0 && (
+            <ul className="course-notices">
+              {course.notices.map((text) => (
+                <li className="course-notice" key={text}>{text}</li>
+              ))}
+            </ul>
+          )}
+
+          {/* 출발지·숙소(startAnchor·endAnchor)는 들르는 장소가 아니라 하루의 시작점·끝점이라
+              타임라인 위아래에 고정 카드로만 보여 준다. 코스 장소 목록(displayPlaces)에는
+              넣지 않는다 — 넣으면 지도에 같은 지점이 번호 마커로 한 번 더 찍히고,
+              거리 최적화 대상이 돼 앵커로 고정해 둔 의미가 사라진다. */}
           <CourseDetail
             day={{
               no: selectedDay + 1,
@@ -1051,6 +1114,20 @@ function App() {
             excludeNames={usedPlaceNames}
             onAddPlace={(candidate) => handleAddPlace(selectedDay, candidate)}
             onGeocode={fetchGeocode}
+            startAnchor={
+              routeStartPoint
+                ? { name: routeStartPoint.label, address: routeStartPoint.address, kind: 'origin' }
+                : null
+            }
+            endAnchor={
+              routeEndPoint
+                ? {
+                    name: routeEndPoint.label,
+                    address: routeEndPoint.address,
+                    kind: routeEndPoint.isLodging ? 'lodging' : 'return',
+                  }
+                : null
+            }
             moveLabel={transport}
             transport={transport}
             onChangeTransport={setTransport}

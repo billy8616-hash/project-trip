@@ -1,3 +1,12 @@
+// ─────────────────────────────────────────────────────────────
+// screens/ThemeScreen.jsx — 여행 테마 고르기 (조건 선택 2단계)
+//
+// 여기서 고른 테마는 코스 생성에서 장소 점수에 +4 로 반영된다(lib/course.js).
+// 화면 자체는 목록을 그리기만 하고, 선택지 데이터는 data/travelOptions.js 가 갖고 있다.
+//
+// 다음 화면: BudgetScreen
+// ─────────────────────────────────────────────────────────────
+
 import Icon from '../components/Icon.jsx'
 
 export default function ThemeScreen({ items, destination, selected, onSelect, onBack, leaving }) {

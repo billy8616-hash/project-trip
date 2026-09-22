@@ -1,9 +1,35 @@
+// ─────────────────────────────────────────────────────────────
+// server/placeEnrich.js — Gemini 로 장소 설명 생성
+//
+// 외부 API 가 주는 것은 이름·좌표·주소뿐이다. "왜 여기를 추천하는지",
+// "무엇을 조심해야 하는지", "어떤 테마·예산에 맞는지"는 없다. 그 빈칸을 LLM 이 채운다.
+//
+// LLM 응답을 믿을 수 있게 받기 위한 장치가 이 파일의 핵심이다.
+//
+//   1) responseSchema 로 출력 구조를 강제한다
+//      자유 텍스트로 받으면 형식이 조금씩 달라져 파싱이 깨진다.
+//   2) 테마·예산 값은 enum 으로 못박는다
+//      모델이 "감성여행" 같은 임의 라벨을 만들어 내면 코스 로직이 인식하지 못한다.
+//   3) 배치 크기 40 (실측으로 정함)
+//      70곳을 한 번에 보내면 응답이 잘리거나 503 이 나고, 40곳은 안정적이었다.
+//   4) 429·5xx 는 지수 백오프로 3회까지 재시도
+//   5) 일부 배치가 실패해도 성공한 배치는 살린다
+//      전부 실패로 처리하면 장소 설명이 통째로 비어 버린다.
+//
+// Gemini 는 무료 티어라 일일·분당 호출 한도가 있다. BATCH_CONCURRENCY 를 2 로
+// 낮게 잡은 것도 그 때문이다.
+//
+// 쓰는 곳: server/app.js (캐시에 없는 새 장소를 저장하기 직전)
+// ─────────────────────────────────────────────────────────────
+
 import { GoogleGenAI, Type } from '@google/genai'
 import { mapLimit } from './concurrency.js'
 
 const THEME_VALUES = ['step', 'mood', 'sns', 'view', 'food']
 const BUDGET_VALUES = ['저예산', '보통', '프리미엄']
 
+// 모델이 반드시 지켜야 할 응답 형식. 필드 이름·타입·필수 여부까지 정해 두면
+// JSON.parse 한 결과를 그대로 신뢰하고 쓸 수 있다.
 const RESPONSE_SCHEMA = {
   type: Type.OBJECT,
   properties: {
@@ -40,10 +66,15 @@ function getClient() {
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
+// 다시 시도할 가치가 있는 실패인지 판단한다.
+// 429(호출 한도)·5xx(서버 과부하)는 잠시 뒤 성공할 수 있지만,
+// 400(잘못된 요청) 같은 것은 몇 번을 보내도 똑같이 실패한다.
 function isRetryableError(error) {
   return error?.status === 429 || error?.status >= 500 || /rate limit|overloaded|resource_exhausted|fetch failed/i.test(error?.message || '')
 }
 
+// 지수 백오프 재시도 — 2초, 4초로 간격을 늘려 가며 최대 3번 시도한다.
+// 곧바로 다시 보내면 과부하 상태를 더 악화시키기만 한다.
 async function generateWithRetry(params, maxAttempts = 3) {
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     try {
@@ -92,6 +123,11 @@ export async function enrichPlaces(places) {
   return merged
 }
 
+// 실제 호출 한 번. 장소 목록을 텍스트로 만들어 프롬프트에 넣고,
+// id 를 키로 한 Map 으로 결과를 돌려준다(어느 설명이 어느 장소 것인지 짝지으려고).
+//
+// caution 프롬프트에 "확인 안 된 구체적 사실 단정 금지"를 넣은 이유:
+// 모델이 실제 휴무일이나 요금을 지어내면 사용자가 그대로 믿고 헛걸음할 수 있다.
 async function enrichBatch(places) {
   const listText = places
     .map((place) => `- id: ${place.id}, 이름: ${place.name}, 카테고리: ${place.category || '정보 없음'}`)

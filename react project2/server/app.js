@@ -1,8 +1,33 @@
+// ═════════════════════════════════════════════════════════════
+// server/app.js — 백엔드 전체 (Express 라우트 24개)
+//
+// 이 서버가 존재하는 이유는 두 가지다.
+//
+//  1) 외부 API 키를 브라우저에서 숨기기
+//     TourAPI·카카오 REST·Google·Gemini·ODsay·Tmap·OpenWeather·네이버 키는
+//     전부 여기에만 있다. 브라우저는 우리 서버에만 요청하고, 서버가 대신 외부를 부른다.
+//     (브라우저에 나가는 키는 카카오맵 JS 키와 Supabase anon 키뿐 — 둘 다 공개 전제 키다)
+//
+//  2) 외부 API 호출 결과를 캐시해 비용·시간을 줄이기
+//     도시 하나의 장소 풀을 만들려면 API 대여섯 개를 거친다. 그 결과를 DB 에 모아 두고
+//     stale-while-revalidate 로 응답한다 → 두 번째 조회부터는 외부 호출이 0회.
+//
+// 라우트 구성
+//   인증 필요 (requireAuth)   /api/profile · /api/trips · 커뮤니티 쓰기
+//   선택적 인증 (optionalAuth) 커뮤니티 읽기 — 로그인했으면 내 추천 여부까지 채워 준다
+//   인증 없음                 길찾기·장소 풀·날씨·지오코딩 등 외부 API 프록시
+//
+// 인증은 세션이나 쿠키가 아니라 Supabase 액세스 토큰으로 한다.
+// 요청 헤더의 토큰을 Supabase 에 물어 진짜인지 확인하고(verifySupabaseToken),
+// 확인된 사용자 id 를 req.userId 에 담아 이후 라우트가 쓴다.
+// ═════════════════════════════════════════════════════════════
+
 import 'dotenv/config'
 import cors from 'cors'
 import express from 'express'
 import { getSupabaseAdmin } from './supabaseAdmin.js'
 import { getProfile, publicProfile, upsertProfile, validateProfile } from './profileStore.js'
+import { searchLodging } from './kakaoLocal.js'
 import { geocodePlace, searchCafes, searchParkingNear, searchRestaurants } from './kakaoLocal.js'
 import {
   createSavedCourse,
@@ -52,6 +77,10 @@ app.use(cors({
   credentials: true,
 }))
 
+// ── 인증 미들웨어 ────────────────────────────────────────────────────────
+// 이 서버는 로그인 상태를 스스로 기억하지 않는다. 요청마다 토큰을 Supabase 에
+// 물어보는 방식이라, 서버를 여러 대로 늘려도 세션 공유 문제가 생기지 않는다.
+
 // Authorization: Bearer <supabase access token> 헤더에서 토큰을 꺼낸다.
 function bearerToken(req) {
   const header = req.headers.authorization || ''
@@ -88,6 +117,8 @@ async function optionalAuth(req, _res, next) {
   return next()
 }
 
+// ── 프로필 ───────────────────────────────────────────────────────────────
+
 // 이름/생년월일/성별/휴대폰 프로필 조회·저장.
 // 이메일 가입 직후(프로필 완성), 소셜 로그인 첫 진입(프로필 완성)에서 공통으로 쓴다.
 app.get('/api/profile', requireAuth, async (req, res) => {
@@ -112,6 +143,8 @@ app.put('/api/profile', requireAuth, async (req, res) => {
   })
   return res.json({ profile: publicProfile(req.authUser, profile) })
 })
+
+// ── 내 여행 (저장한 코스) ────────────────────────────────────────────────
 
 // "내 여행" — 로그인 사용자가 저장한 여행 동선 목록.
 app.get('/api/trips', requireAuth, async (req, res) => {
@@ -265,6 +298,10 @@ app.post('/api/community/:id/like', requireAuth, async (req, res) => {
   }
 })
 
+// ── 길찾기 프록시 (교통 모드별 3종) ──────────────────────────────────────
+// 좌표를 정규식으로 먼저 검사한다. 사용자가 보낸 값을 그대로 외부 API 에 넘기면
+// 서버가 엉뚱한 요청을 대신 날려 주는 통로가 될 수 있기 때문이다.
+
 const COORD_PATTERN = /^-?\d+(\.\d+)?,-?\d+(\.\d+)?$/
 const WAYPOINTS_PATTERN = /^-?\d+(\.\d+)?,-?\d+(\.\d+)?(\|-?\d+(\.\d+)?,-?\d+(\.\d+)?)*$/
 
@@ -389,6 +426,17 @@ app.get('/api/directions/walk', async (req, res) => {
     return res.status(502).json({ message: error.message || '도보 경로를 가져오지 못했어요.' })
   }
 })
+
+// ── 도시 장소 풀 만들기 ──────────────────────────────────────────────────
+// 여기부터가 이 서버에서 가장 무거운 작업이다. 한 도시의 장소를 모으려면
+//   TourAPI(관광지·문화시설) → 카카오 로컬(맛집·카페) → Google Places(영업시간·사진)
+//   → 교통 접근성 → Gemini(추천 이유·테마) → DB 저장
+// 을 차례로 거친다. 그래서 비용을 아끼는 장치가 곳곳에 들어가 있다.
+//
+//   · 이미 Gemini 보강을 받은 장소는 다시 보내지 않는다 (enrichmentFromRows)
+//   · Google 은 30일 이내에 받아 둔 장소를 다시 부르지 않는다 (GOOGLE_REFRESH_MS)
+//   · 한 번 돌 때의 호출 수에 상한을 둔다 (GOOGLE_LIMIT_PER_RUN · ENRICH_LIMIT_PER_RUN)
+//     상한에 밀린 장소는 다음 갱신 때 차례가 오므로 커버리지가 조금씩 넓어진다
 
 // 슬롯별 예상 체류/이동시간 기본값 (규칙 기반 — 실제 이동시간은 카카오맵이 별도로 계산한다).
 const SLOT_DEFAULTS = {
@@ -726,6 +774,9 @@ app.get('/api/course-pool', async (req, res) => {
   }
 })
 
+// ── 그 밖의 프록시 엔드포인트 ────────────────────────────────────────────
+// 사진·썸네일·트렌드·날씨·지오코딩·주차장. 모두 키를 숨기기 위한 중계 통로다.
+
 // 맛집·카페 대표 사진 프록시. Google Places 사진은 API 키가 있어야 받을 수 있어서
 // 키를 브라우저로 내보내는 대신 여기서 실제 이미지 주소를 받아 리다이렉트한다.
 // ?ref=places/<place_id>/photos/<photo_id> (PlaceCache.imageUrl 에 들어 있는 값 그대로)
@@ -778,6 +829,28 @@ app.get('/api/city-trends', async (req, res) => {
   } catch (error) {
     console.error('[city-trends]', error)
     return res.status(502).json({ message: error.message || '여행지 트렌드를 가져오지 못했어요.' })
+  }
+})
+
+// 숙소 이름 자동완성. 출발지·숙소 입력 화면에서 사용자가 타이핑하는 동안 호출된다.
+// ?query=신라 &lat=35.85 &lng=129.22  (좌표는 선택 — 있으면 그 주변을 먼저 찾는다)
+//
+// 두 글자 미만은 후보가 너무 많아 의미가 없으므로 외부 API 를 부르지 않고 빈 배열로 끝낸다.
+// 검색 실패도 200 + 빈 배열로 돌려준다 — 자동완성은 부가 기능이라, 실패했다고
+// 입력 화면에 에러를 띄우면 오히려 방해가 된다.
+app.get('/api/lodging', async (req, res) => {
+  const query = String(req.query.query || '').trim()
+  if (query.length < 2) return res.json({ items: [] })
+
+  const lat = Number(req.query.lat)
+  const lng = Number(req.query.lng)
+
+  try {
+    const items = await searchLodging(query, { lat, lng })
+    return res.json({ items })
+  } catch (error) {
+    console.warn('[lodging]', error?.message || error)
+    return res.json({ items: [] })
   }
 })
 

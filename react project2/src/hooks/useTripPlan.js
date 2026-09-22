@@ -1,3 +1,17 @@
+// ─────────────────────────────────────────────────────────────
+// hooks/useTripPlan.js — 사용자가 고른 여행 조건 전부
+//
+// 여행지·테마·날짜·출발지·숙소·기간·예산·교통편·스타일·필수방문 —
+// 조건 선택 화면들이 채우고 코스 생성이 읽어 가는 값들을 한 훅에 모았다.
+// 이 앱의 전역 상태는 사실상 이것 하나로 수렴해서, 상태 관리 라이브러리를
+// 따로 쓰지 않았다.
+//
+// initial 인자는 새로고침 복원용 스냅샷(lib/tripSession.js)이다.
+// 없으면 전부 기본값으로 시작한다.
+//
+// 쓰는 곳: App.jsx (조건 선택 화면 전체 + 코스 생성)
+// ─────────────────────────────────────────────────────────────
+
 import { useCallback, useMemo, useState } from 'react'
 import { todayISO } from '../lib/datetime.js'
 
@@ -31,6 +45,7 @@ export function useTripPlan(initial) {
     setMustVisit((list) => list.filter((item) => item !== value))
   }, [])
 
+  // 동선의 도착점. 숙소를 정했으면 숙소, 아니면 출발지로 돌아오는 것으로 본다.
   const routeEndPoint = useMemo(
     () =>
       tripLodging
@@ -41,6 +56,8 @@ export function useTripPlan(initial) {
     [tripLodging, tripOrigin],
   )
 
+  // 동선 최적화(lib/geo.js)에 넘길 고정점. 출발지·도착지를 여기서 고정해 두면
+  // 2-opt 가 그 사이 순서만 바꾼다 — 집에서 출발해 숙소에서 끝나는 하루가 된다.
   const courseAnchors = useMemo(
     () => ({
       start: tripOrigin ? { location: { lat: tripOrigin.lat, lng: tripOrigin.lng } } : null,

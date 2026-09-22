@@ -1,3 +1,15 @@
+// ─────────────────────────────────────────────────────────────
+// server/kakaoLocal.js — 카카오 로컬 (맛집·카페 + 주소→좌표 변환)
+//
+// TourAPI 에 없는 것이 음식점과 카페라서, 그 두 가지를 여기서 채운다.
+// 코스의 "점심 맛집"·"오후 카페" 칸을 채우는 장소가 대부분 이 API 에서 온다.
+//
+// 실측으로 알아낸 제약이 파일 앞부분에 적혀 있다 — 검색어 하나로는 45건이
+// 천장이고 그 이상은 검색어 자체를 바꿔야 한다. 그래서 여러 키워드로 나눠 검색한다.
+//
+// 사용자가 입력한 출발지·숙소를 좌표로 바꾸는 지오코딩도 이 API 를 쓴다.
+// ─────────────────────────────────────────────────────────────
+
 import { matchesCityRegion } from './cityRegion.js'
 import { mapLimit, timeoutSignal } from './concurrency.js'
 import { slotsForKakaoPlace } from './placeSlots.js'
@@ -109,6 +121,56 @@ export async function geocodePlace(query) {
   }
 
   throw new Error('입력하신 위치를 찾지 못했어요.')
+}
+
+// 숙소 이름 자동완성 (카카오 로컬 키워드 검색). category_group_code AD5 = 숙박.
+//
+// geocodePlace 와 달리 후보를 "여러 개" 돌려준다 — 사용자가 호텔 이름을 정확히 몰라도
+// 목록에서 고를 수 있게 하려는 것이다. 고른 시점에 좌표가 이미 손에 들어오므로
+// 나중에 다시 지오코딩할 필요도 없다.
+//
+// 여행지 좌표(lat·lng)를 주면 그 주변으로 먼저 찾는다. "신라"처럼 전국에 같은 이름이
+// 흔한 검색어에서 엉뚱한 지역 숙소가 올라오는 것을 막기 위해서다.
+// 주변에서 못 찾으면 지역 제한 없이 한 번 더 찾는다 — 근처 도시에 잡은 숙소일 수도 있다.
+export async function searchLodging(query, { lat, lng, limit = 6 } = {}) {
+  if (!kakaoRestApiKey) throw new Error('KAKAO_REST_API_KEY가 설정되지 않았어요.')
+  const trimmed = String(query || '').trim()
+  if (!trimmed) return []
+
+  const size = String(Math.min(Math.max(Math.round(limit) || 6, 1), 15))
+  const headers = { Authorization: `KakaoAK ${kakaoRestApiKey}` }
+
+  const run = async (extra) => {
+    const params = new URLSearchParams({
+      query: trimmed,
+      category_group_code: 'AD5',
+      size,
+      sort: 'accuracy',
+      ...extra,
+    })
+    const response = await fetch(`https://dapi.kakao.com/v2/local/search/keyword.json?${params}`, {
+      headers,
+      signal: timeoutSignal(8000),
+    })
+    const data = await response.json().catch(() => null)
+    if (!response.ok || !data) throw new Error(data?.message || '숙소 검색에 실패했어요.')
+    return data.documents || []
+  }
+
+  const hasCenter = Number.isFinite(lat) && Number.isFinite(lng)
+  // 카카오 키워드 검색의 radius 상한은 20km 다.
+  let documents = hasCenter ? await run({ x: String(lng), y: String(lat), radius: '20000' }) : []
+  if (documents.length === 0) documents = await run({})
+
+  return documents.map((doc) => ({
+    id: `kakao-${doc.id}`,
+    name: doc.place_name,
+    address: doc.road_address_name || doc.address_name || '',
+    lat: Number(doc.y),
+    lng: Number(doc.x),
+    category: doc.category_name || '',
+    url: doc.place_url || '',
+  }))
 }
 
 function toKakaoPlace(doc, groupCode) {

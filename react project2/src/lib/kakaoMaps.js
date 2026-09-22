@@ -1,3 +1,16 @@
+// ─────────────────────────────────────────────────────────────
+// lib/kakaoMaps.js — 카카오맵 SDK 로더 + 경로 색상
+//
+// 지도 SDK 는 앱 시작 때가 아니라 지도를 실제로 쓸 때 한 번만 불러온다.
+// 여러 컴포넌트가 동시에 요청해도 Promise 하나를 공유해 중복 로딩을 막는다.
+//
+// 이 파일의 API 키(VITE_KAKAO_MAP_API_KEY)는 브라우저에 노출되는 것이 정상인
+// JavaScript 키다. 대신 카카오 콘솔에서 도메인 제한을 걸어 보호한다.
+// 나머지 외부 API 키는 전부 서버에만 둔다.
+//
+// 쓰는 곳: KakaoRouteMap · MapMarks
+// ─────────────────────────────────────────────────────────────
+
 export const kakaoMapApiKey = import.meta.env.VITE_KAKAO_MAP_API_KEY
 
 // 카카오맵 배경(도로 빨간선 등)과 겹쳐도 잘 보이도록 흰 테두리 + 선명한 색을 쓴다.
@@ -7,6 +20,7 @@ export const kakaoMapApiKey = import.meta.env.VITE_KAKAO_MAP_API_KEY
 export const ROUTE_LEG_COLORS = ['#1f5fd6', '#d64518', '#0f8a5f', '#7c3aed', '#b8860b', '#c0246a', '#0e7490', '#4d3fb0']
 export const legColor = (index) => ROUTE_LEG_COLORS[index % ROUTE_LEG_COLORS.length]
 
+// 로딩 중인 Promise 를 모듈 전역에 보관한다 — 두 번째 호출부터는 이걸 그대로 돌려준다.
 let kakaoMapsPromise
 
 export function loadKakaoMaps() {

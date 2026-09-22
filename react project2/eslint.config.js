@@ -1,3 +1,14 @@
+// ─────────────────────────────────────────────────────────────
+// eslint.config.js — 린트 설정 (ESLint 9+ 의 flat config 형식)
+//
+// 이 프로젝트는 브라우저 코드와 Node 코드가 한 저장소에 같이 있다.
+// 전역 객체가 서로 달라서(window vs process) 설정을 두 블록으로 나눴다 —
+// 그래야 서버 코드에서 window 를 쓰면 에러가 나고, 그 반대도 잡힌다.
+//
+//   npm run lint       검사 (현재 경고 0)
+//   npm run lint:fix   자동 수정 가능한 것만 고치기
+// ─────────────────────────────────────────────────────────────
+
 import js from '@eslint/js'
 import globals from 'globals'
 import reactHooks from 'eslint-plugin-react-hooks'
