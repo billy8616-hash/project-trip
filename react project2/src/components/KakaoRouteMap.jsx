@@ -548,6 +548,19 @@ export default function KakaoRouteMap({ course, places, origin, endPoint, transp
       }
     })
 
+    const lastLeg = Math.max(0, stops.length - 2)
+    const targetLeg = selectedMarker ? Math.min(selectedMarker.stopIndex, lastLeg) : null
+    const legs = targetLeg == null ? [] : polylinesRef.current.filter((entry) => entry.legIndex === targetLeg)
+
+    // 구간 선들이 겹치는 도로 위에서는 나중에 그려진 선이 항상 위에 깔린다. 번호를 누르면
+    // 그 번호의 구간을 맨 위로 올리고 나머지는 기본값으로 되돌려서, 다른 선에 가려 안 보이던
+    // 문제 없이 항상 선택한 구간이 보이게 한다 (트레이싱 애니메이션과 별개로 매번 다시 계산).
+    polylinesRef.current.forEach((entry) => {
+      const front = legs.includes(entry)
+      entry.outline?.setZIndex?.(front ? 20 : 1)
+      entry.line?.setZIndex?.(front ? 21 : 2)
+    })
+
     // 번호를 누르면 그 번호와 같은 색 구간 선을 트레이싱으로 다시 그린다
     // (그 번호에서 나가는 구간, 마지막 번호면 들어오는 구간).
     const selChanged =
@@ -559,14 +572,10 @@ export default function KakaoRouteMap({ course, places, origin, endPoint, transp
       firstTraceRef.current = false
       return undefined
     }
-    if (!selectedMarker) return undefined
-    const lastLeg = Math.max(0, stops.length - 2)
-    const targetLeg = Math.min(selectedMarker.stopIndex, lastLeg)
-    const legs = polylinesRef.current.filter((entry) => entry.legIndex === targetLeg)
     if (legs.length === 0) return undefined
 
     clickTraceCancelRef.current?.() // 이전 클릭 트레이싱이 진행 중이면 정리
-    clickTraceCancelRef.current = traceEntries(legs, { steps: 16, intervalMs: 24 })
+    clickTraceCancelRef.current = traceEntries(legs, { steps: 18, intervalMs: 45 })
 
     return () => {
       clickTraceCancelRef.current?.()
