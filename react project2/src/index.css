@@ -3222,13 +3222,15 @@ dd {
   font-size: 13px;
   cursor: pointer;
 }
-/* 코스 화면 상단 안내 문구 목록 (buildCourse 의 notices). */
+/* 코스 화면 상단 안내 문구 목록 (buildCourse 의 notices).
+   .course-controls 와 마찬가지로 부모(.course-screen)가 padding:0 인 full-bleed 라
+   여기서 직접 좌우로 들여야 화면 벽에 안 붙는다. */
 .course-notices {
   display: grid;
   gap: 6px;
   list-style: none;
   margin: 0 0 12px;
-  padding: 0;
+  padding-inline: clamp(16px, 3vw, 44px);
 }
 
 /* ─── 숙소 자동완성 (입력칸 아래에 뜨는 후보 목록) ──────────────────────
