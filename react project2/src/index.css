@@ -218,6 +218,21 @@ button {
   -webkit-mask-image: linear-gradient(to left, #000 86%, transparent 100%);
   mask-image: linear-gradient(to left, #000 86%, transparent 100%);
 }
+/* 홈에서 목적지를 골라 다음 화면으로 넘어갈 때만(slideTo 의 380ms) 양옆 소품이 각자의
+   바깥쪽으로 미끄러지며 사라진다. transition 을 .is-leaving 쪽에만 둬서 "나갈 때만"
+   애니메이션이 붙는다 — 기본 .edge-bg 에 넣으면 leaving 이 꺼질 때도 같은 transition 을
+   타고 도로 미끄러져 들어오는 모양이 되는데, 원하는 건 그냥 사라지는 것뿐이라 그 되돌아오는
+   모션은 없앴다(클래스가 빠지면 transition 없이 바로 원래 자리로 돌아간다). */
+.edge-bg-left.is-leaving {
+  transition: transform 0.38s ease, opacity 0.38s ease;
+  transform: translateX(-100%);
+  opacity: 0;
+}
+.edge-bg-right.is-leaving {
+  transition: transform 0.38s ease, opacity 0.38s ease;
+  transform: translateX(100%);
+  opacity: 0;
+}
 /* 가운데 콘텐츠와 배경이 겹칠 만큼 좁아지면 배경을 숨긴다. */
 @media (max-width: 1160px) {
   .edge-bg { display: none; }
