@@ -650,7 +650,7 @@ function TimelinePanel({
   }, [routes])
 
   return (
-    <div className="tw-flex tw-min-h-0 tw-flex-1 tw-flex-col tw-border-cline lg:tw-flex-none lg:tw-w-[47%] lg:tw-min-w-[360px] lg:tw-max-w-[620px] lg:tw-border-r">
+    <div className="tw-flex tw-min-h-0 tw-flex-1 tw-flex-col tw-border-cline lg:tw-flex-none lg:tw-w-[47%] lg:tw-min-w-[360px] lg:tw-max-w-[620px] lg:tw-border-l">
       <DaySummaryHeader day={day} days={days} activeDay={activeDay} onSelectDay={onSelectDay} count={places.length} />
       <div className="tw-min-h-0 tw-flex-1 tw-overflow-y-auto tw-overflow-x-hidden tw-px-5 tw-py-5">
         {/* 맨 위에 둔다 — 목록 끝(스크롤을 한참 내려야 하는 자리)에 있으면 검색 결과가 화면
@@ -856,9 +856,12 @@ export default function CourseDetail({
         startAnchor={startAnchor} endAnchor={endAnchor}
       />
 
-      <div className="tw-relative tw-h-[34vh] tw-w-full tw-shrink-0 lg:tw-h-auto lg:tw-flex-1">
+      {/* 데스크톱 폭에서는 지도가 왼쪽, 코스 목록이 오른쪽에 오도록 순서만 뒤집는다
+          (lg:tw-order-*). DOM 순서는 그대로 둬서 모바일(세로 쌓기)에서는
+          코스 목록이 위, 지도가 아래인 기존 배치를 그대로 유지한다. */}
+      <div className="tw-relative tw-h-[34vh] tw-w-full tw-shrink-0 lg:tw-order-first lg:tw-h-auto lg:tw-flex-1 lg:tw-p-4">
         <div
-          className="tw-relative tw-h-full tw-w-full tw-overflow-hidden tw-bg-surface-2"
+          className="tw-relative tw-h-full tw-w-full tw-overflow-hidden tw-bg-surface-2 lg:tw-rounded-cxl lg:tw-border lg:tw-border-cline lg:tw-shadow-ccard"
           style={{ backgroundImage: 'radial-gradient(rgba(43,42,39,0.07) 1px, transparent 1px)', backgroundSize: '22px 22px' }}
         >
           <MapLegend moveLabel={moveLabel} />
@@ -871,9 +874,12 @@ export default function CourseDetail({
               </div>
             )}
           </div>
+          {/* 데스크톱에서만 지도를 lg:tw-p-4 만큼 안쪽으로 들이므로(카드처럼 여백을 두려고),
+              화면 벽에 붙는 오버레이(이동수단 토글·저장/공유 버튼)도 같은 컨테이너 안에 둬야
+              그 여백을 함께 받는다 — 밖에 두면 absolute 위치가 바깥 벽 기준으로 계산돼 여백 밖으로 삐져나온다. */}
+          <TransportToggle value={transport} onChange={onChangeTransport} />
+          <FloatingActions actions={actions} />
         </div>
-        <TransportToggle value={transport} onChange={onChangeTransport} />
-        <FloatingActions actions={actions} />
       </div>
     </div>
   )
