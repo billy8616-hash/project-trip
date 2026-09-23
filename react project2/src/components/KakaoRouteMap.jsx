@@ -542,7 +542,6 @@ export default function KakaoRouteMap({ course, places, origin, endPoint, transp
       marker.element.classList.toggle('is-selected', isSelected)
       if (isSelected) {
         selectedMarker = marker
-        mapRef.current?.panTo(marker.position)
         marker.element.classList.add('is-bouncing')
         window.setTimeout(() => marker.element.classList.remove('is-bouncing'), 700)
       }
