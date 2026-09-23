@@ -795,8 +795,24 @@ function App() {
 
   return (
     <main className="app">
-      <div className="edge-bg edge-bg-left" style={{ backgroundImage: `url(${leftEdgeBg})` }} aria-hidden="true" />
-      <div className="edge-bg edge-bg-right" style={{ backgroundImage: `url(${rightEdgeBg})` }} aria-hidden="true" />
+      {/* 양옆 소품 사진은 홈 화면(표지)에만 있다. 목적지를 골라 다음 화면으로 넘어가면
+          leaving 이 켜지는 동안(=아직 화면은 home) 각자 바깥쪽으로 슬라이드되며 사라지고,
+          화면이 실제로 바뀌는 순간 screen !== 'home' 이 되어 아예 그려지지 않는다 —
+          그래서 목적지 화면 등 다음 화면 배경에는 다시 나타나지 않고 그대로 사라진 채로 남는다. */}
+      {screen === 'home' && (
+        <>
+          <div
+            className={`edge-bg edge-bg-left${leaving ? ' is-leaving' : ''}`}
+            style={{ backgroundImage: `url(${leftEdgeBg})` }}
+            aria-hidden="true"
+          />
+          <div
+            className={`edge-bg edge-bg-right${leaving ? ' is-leaving' : ''}`}
+            style={{ backgroundImage: `url(${rightEdgeBg})` }}
+            aria-hidden="true"
+          />
+        </>
+      )}
 
       <div className={screen === 'course' && course ? 'app-stage stage-course' : 'app-stage'}>
       <nav className="topbar">
