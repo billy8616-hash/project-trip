@@ -8193,7 +8193,7 @@ input[type="button"]:active,
 }
 /* 왼쪽 테마 칩과 크기·테두리(알약형) 완전히 동일. 코스 만들기는 활성 칩처럼 코랄 채움. */
 .course-make-btn {
-  margin-left: -10px; /* 맨 오른쪽 묶음에서 '커뮤니티에 공유' 쪽으로 살짝만 당김 */
+  margin-left: auto; /* 목적지/테마 뒤로 밀어 맨 오른쪽에 붙인다 */
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -8215,33 +8215,7 @@ input[type="button"]:active,
   transform: translateY(1px);
 }
 
-/* 코스 화면 상단의 "커뮤니티에 공유" — 비활성 테마 칩과 크기·테두리(알약형) 완전히 동일. */
-.course-share-community-btn {
-  margin-left: auto; /* 목적지/테마 뒤로 밀어 두 버튼을 맨 오른쪽에 붙인다 */
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 9px 17px;
-  border: 2px solid var(--ink-line);
-  border-radius: 999px;
-  background: var(--paper-strong);
-  color: var(--ink);
-  font-family: Gaegu, sans-serif;
-  font-weight: 700;
-  font-size: 16.5px;
-  line-height: 1.15;
-  cursor: pointer;
-  white-space: nowrap;
-}
-.course-share-community-btn:hover {
-  border-color: var(--coral);
-  color: var(--coral);
-}
-.course-share-community-btn:active {
-  transform: translateY(1px);
-}
-/* 버튼 앞 ♡ ☆ 글리프가 줄 높이를 부풀리지 않도록 크기 고정 (칩 아이콘과 맞춤) */
-.course-share-community-btn > span[aria-hidden],
+/* 버튼 앞 ☆ 글리프가 줄 높이를 부풀리지 않도록 크기 고정 (칩 아이콘과 맞춤) */
 .course-make-btn > span[aria-hidden] {
   font-size: 16px;
   line-height: 1;
@@ -8392,11 +8366,6 @@ input[type="button"]:active,
 
 @media (max-width: 720px) {
   .course-make-btn {
-    margin-left: 0;
-    width: 100%;
-    justify-content: center;
-  }
-  .course-share-community-btn {
     margin-left: 0;
     width: 100%;
     justify-content: center;

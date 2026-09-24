@@ -69,7 +69,6 @@ import MustVisitScreen from './screens/MustVisitScreen.jsx'
 import MyTripsScreen from './screens/MyTripsScreen.jsx'
 import ThemeScreen from './screens/ThemeScreen.jsx'
 import { saveTrip } from './lib/tripsApi.js'
-import { sharePost } from './lib/communityApi.js'
 import leftEdgeBg from './assets/left_bg.webp'
 import rightEdgeBg from './assets/right_bg.webp'
 
@@ -109,8 +108,6 @@ const SLOT_EMOJI = { 오전: '🌤️', '점심 맛집': '🍽️', '오후 카�
 
 // 코스 화면 저장 버튼의 평상시 레이블 (누른 뒤엔 "저장 중…" → "저장됨 ✓" 등으로 잠깐 바뀐다).
 const SAVE_LABEL = '현재 여행 코스 저장'
-// 커뮤니티 공유 버튼의 평상시 레이블.
-const SHARE_LABEL = '커뮤니티에 공유'
 
 // 지도 위 장소 정렬 방식.
 // 코스 정렬 기준. distance = 이동거리 최소, slot = 시간대 순서 그대로.
@@ -612,51 +609,6 @@ function App() {
   }
 
   // 지금 보고 있는 코스를 "내 여행"에 저장한다. 로그인 안 했으면 로그인 패널을 연다.
-  // 지금 보고 있는 코스를 커뮤니티에 공개한다. payload 모양은 "내 여행" 저장과 동일.
-  const [shareState, setShareState] = useState(SHARE_LABEL)
-  const shareToCommunity = async () => {
-    if (!user) {
-      setAuthOpen(true)
-      setShareState('로그인 필요')
-      setTimeout(() => setShareState(SHARE_LABEL), 1800)
-      return
-    }
-    const days = (allDaysScheduled.length ? allDaysScheduled : (course?.days || []).map((day) => day.places)).map(
-      (dayPlaces) => dayPlaces.map((place) => ({ name: place.name, assignedSlot: place.assignedSlot || null })),
-    )
-    // 출발지·숙소는 일부러 담지 않는다. 출발지에는 집 주소를, 숙소에는 실제 묵는 곳을
-    // 적는 경우가 많아서, 공개되는 글에 그대로 실리면 안 된다.
-    const payload = {
-      meta: {
-        destination: pickedDestination || destination,
-        journeyTheme, budget, transport, style, tripStartDate, tripEndDate, duration, dayStartTime, mustVisit,
-      },
-      days,
-    }
-    setShareState('공유 중…')
-    try {
-      await sharePost({
-        title: savedName.trim() || `${cityKey} ${journeyThemeLabel} 여행`.replace(/\s+/g, ' ').trim(),
-        city: cityKey,
-        dayCount,
-        summary: `${duration} · ${budget} · ${transport}`,
-        body: course?.subtitle || '',
-        rating: 5,
-        payload,
-      })
-      setShareState('공유됨 ✓')
-      setTimeout(() => setShareState(SHARE_LABEL), 2200)
-    } catch (error) {
-      if (error.status === 401) {
-        setAuthOpen(true)
-        setShareState('로그인 필요')
-      } else {
-        setShareState(error.message?.slice(0, 20) || '공유 실패')
-      }
-      setTimeout(() => setShareState(SHARE_LABEL), 2200)
-    }
-  }
-
   const saveCourse = async () => {
     if (!user) {
       setAuthOpen(true)
@@ -1082,9 +1034,6 @@ function App() {
                 ))}
               </div>
             </div>
-            <button type="button" className="course-share-community-btn" onClick={shareToCommunity}>
-              <span aria-hidden="true">♡</span> {shareState}
-            </button>
             <button type="button" className="course-make-btn" onClick={scrollToSchedule}>
               <span aria-hidden="true">☆</span> 코스 만들기
             </button>
