@@ -296,6 +296,7 @@ function PostView({ postId, user, onRequireLogin, onClose, onChanged }) {
   }
 
   const removePost = async () => {
+    if (!window.confirm('이 글을 삭제할까요? 삭제하면 다른 여행자가 남긴 후기·추천도 함께 사라져요.')) return
     setBusy(true)
     try {
       await deletePost(postId)
