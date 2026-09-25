@@ -208,10 +208,15 @@ app.delete('/api/trips/:id', requireAuth, async (req, res) => {
 
 // 공유된 코스 목록. ?city=제주 &sort=recent|likes|rating
 app.get('/api/community', optionalAuth, async (req, res) => {
-  const { city = '', sort = 'recent' } = req.query || {}
+  const { city = '', sort = 'recent', limit = '60' } = req.query || {}
   try {
-    const posts = await listPosts({ city: String(city).trim(), sort: String(sort), viewerId: req.userId })
-    return res.json({ posts })
+    const { posts, total } = await listPosts({
+      city: String(city).trim(),
+      sort: String(sort),
+      viewerId: req.userId,
+      limit: Number(limit),
+    })
+    return res.json({ posts, total })
   } catch (error) {
     return res.status(500).json({ message: error.message || '커뮤니티 글을 불러오지 못했어요.' })
   }
