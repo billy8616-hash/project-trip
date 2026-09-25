@@ -284,6 +284,7 @@ function PostView({ postId, user, onRequireLogin, onClose, onChanged }) {
   }
 
   const removeReview = async () => {
+    if (!window.confirm('내 후기를 삭제할까요?')) return
     setBusy(true)
     try {
       await deleteMyReview(postId)
