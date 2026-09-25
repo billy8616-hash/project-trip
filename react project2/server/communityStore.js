@@ -192,8 +192,13 @@ export async function deleteReview(postId, userId) {
 
 /* ── 추천(좋아요) 토글 ─────────────────────────────────────────────── */
 export async function toggleLike(postId, userId) {
-  const post = await prisma.coursePost.findUnique({ where: { id: postId }, select: { id: true } })
+  const post = await prisma.coursePost.findUnique({ where: { id: postId }, select: { id: true, userId: true } })
   if (!post) return null
+  if (post.userId === userId) {
+    const error = new Error('내가 올린 코스는 추천할 수 없어요.')
+    error.status = 400
+    throw error
+  }
   const existing = await prisma.courseLike.findUnique({ where: { postId_userId: { postId, userId } } })
   if (existing) await prisma.courseLike.delete({ where: { id: existing.id } })
   else await prisma.courseLike.create({ data: { postId, userId } })
