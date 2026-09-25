@@ -41,9 +41,22 @@ export default function OriginScreen({ destination, nights, initialOrigin, initi
   const origin = originInput.trim() === resolved.originText ? resolved.origin : null
   const lodging = lodgingInput.trim() === resolved.lodgingText ? resolved.lodging : null
 
-  // 입력이 달라지면 위 파생 계산이 알아서 좌표를 무효로 만든다.
-  const useCityAsOrigin = () => {
-    setOriginInput(destination || '')
+  // 정확한 출발지를 모를 때 쓰는 대충 기준점. 도시마다 결과가 들쭉날쭉하지 않도록
+  // "그 도시 시청"을 표준 좌표로 삼는다 — 모든 도시에 하나씩만 있고 이름도 일정해서
+  // 지오코딩이 안정적이다(교통수단을 타지 않는 자차 이용자에게도 무난한 기준점).
+  const useCityAsOrigin = async () => {
+    const query = `${destination || '여행지'}시청`
+    setOriginInput(query)
+    setStatus('resolving')
+    setMessage('')
+    try {
+      const cityHall = await fetchGeocode(query)
+      setResolved((prev) => ({ ...prev, originText: query, origin: cityHall }))
+      setStatus('idle')
+    } catch (error) {
+      setStatus('error')
+      setMessage(error.message || '시청 위치를 찾지 못했어요.')
+    }
   }
 
   // ── 숙소 자동완성 ──────────────────────────────────────────────────────
@@ -174,7 +187,7 @@ export default function OriginScreen({ destination, nights, initialOrigin, initi
             placeholder="예: 서울역, 인천공항, 우리집 주소"
             aria-label="출발지"
           />
-          <button type="button" className="origin-quick" onClick={useCityAsOrigin}>
+          <button type="button" className="origin-quick" disabled={status === 'resolving'} onClick={useCityAsOrigin}>
             그냥 {destination || '여행지'}에서 시작할래요
           </button>
         </label>
