@@ -675,32 +675,53 @@ function ComposeView({ onClose, onDone }) {
 }
 
 /* ── 화면 루트 ─────────────────────────────────────────────────────── */
+// 목록 첫 페이지 크기이자 "더보기"를 누를 때마다 늘어나는 단위.
+const PAGE_SIZE = 60
+
 export default function CommunityScreen({ user, onRequireLogin, onBack, leaving }) {
   const [posts, setPosts] = useState([])
+  const [total, setTotal] = useState(0)
   const [status, setStatus] = useState('loading')
   const [message, setMessage] = useState('')
   const [city, setCity] = useState('')
   const [sort, setSort] = useState('recent')
+  const [limit, setLimit] = useState(PAGE_SIZE)
   const [openId, setOpenId] = useState(null)
   const [composing, setComposing] = useState(false)
 
   // 글을 올리거나 추천/후기 뒤에 목록을 다시 불러올 때 쓴다 (핸들러에서 호출).
   const load = useCallback(
     () =>
-      listCommunityPosts({ city, sort })
-        .then((rows) => { setPosts(rows); setStatus('ready') })
+      listCommunityPosts({ city, sort, limit })
+        .then(({ posts: rows, total: count }) => { setPosts(rows); setTotal(count); setStatus('ready') })
         .catch((error) => { setMessage(error.message); setStatus('error') }),
-    [city, sort],
+    [city, sort, limit],
   )
+
+  // 여행지·정렬 필터를 바꿀 때 페이지 크기도 처음으로 되돌린다 — 안 그러면 필터를
+  // 바꿔도 이전에 눌러 둔 "더보기" 만큼 계속 많이 불러오게 된다.
+  const changeCity = (value) => {
+    setCity(value)
+    setLimit(PAGE_SIZE)
+  }
+  const changeSort = (value) => {
+    setSort(value)
+    setLimit(PAGE_SIZE)
+  }
 
   // 목록 로드: setState 는 promise 콜백에서만, 언마운트/필터 변경 시 이전 응답은 버린다.
   useEffect(() => {
     let alive = true
-    listCommunityPosts({ city, sort })
-      .then((rows) => { if (!alive) return; setPosts(rows); setStatus('ready') })
+    listCommunityPosts({ city, sort, limit })
+      .then(({ posts: rows, total: count }) => {
+        if (!alive) return
+        setPosts(rows)
+        setTotal(count)
+        setStatus('ready')
+      })
       .catch((error) => { if (!alive) return; setMessage(error.message); setStatus('error') })
     return () => { alive = false }
-  }, [city, sort])
+  }, [city, sort, limit])
 
   const like = async (postId) => {
     if (!user) {
@@ -766,7 +787,7 @@ export default function CommunityScreen({ user, onRequireLogin, onBack, leaving 
           <div className="tw-mb-4 tw-flex tw-flex-wrap tw-items-center tw-gap-3">
             <select
               value={city}
-              onChange={(event) => setCity(event.target.value)}
+              onChange={(event) => changeCity(event.target.value)}
               aria-label="여행지 필터"
               className="tw-rounded-lg tw-border tw-border-cline tw-bg-surface tw-px-3 tw-py-2 tw-text-[13px] tw-text-cink focus:tw-border-caccent focus:tw-outline-none"
             >
@@ -779,7 +800,7 @@ export default function CommunityScreen({ user, onRequireLogin, onBack, leaving 
             <div className="tw-flex tw-gap-1">
               {SORTS.map((item) => (
                 <button
-                  key={item.key} type="button" onClick={() => setSort(item.key)}
+                  key={item.key} type="button" onClick={() => changeSort(item.key)}
                   className={`tw-rounded-full tw-px-3 tw-py-1.5 tw-text-[13px] tw-font-semibold tw-transition-colors ${
                     sort === item.key
                       ? 'tw-bg-caccent tw-text-white'
@@ -791,7 +812,7 @@ export default function CommunityScreen({ user, onRequireLogin, onBack, leaving 
               ))}
             </div>
 
-            <span className="tw-ml-auto tw-text-[12px] tw-tabular-nums tw-text-cink-faint">{posts.length}개</span>
+            <span className="tw-ml-auto tw-text-[12px] tw-tabular-nums tw-text-cink-faint">{total}개</span>
           </div>
 
           {status === 'loading' && <p className="tw-py-16 tw-text-center tw-text-sm tw-text-cink-faint">불러오는 중…</p>}
@@ -810,6 +831,18 @@ export default function CommunityScreen({ user, onRequireLogin, onBack, leaving 
               {posts.map((post) => (
                 <PostCard key={post.id} post={post} user={user} onOpen={setOpenId} onLike={like} />
               ))}
+            </div>
+          )}
+
+          {status === 'ready' && posts.length < total && (
+            <div className="tw-mt-5 tw-text-center">
+              <button
+                type="button"
+                onClick={() => setLimit((prev) => prev + PAGE_SIZE)}
+                className="tw-rounded-full tw-border tw-border-cline tw-px-5 tw-py-2 tw-text-[13px] tw-font-semibold tw-text-cink-muted tw-transition-colors hover:tw-border-caccent hover:tw-text-caccent"
+              >
+                더보기 ({posts.length}/{total})
+              </button>
             </div>
           )}
         </div>

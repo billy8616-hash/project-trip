@@ -14,13 +14,14 @@
 import { authedRequest as request } from './apiClient.js'
 
 // 목록. sort: 'recent' | 'likes' | 'rating', city 는 빈 문자열이면 전체.
-export async function listCommunityPosts({ city = '', sort = 'recent' } = {}) {
+// limit 은 "더보기"를 누를 때마다 커지는 값 — total 이 posts.length 보다 크면 더 있다는 뜻.
+export async function listCommunityPosts({ city = '', sort = 'recent', limit = 60 } = {}) {
   const params = new URLSearchParams()
   if (city) params.set('city', city)
   if (sort) params.set('sort', sort)
-  const query = params.toString()
-  const data = await request(`/api/community${query ? `?${query}` : ''}`)
-  return data.posts || []
+  params.set('limit', String(limit))
+  const data = await request(`/api/community?${params.toString()}`)
+  return { posts: data.posts || [], total: data.total ?? (data.posts || []).length }
 }
 
 export async function getCommunityPost(id) {

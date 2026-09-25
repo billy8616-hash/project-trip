@@ -40,12 +40,16 @@ const iso = (value) => (value instanceof Date ? value.toISOString() : value)
 
 /* ── 목록 ──────────────────────────────────────────────────────────── */
 export async function listPosts({ city = '', sort = 'recent', viewerId = null, limit = 60 } = {}) {
-  const posts = await prisma.coursePost.findMany({
-    where: city ? { city } : undefined,
-    orderBy: { createdAt: 'desc' },
-    take: Math.min(100, Math.max(1, limit)),
-  })
-  if (posts.length === 0) return []
+  const where = city ? { city } : undefined
+  const [posts, total] = await Promise.all([
+    prisma.coursePost.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      take: Math.min(300, Math.max(1, limit)),
+    }),
+    prisma.coursePost.count({ where }),
+  ])
+  if (posts.length === 0) return { posts: [], total }
 
   const ids = posts.map((post) => post.id)
   const [likeGroups, reviewGroups, myLikes] = await Promise.all([
@@ -73,7 +77,7 @@ export async function listPosts({ city = '', sort = 'recent', viewerId = null, l
 
   if (sort === 'likes') rows.sort((a, b) => b.likeCount - a.likeCount || b.createdAt.localeCompare(a.createdAt))
   else if (sort === 'rating') rows.sort((a, b) => b.avgRating - a.avgRating || b.reviewCount - a.reviewCount)
-  return rows
+  return { posts: rows, total }
 }
 
 function summarize(post, { likeCount, review, liked }) {
