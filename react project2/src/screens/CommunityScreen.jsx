@@ -111,8 +111,11 @@ function PostCard({ post, onOpen, onLike }) {
         </div>
         <div className="tw-shrink-0 tw-text-right">
           <Stars value={post.avgRating} />
-          <p className="tw-mt-0.5 tw-text-[11px] tw-font-semibold tw-tabular-nums tw-text-cink-muted">
-            {post.avgRating.toFixed(1)}
+          <p
+            className="tw-mt-0.5 tw-text-[11px] tw-font-semibold tw-tabular-nums tw-text-cink-muted"
+            title="글쓴이 본인 평가가 포함된 평균이에요."
+          >
+            {post.avgRating.toFixed(1)} <span className="tw-font-normal tw-text-cink-faint">(글쓴이 포함)</span>
           </p>
         </div>
       </div>
@@ -176,7 +179,7 @@ function PostView({ postId, user, onRequireLogin, onClose, onChanged }) {
   const [post, setPost] = useState(null)
   const [status, setStatus] = useState('loading') // loading | ready | error
   const [message, setMessage] = useState('')
-  const [rating, setRating] = useState(5)
+  const [rating, setRating] = useState(0)
   const [body, setBody] = useState('')
   const [busy, setBusy] = useState(false)
   const [saveState, setSaveState] = useState('내 여행에 담기')
@@ -256,6 +259,10 @@ function PostView({ postId, user, onRequireLogin, onClose, onChanged }) {
   const submitReview = async (event) => {
     event.preventDefault()
     if (needLogin()) return
+    if (!rating) {
+      setMessage('별점을 먼저 매겨 주세요.')
+      return
+    }
     if (!body.trim()) {
       setMessage('후기 내용을 입력해 주세요.')
       return
@@ -278,7 +285,7 @@ function PostView({ postId, user, onRequireLogin, onClose, onChanged }) {
     try {
       await deleteMyReview(postId)
       setBody('')
-      setRating(5)
+      setRating(0)
       await load()
       onChanged()
     } catch (error) {
@@ -331,7 +338,9 @@ function PostView({ postId, user, onRequireLogin, onClose, onChanged }) {
               <span className="tw-inline-flex tw-items-center tw-gap-1.5">
                 <Stars value={post.avgRating} size={16} />
                 <b className="tw-text-[13px] tw-tabular-nums tw-text-cink">{post.avgRating.toFixed(1)}</b>
-                <span className="tw-text-[12px] tw-text-cink-faint">후기 {post.reviewCount}</span>
+                <span className="tw-text-[12px] tw-text-cink-faint">
+                  후기 {post.reviewCount} · 글쓴이 평가 포함
+                </span>
               </span>
               <button
                 type="button" onClick={like}
@@ -382,7 +391,9 @@ function PostView({ postId, user, onRequireLogin, onClose, onChanged }) {
                 <div className="tw-flex tw-items-center tw-gap-3">
                   <span className="tw-text-[13px] tw-text-cink-muted">별점</span>
                   <StarPicker value={rating} onChange={setRating} />
-                  <span className="tw-text-[13px] tw-font-semibold tw-tabular-nums tw-text-cink">{rating}.0</span>
+                  <span className="tw-text-[13px] tw-font-semibold tw-tabular-nums tw-text-cink">
+                    {rating ? `${rating}.0` : '선택 안 함'}
+                  </span>
                 </div>
                 <textarea
                   value={body}
@@ -457,7 +468,7 @@ function ComposeView({ onClose, onDone }) {
   const [title, setTitle] = useState('')
   const [summary, setSummary] = useState('')
   const [body, setBody] = useState('')
-  const [rating, setRating] = useState(5)
+  const [rating, setRating] = useState(0)
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
@@ -492,6 +503,10 @@ function ComposeView({ onClose, onDone }) {
     }
     if (!title.trim()) {
       setMessage('제목을 입력해 주세요.')
+      return
+    }
+    if (!rating) {
+      setMessage('별점을 먼저 매겨 주세요.')
       return
     }
     setBusy(true)
@@ -617,10 +632,17 @@ function ComposeView({ onClose, onDone }) {
           </label>
 
           <div className="tw-flex tw-items-center tw-gap-3">
-            <span className="tw-text-[13px] tw-font-bold tw-text-cink">내 별점</span>
+            <span className="tw-text-[13px] tw-font-bold tw-text-cink">
+              내 별점 <b className="tw-font-normal tw-text-cink-faint">(필수)</b>
+            </span>
             <StarPicker value={rating} onChange={setRating} />
-            <span className="tw-text-[13px] tw-font-semibold tw-tabular-nums tw-text-cink">{rating}.0</span>
+            <span className="tw-text-[13px] tw-font-semibold tw-tabular-nums tw-text-cink">
+              {rating ? `${rating}.0` : '선택 안 함'}
+            </span>
           </div>
+          <p className="tw-text-[11.5px] tw-text-cink-faint">
+            이 별점은 다른 여행자의 후기와 함께 평균 별점에 반영돼요.
+          </p>
 
           <div className="tw-flex tw-flex-wrap tw-items-center tw-gap-2 tw-pt-1">
             <button
