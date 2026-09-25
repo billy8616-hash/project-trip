@@ -294,7 +294,7 @@ app.post('/api/community/:id/like', requireAuth, async (req, res) => {
     if (!result) return res.status(404).json({ message: '글을 찾지 못했어요.' })
     return res.json(result)
   } catch (error) {
-    return res.status(500).json({ message: error.message || '추천하지 못했어요.' })
+    return res.status(error.status || 500).json({ message: error.message || '추천하지 못했어요.' })
   }
 })
 
