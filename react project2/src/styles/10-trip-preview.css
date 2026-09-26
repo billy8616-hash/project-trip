@@ -1,0 +1,497 @@
+/* ─────────────────────────────────────────────────────────────
+   10-trip-preview.css — 여행 일정 미리보기 패널
+   (index.css 에서 쪼갠 파일. 원래 index.css 7866~8357번째 줄이었다.)
+   ───────────────────────────────────────────────────────────── */
+
+/* ─── 여행 일정 미리보기 (오전 · 오후 · 저녁으로 접은 요약) ────────── */
+
+.preview-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+.preview-head h2 {
+  margin-bottom: 0;
+}
+.preview-days-badge {
+  flex: 0 0 auto;
+  padding: 3px 11px;
+  border-radius: 999px;
+  background: var(--amber);
+  color: #3a2a1a;
+  font-family: Gaegu, sans-serif;
+  font-weight: 700;
+  font-size: 12.5px;
+  white-space: nowrap;
+}
+
+.preview-days {
+  display: grid;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.preview-day {
+  padding: 10px 12px 12px;
+  border: 1.5px dashed var(--ink-line);
+  border-radius: 13px 10px 14px 11px;
+  background: var(--paper);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.preview-day.is-active {
+  border-style: solid;
+  border-color: var(--amber-dark);
+  background: var(--paper-strong);
+}
+
+.preview-day-tag {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding: 4px 14px;
+  border: none;
+  border-radius: 7px 5px 8px 5px;
+  background: var(--coral);
+  color: #fff6ef;
+  font-family: Gaegu, sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.04em;
+  box-shadow: 1px 2px 0 rgba(90, 72, 52, 0.2);
+  cursor: pointer;
+}
+.preview-day-tag span {
+  color: rgba(255, 246, 239, 0.85);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* 하루 = 오전/오후/저녁 세 칸. 각 칸: 시간대(아이콘+라벨) | 방문 목록 | 썸네일 */
+.preview-slot {
+  display: grid;
+  grid-template-columns: 44px 1fr 40px;
+  align-items: center;
+  column-gap: 8px;
+  padding: 7px 0;
+  border-top: 1px dashed var(--line);
+}
+.preview-slot:first-of-type {
+  border-top: none;
+}
+.preview-slot-time {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.preview-slot-icon {
+  font-size: 15px;
+}
+.preview-slot-label {
+  color: var(--ink);
+  opacity: 0.85;
+  font-family: Gaegu, sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+}
+.preview-slot-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 2px;
+}
+.preview-slot-list li {
+  position: relative;
+  padding-left: 12px;
+  color: var(--ink);
+  font-size: 13.5px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+.preview-slot-list li::before {
+  position: absolute;
+  left: 2px;
+  color: var(--coral);
+  content: "•";
+}
+.preview-slot-thumb {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 4px;
+  border: 1.5px solid var(--ink-line);
+  background: linear-gradient(160deg, #f3dcb4, #e7bd85);
+  font-size: 18px;
+}
+.preview-slot-empty {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.preview-expand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
+  margin-top: 12px;
+  padding: 9px 0;
+  border: 1.5px solid var(--ink-line);
+  border-radius: 999px;
+  background: var(--paper-strong);
+  color: var(--amber-dark);
+  font-family: Gaegu, sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+}
+.preview-expand:hover {
+  background: var(--amber);
+  color: #3a2a1a;
+}
+
+.timeline-full {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1.5px dashed var(--ink-line);
+}
+.timeline-full h3 {
+  margin: 0 0 4px;
+  font-family: Gaegu, sans-serif;
+  font-size: 20px;
+  color: var(--ink);
+}
+
+/* ============================================================
+   "여행 일정 미리보기" 패널을 스프링 제본 노트처럼 — 왼쪽에 링 구멍 줄.
+   ============================================================ */
+.timeline {
+  position: relative;
+  padding-left: 30px;
+}
+.timeline::before {
+  position: absolute;
+  top: 16px;
+  bottom: 16px;
+  left: 11px;
+  width: 10px;
+  background:
+    radial-gradient(circle at 50% 6px, rgba(90, 72, 52, 0.42) 0 3.2px, transparent 3.8px)
+      repeat-y;
+  background-size: 10px 20px;
+  content: "";
+}
+
+/* --- 하단 팁 바 (날씨 + N월 추천 코스) --- */
+.course-tip-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 12px 18px;
+  border: 1.5px solid var(--ink-line);
+  border-radius: 10px 8px 11px 9px;
+  background: var(--paper);
+  box-shadow: 0 10px 28px rgba(50, 35, 22, 0.1);
+}
+.course-tip-text {
+  margin: 0;
+  color: var(--muted);
+  font-family: Gaegu, sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+}
+.course-tip-chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.course-tip-chip {
+  padding: 5px 12px;
+  border: 1.5px solid var(--ink-line);
+  border-radius: 999px;
+  background: var(--paper-strong);
+  color: var(--ink);
+  font-family: Gaegu, sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+/* ============================================================
+   코스 화면 상단 컨트롤 바 (목적지 · 여행 테마 · 코스 만들기)
+   ============================================================ */
+.course-controls {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 16px 20px;
+  /* 코스 화면은 .stage-course 가 100vw 를 꽉 채우는 full-bleed 라 이 바만 따로 안쪽으로
+     들여야 한다 (부모 .course-screen 은 padding: 0). 아래 지도는 그대로 끝까지 흘린다. */
+  padding-inline: clamp(16px, 3vw, 44px);
+  margin-bottom: 16px;
+}
+.course-ctl {
+  display: grid;
+  gap: 6px;
+}
+.course-ctl-theme {
+  flex: 1 1 340px;
+  min-width: 240px;
+}
+.course-ctl-label {
+  font-family: Gaegu, sans-serif;
+  font-weight: 700;
+  font-size: 17px;
+  color: var(--ink);
+}
+.course-dest-input {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: min(340px, 62vw);
+  padding: 0 14px;
+  min-height: 52px;
+  border: 2px solid var(--ink-line);
+  border-radius: 12px 10px 13px 9px;
+  background: var(--paper-strong);
+}
+.course-dest-pin {
+  display: inline-flex;
+  width: 20px;
+  color: var(--coral);
+}
+.course-dest-pin svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+}
+.course-dest-input input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font-family: Gaegu, sans-serif;
+  font-weight: 700;
+  font-size: 18px;
+}
+.course-dest-input input:focus {
+  outline: none;
+}
+.course-dest-input > button {
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(90, 72, 52, 0.12);
+  color: var(--ink);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+.course-dest-input > button:hover {
+  background: var(--coral);
+  color: #fff6ef;
+}
+.course-theme-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.course-theme-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 17px;
+  border: 2px solid var(--ink-line);
+  border-radius: 999px;
+  background: var(--paper-strong);
+  color: var(--ink);
+  font-family: Gaegu, sans-serif;
+  font-weight: 700;
+  font-size: 16.5px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.course-theme-chip:hover {
+  border-color: var(--coral);
+}
+.course-theme-chip.is-active {
+  border-color: var(--coral);
+  background: var(--coral);
+  color: #fff6ef;
+}
+.course-theme-chip-ic {
+  display: inline-flex;
+  width: 19px;
+  height: 19px;
+}
+.course-theme-chip-ic svg {
+  width: 19px;
+  height: 19px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+}
+/* 커뮤니티 화면 — 코스 상세와 같은 톤의 밝은 바탕 위에 카드들.
+   바깥 section 은 화면 끝까지 꽉 차는 채로 두되(edge-bg 소품이 비치도록 투명하게 둔다),
+   종이 느낌 배경은 실제 내용이 들어가는 가운데 칼럼(> div)에만 칠한다.
+   예전엔 이 배경이 section 전체(뷰포트 끝까지)를 덮어서, 화면 양옆 고정 소품(나뭇잎·나침반 등)을
+   카드 목록 뒤에서 완전히 가려 버렸다. */
+.community-screen {
+  position: relative;
+  isolation: isolate;
+  min-height: 70vh;
+  animation: courseSlideIn 0.44s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+.community-screen > div {
+  position: relative;
+  z-index: 1;
+  overflow: hidden;
+  border-radius: 20px;
+  background:
+    linear-gradient(90deg, rgba(229, 204, 166, 0.24), transparent 13%, transparent 87%, rgba(229, 204, 166, 0.24)),
+    linear-gradient(180deg, rgba(255, 251, 242, 0.88), rgba(249, 238, 218, 0.78)),
+    repeating-linear-gradient(105deg, rgba(96, 72, 45, 0.035) 0 1px, transparent 1px 16px),
+    #f4e6d0;
+}
+.community-screen > div::before,
+.community-screen > div::after {
+  position: absolute;
+  z-index: -1;
+  pointer-events: none;
+  content: "";
+}
+.community-screen > div::before {
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(255, 246, 229, 0), rgba(255, 246, 229, 0.76) 18%, rgba(255, 246, 229, 0.82) 82%, rgba(255, 246, 229, 0)),
+    repeating-linear-gradient(0deg, rgba(116, 86, 52, 0.024) 0 1px, transparent 1px 9px);
+}
+.community-screen > div::after {
+  inset: 0;
+  box-shadow:
+    inset 0 18px 34px rgba(103, 72, 38, 0.08),
+    inset 0 -24px 40px rgba(103, 72, 38, 0.08);
+}
+.community-screen.is-leaving {
+  animation: homeSlideOut 0.36s ease both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .community-screen,
+  .community-screen.is-leaving {
+    animation: none;
+  }
+}
+
+/* 지도 카드 머리: "여행 코스" 태그 + "교통 정보" 체크박스 */
+.route-map-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.route-map-tag {
+  padding: 4px 14px;
+  border-radius: 7px 5px 8px 5px;
+  background: var(--amber);
+  color: #3a2a1a;
+  font-family: Gaegu, sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.04em;
+  box-shadow: 1px 2px 0 rgba(90, 72, 52, 0.2);
+}
+.route-traffic-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border: 1.5px solid var(--ink-line);
+  border-radius: 999px;
+  background: var(--paper-strong);
+  color: var(--ink);
+  font-family: Gaegu, sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+}
+.route-traffic-toggle input {
+  accent-color: var(--coral);
+}
+
+/* 지도 + 확대/축소·처음위치 버튼 오버레이 */
+.route-map-frame {
+  position: relative;
+}
+.route-map-frame > .route-map {
+  margin-top: 12px;
+}
+.route-map-zoom {
+  position: absolute;
+  top: 24px;
+  left: 12px;
+  z-index: 5;
+  display: grid;
+  border: 2px solid var(--ink-line);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--paper-strong);
+  box-shadow: 2px 3px 0 rgba(58, 42, 26, 0.14);
+}
+.route-map-zoom button {
+  width: 34px;
+  height: 34px;
+  border: 0;
+  background: var(--paper-strong);
+  color: var(--ink);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+.route-map-zoom button:first-child {
+  border-bottom: 1.5px solid var(--ink-line);
+}
+.route-map-zoom button:hover {
+  background: var(--amber);
+  color: #3a2a1a;
+}
+.route-map-locate {
+  position: absolute;
+  top: 104px;
+  left: 12px;
+  z-index: 5;
+  width: 34px;
+  height: 34px;
+  border: 2px solid var(--ink-line);
+  border-radius: 10px;
+  background: var(--paper-strong);
+  color: var(--coral);
+  font-size: 15px;
+  cursor: pointer;
+  box-shadow: 2px 3px 0 rgba(58, 42, 26, 0.14);
+}
+.route-map-locate:hover {
+  background: var(--amber);
+  color: #3a2a1a;
+}
+
+@media (max-width: 720px) {
+  .course-ctl-dest,
+  .course-dest-input {
+    width: 100%;
+  }
+}
+

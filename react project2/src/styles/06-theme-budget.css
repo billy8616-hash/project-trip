@@ -1,0 +1,240 @@
+/* ─────────────────────────────────────────────────────────────
+   06-theme-budget.css — 조건 선택 화면 (테마 · 예산 카드)
+   (index.css 에서 쪼갠 파일. 원래 index.css 3751~3985번째 줄이었다.)
+   ───────────────────────────────────────────────────────────── */
+
+/* ═══ 6. 조건 선택 화면 (테마 · 예산 카드) ══════════════════════════════ */
+
+.theme-card {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  padding: 30px 20px 26px;
+  border: 2px solid var(--line);
+  border-radius: 18px 14px 20px 12px;
+  background: #fffdf7;
+  box-shadow:
+    4px 6px 0 rgba(58, 42, 26, 0.12),
+    0 14px 26px rgba(48, 35, 21, 0.14);
+  text-align: center;
+  cursor: pointer;
+  transition:
+    transform 0.15s ease,
+    background 0.15s ease;
+}
+.theme-card:nth-child(odd) {
+  transform: rotate(-1.3deg);
+}
+.theme-card:nth-child(even) {
+  transform: rotate(1.3deg);
+}
+.theme-card:hover {
+  transform: rotate(0) translateY(-3px);
+}
+.theme-card.selected {
+  border-color: var(--amber-dark);
+  background: #fff2df;
+  box-shadow:
+    4px 6px 0 rgba(201, 117, 47, 0.3),
+    0 14px 26px rgba(48, 35, 21, 0.16);
+}
+.theme-ic {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border: 2px dashed var(--line);
+  border-radius: 50%;
+  color: var(--amber-dark);
+}
+.theme-ic svg {
+  width: 26px;
+  height: 26px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.theme-card b {
+  font-family: Gaegu, sans-serif;
+  font-weight: 700;
+  font-size: 24px;
+  color: var(--ink);
+}
+.theme-card small {
+  color: var(--muted);
+  font-family: Gaegu, sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.course-theme-tag {
+  color: var(--amber-dark);
+  font-family: Gaegu, sans-serif;
+  font-weight: 700;
+}
+
+/* 조건 입력 폼 - 필수 방문 희망 장소 키워드 */
+.must-visit {
+  max-width: 820px;
+  margin: 14px auto 0;
+  padding: 16px 18px;
+  border: 2px solid var(--line);
+  border-radius: 12px 10px 14px 8px;
+  background: rgba(255, 253, 247, 0.7);
+  text-align: left;
+}
+.must-visit-head {
+  display: grid;
+  gap: 3px;
+  margin-bottom: 10px;
+}
+.must-visit-head b {
+  font-family: Gaegu, sans-serif;
+  font-size: 16px;
+  color: var(--ink);
+}
+.must-visit-head span {
+  color: var(--muted);
+  font-size: 13px;
+}
+.must-visit-input {
+  display: flex;
+  gap: 10px;
+}
+.must-visit-input input {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 2px solid var(--line);
+  border-radius: 24px;
+  background: var(--paper-strong);
+  color: var(--ink);
+  outline: 0;
+  font-size: 15px;
+}
+.must-visit-input button {
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 0 22px;
+  border: 2px solid var(--line);
+  border-radius: 22px;
+  background: var(--amber);
+  color: #3a2a1a;
+  box-shadow: 2px 3px 0 rgba(58, 42, 26, 0.16);
+  font-family: Gaegu, sans-serif;
+  font-weight: 700;
+}
+.must-visit-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.must-visit-tags li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px 6px 12px;
+  border: 2px solid var(--amber-dark);
+  border-radius: 18px 14px 18px 14px;
+  background: #fff2df;
+  color: var(--amber-dark);
+  font-family: Gaegu, sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+}
+.must-visit-tags li button {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(201, 117, 47, 0.22);
+  color: var(--amber-dark);
+  font-size: 13px;
+  line-height: 1;
+}
+
+/* 코스 화면의 필수 방문 표시 */
+.course-must-visit {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.course-must-visit b {
+  font-family: Gaegu, sans-serif;
+  color: var(--amber-dark);
+  font-size: 14px;
+}
+.course-must-visit span {
+  padding: 5px 12px;
+  border: 2px solid var(--amber-dark);
+  border-radius: 16px 12px 16px 12px;
+  background: #fff2df;
+  color: var(--amber-dark);
+  font-family: Gaegu, sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.course-notice {
+  margin: -4px 0 16px;
+  padding: 10px 14px;
+  border: 2px solid var(--amber-dark);
+  border-radius: 14px 12px 16px 12px;
+  background: #fff2df;
+  color: var(--amber-dark);
+  font-family: Gaegu, sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+/* 여행 일자(Day 1 / Day 2 …) 선택 탭 */
+/* "여행 일정 미리보기" 패널 맨 위의 일자 선택 칩 줄. */
+.day-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin: 0 0 12px;
+}
+.day-tab {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 7px;
+  padding: 8px 16px;
+  border: 2px solid var(--ink-line);
+  border-radius: 999px;
+  background: var(--paper, #fff);
+  color: inherit;
+  cursor: pointer;
+  font-family: Gaegu, sans-serif;
+  white-space: nowrap;
+}
+.day-tab b {
+  font-size: 16px;
+}
+.day-tab span {
+  font-size: 13px;
+  opacity: 0.65;
+}
+.day-tab.selected {
+  border-color: var(--amber-dark);
+  background: #fff2df;
+  color: var(--amber-dark);
+}
+
+.timeline-empty {
+  margin: 8px 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+

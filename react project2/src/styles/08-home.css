@@ -1,0 +1,974 @@
+/* ─────────────────────────────────────────────────────────────
+   08-home.css — 홈 화면 (종이 다이어리)
+   (index.css 에서 쪼갠 파일. 원래 index.css 6621~7589번째 줄이었다.)
+   ───────────────────────────────────────────────────────────── */
+
+/* ═══════════════════════════════════════════════════════════════════════
+   홈 화면 — 빈티지 여행 다이어리 한 페이지 (2024 리디자인)
+   좌우 고정 배경(.edge-bg) 사이 가운데에 종이 한 장을 클립으로 꽂아 둔 모습.
+   파일 뒤쪽에 있어 이전 .travel-paper / .route-paper 규칙보다 우선한다.
+   ═══════════════════════════════════════════════════════════════════════ */
+.sketch-home {
+  padding: 30px clamp(14px, 4vw, 40px) 40px;
+  background: none;
+}
+
+/* ═══ 4. 홈 화면 (종이 다이어리) ════════════════════════════════════════ */
+
+.diary-page {
+  position: relative;
+  max-width: 800px;
+  margin: 10px auto 0;
+  padding: 40px clamp(22px, 5vw, 46px) 36px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--soft-shadow);
+  text-align: center;
+}
+
+/* 종이를 물고 있는 클립 */
+.diary-clip {
+  position: absolute;
+  top: -18px;
+  left: 50%;
+  width: 24px;
+  height: 52px;
+  transform: translateX(-50%) rotate(5deg);
+  border: 3px solid #9a938a;
+  border-bottom-color: transparent;
+  border-radius: 12px 12px 3px 3px;
+  pointer-events: none;
+}
+.diary-clip::after {
+  content: "";
+  position: absolute;
+  inset: 6px 6px 12px;
+  border: 3px solid #b4aca1;
+  border-bottom-color: transparent;
+  border-radius: 8px 8px 2px 2px;
+}
+
+.diary-eyebrow {
+  margin: 0 0 8px;
+  color: var(--sky);
+  font-family: Gaegu, Pretendard, sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  letter-spacing: 0.02em;
+}
+.diary-eyebrow::before { content: "\\  "; }
+.diary-eyebrow::after { content: "  //"; }
+
+.diary-title {
+  margin: 0 0 12px;
+  color: var(--ink);
+  font-family: "GriunJeong", "Jua", "Gaegu", sans-serif;
+  font-weight: 400;
+  font-size: clamp(25px, 3.4vw, 37px);
+  line-height: 1.34;
+  text-wrap: balance;
+}
+.diary-title mark {
+  background: linear-gradient(transparent 56%, rgba(240, 202, 122, 0.6) 56%);
+  color: inherit;
+  padding: 0 3px;
+  border-radius: 2px;
+}
+
+.diary-sub {
+  max-width: 30ch;
+  margin: 0 auto 22px;
+  color: var(--muted);
+  font-size: 14.5px;
+  line-height: 1.75;
+}
+
+/* 검색 줄 */
+.diary-search {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+.diary-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 264px;
+  padding: 0 16px;
+  min-height: 50px;
+  border: 1.5px solid var(--ink-line);
+  border-radius: 12px;
+  background: var(--paper-strong);
+}
+.diary-field span {
+  font-family: Gaegu, sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.diary-field input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: none;
+  outline: none;
+  color: var(--ink);
+  font-weight: 700;
+  font-size: 16px;
+}
+.diary-start {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 22px;
+  min-height: 50px;
+  border: 1.5px solid var(--amber-dark);
+  border-radius: 12px;
+  background: var(--amber);
+  color: #4a2f14;
+  font-family: Gaegu, sans-serif;
+  font-weight: 700;
+  font-size: 17px;
+  box-shadow: 0 4px 0 var(--amber-dark);
+}
+.diary-start:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 var(--amber-dark);
+}
+
+/* 인기 목적지 카드 */
+.diary-cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.diary-card {
+  position: relative;
+  padding: 8px 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--paper-strong);
+  box-shadow: 0 6px 14px -9px rgba(75, 55, 34, 0.35);
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+/* 처음엔 모든 카드가 같은 모습 — 강조는 마우스를 올리거나 키보드 포커스가 갔을 때만. */
+.diary-card:hover,
+.diary-card:focus-visible {
+  border-color: var(--amber-dark);
+  box-shadow: 0 0 0 2px rgba(169, 113, 58, 0.28);
+  transform: translateY(-2px);
+}
+.diary-card-photo {
+  display: block;
+  height: 74px;
+  border-radius: 6px;
+  background: linear-gradient(160deg, var(--kraft-deep), var(--sage));
+  background-size: cover;
+  background-position: center;
+}
+.diary-card b {
+  display: block;
+  margin-top: 7px;
+  font-family: Gaegu, sans-serif;
+  font-size: 15px;
+}
+.diary-card-heart {
+  position: absolute;
+  right: 10px;
+  bottom: 8px;
+  color: var(--coral);
+  font-size: 12px;
+}
+.diary-more {
+  display: block;
+  margin: 4px auto 0;
+  border: 0;
+  background: none;
+  color: var(--amber-dark);
+  font-family: Gaegu, sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.diary-rule {
+  margin: 26px 0 20px;
+  border: 0;
+  border-top: 2px dashed var(--line);
+}
+
+.diary-h2 {
+  margin: 0 0 4px;
+  font-family: Jua, Gaegu, sans-serif;
+  font-weight: 400;
+  font-size: clamp(21px, 2.6vw, 27px);
+  color: var(--ink);
+}
+.diary-h2 mark {
+  background: linear-gradient(transparent 58%, rgba(240, 202, 122, 0.6) 58%);
+  color: inherit;
+  padding: 0 4px;
+}
+.diary-example {
+  margin: 0 0 18px;
+  color: var(--muted);
+  font-family: Gaegu, sans-serif;
+  font-size: 13px;
+}
+
+/* 추천 코스 스트립 */
+.diary-route {
+  position: relative;
+  list-style: none;
+  margin: 0 0 24px;
+  padding: 0 6px 4px;
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: center;
+  gap: 0;
+  overflow-x: auto;
+}
+.diary-route::before {
+  content: "";
+  position: absolute;
+  top: 21px;
+  left: 52px;
+  right: 52px;
+  border-top: 2px dashed var(--ink-line);
+  z-index: 0;
+}
+.diary-step {
+  position: relative;
+  z-index: 1;
+  flex: 0 0 auto;
+  width: 96px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+.diary-step-icon {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: 1.5px solid var(--line);
+  border-radius: 50%;
+  background: var(--paper);
+  font-size: 20px;
+}
+.diary-step b {
+  font-family: Gaegu, sans-serif;
+  font-size: 13px;
+  color: var(--amber-dark);
+}
+.diary-step span {
+  font-size: 11.5px;
+  line-height: 1.25;
+  color: var(--muted);
+}
+
+/* 필수 방문 */
+.diary-must {
+  margin-top: 6px;
+  padding: 16px;
+  text-align: left;
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+  background: rgba(241, 230, 211, 0.4);
+}
+.diary-must-head b {
+  font-family: Gaegu, sans-serif;
+  font-size: 15px;
+}
+.diary-must-head span {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.diary-must-input {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+.diary-must-input input {
+  flex: 1;
+  min-width: 0;
+  padding: 0 12px;
+  min-height: 42px;
+  border: 1.5px solid var(--ink-line);
+  border-radius: 10px;
+  background: var(--paper-strong);
+  color: var(--ink);
+  font-size: 14px;
+}
+.diary-must-input button {
+  padding: 0 16px;
+  min-height: 42px;
+  border: 1.5px solid var(--amber-dark);
+  border-radius: 10px;
+  background: var(--amber);
+  color: #4a2f14;
+  font-family: Gaegu, sans-serif;
+  font-weight: 700;
+  cursor: pointer;
+}
+.diary-must-tags {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.diary-must-tags li {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 6px 3px 10px;
+  border-radius: 999px;
+  background: var(--kraft-deep);
+  font-size: 12.5px;
+  font-weight: 700;
+}
+.diary-must-tags button {
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+@media (max-width: 620px) {
+  .diary-cards { grid-template-columns: repeat(2, 1fr); }
+  .diary-route::before { display: none; }
+}
+
+/* Reference-style scrapbook home */
+.app {
+  background:
+    linear-gradient(rgba(255, 251, 243, 0.7), rgba(255, 251, 243, 0.7)),
+    #f2e4ce;
+}
+
+.edge-bg {
+  top: 0;
+  opacity: 1;
+  /* 가운데 흰 판(.app-stage: 폭 1140px, 화면 중앙 고정)의 바깥 여백을 소품으로 꽉 채운다.
+     한쪽 여백 = (100vw - 1140px) / 2 = 50vw - 570px.  -535px 로 잡아 35px 은 흰 판
+     밑으로 겹쳐, 소품이 흰 박스에 확실히 닿게 한다. 이미지는 안쪽 크림 여백을 잘라내
+     '소품 기둥'만 남긴 상태라, cover 로 이 폭을 채우면 소품이 판까지 이어진다. */
+  width: max(340px, calc(50vw - 535px));
+  /* cover: 요소를 가로·세로 모두 꽉 채운다(넘치는 쪽만 잘림). 폭을 키운 만큼 소품도 커지고
+     안쪽에 크림 여백이 생기지 않는다. */
+  background-size: cover;
+}
+
+.edge-bg-left {
+  background-position: left top;
+  -webkit-mask-image: linear-gradient(to right, #000 97%, transparent 100%);
+  mask-image: linear-gradient(to right, #000 97%, transparent 100%);
+}
+
+.edge-bg-right {
+  background-position: right top;
+  -webkit-mask-image: linear-gradient(to left, #000 97%, transparent 100%);
+  mask-image: linear-gradient(to left, #000 97%, transparent 100%);
+}
+
+.app-stage {
+  width: 100%;
+  max-width: none;
+  min-height: 100vh;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.topbar {
+  min-height: 70px;
+  padding: 0 clamp(18px, 8vw, 118px);
+  border-bottom: 0;
+  border-radius: 0;
+  background: transparent;
+  grid-template-columns: minmax(160px, auto) 1fr minmax(180px, auto);
+}
+
+.brand {
+  gap: 9px;
+  font-size: 28px;
+  color: #221811;
+}
+
+.brand-mark {
+  width: 34px;
+  height: 34px;
+  background: #f5eadb;
+  box-shadow: none;
+}
+
+.nav-links {
+  gap: clamp(14px, 2.4vw, 30px);
+}
+
+/* 상단 메뉴 — 더 크고 또렷하게. 올리면 알약 배경, 현재 메뉴는 앰버 알약으로 채움. */
+.nav-links button {
+  min-height: 44px;
+  padding: 6px 16px;
+  border-radius: 999px;
+  color: #1c140d;
+  font-size: 22px;
+  font-weight: 700;
+  transition: background 0.14s ease, color 0.14s ease;
+}
+
+.nav-links button:hover {
+  background: rgba(238, 161, 95, 0.18);
+  color: var(--amber-dark);
+}
+
+.nav-links button.active {
+  background: #efb579;
+  color: #241a10;
+}
+
+.nav-links button.active::before {
+  opacity: 0;
+}
+
+.nav-links button.active::after {
+  content: none;
+}
+
+.auth-button {
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1.5px solid rgba(33, 24, 18, 0.72);
+  border-radius: 6px;
+  background: #fffdf8;
+  box-shadow: none;
+  color: #211812;
+  font-family: Jua, Pretendard, sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+}
+
+.sketch-home {
+  min-height: calc(100vh - 58px);
+  padding: 21px clamp(18px, 28vw, 390px) 0;
+}
+
+/* 손으로 뜬 종이 한 장 — 실제 종이는 테두리 선이 아니라 '찢긴 가장자리 + 섬유 질감'으로 읽힌다.
+   본문(.diary-page)은 테두리·배경을 비우고, 뒤에 깔리는 ::before 한 겹이 종이 자체를 그린다.
+   질감·찢긴 결을 ::before 로 분리해야 displacement 필터가 본문 글자를 일그러뜨리지 않는다. */
+.diary-page {
+  width: min(100%, 810px);
+  max-width: 810px;
+  margin: 0 auto;
+  padding: 34px 52px 38px;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  isolation: isolate; /* ::before(z-index:-1)가 상위 배경 뒤로 빠지지 않도록 */
+}
+
+.diary-page::before {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  z-index: -1;
+  /* 얼룩(라디얼) + 굵은 섬유 결 + 미세 그레인을 따뜻한 종이색 위에 겹친다. */
+  background:
+    radial-gradient(ellipse 55% 40% at 12% 14%, rgba(146, 114, 72, 0.07), transparent 70%),
+    radial-gradient(ellipse 60% 45% at 88% 84%, rgba(146, 114, 72, 0.06), transparent 70%),
+    radial-gradient(ellipse 45% 35% at 74% 8%, rgba(146, 114, 72, 0.05), transparent 70%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='fiber'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.34' numOctaves='3' stitchTiles='stitch' result='t'/%3E%3CfeColorMatrix in='t' type='matrix' values='0 0 0 0 0.46 0 0 0 0 0.37 0 0 0 0 0.24 0 0 0 0.26 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23fiber)'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='grain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch' result='t'/%3E%3CfeColorMatrix in='t' type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23grain)' opacity='0.11'/%3E%3C/svg%3E"),
+    #f8f3e9;
+  /* 찢긴 가장자리: 난류로 흐트러뜨린 사각형을 마스크로 써서 네 변을 거칠게 깎아 낸다. */
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='840' height='1000' preserveAspectRatio='none'%3E%3Cfilter id='deckle' x='-8%25' y='-8%25' width='116%25' height='116%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.013 0.021' numOctaves='5' seed='11' result='t'/%3E%3CfeDisplacementMap in='SourceGraphic' in2='t' scale='26' xChannelSelector='R' yChannelSelector='G'/%3E%3C/filter%3E%3Crect x='16' y='16' width='808' height='968' fill='%23fff' filter='url(%23deckle)'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='840' height='1000' preserveAspectRatio='none'%3E%3Cfilter id='deckle' x='-8%25' y='-8%25' width='116%25' height='116%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.013 0.021' numOctaves='5' seed='11' result='t'/%3E%3CfeDisplacementMap in='SourceGraphic' in2='t' scale='26' xChannelSelector='R' yChannelSelector='G'/%3E%3C/filter%3E%3Crect x='16' y='16' width='808' height='968' fill='%23fff' filter='url(%23deckle)'/%3E%3C/svg%3E");
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  /* box-shadow 는 사각형을 따라가므로, 찢긴 실루엣을 따르는 drop-shadow 로. */
+  filter: drop-shadow(2px 5px 9px rgba(71, 53, 36, 0.18));
+  pointer-events: none;
+}
+
+.diary-clip {
+  left: 34px;
+  top: -10px;
+  width: 25px;
+  height: 56px;
+  transform: rotate(-8deg);
+}
+
+.diary-doodle {
+  position: absolute;
+  color: #be6458;
+  font-family: Gaegu, sans-serif;
+  font-size: 31px;
+  pointer-events: none;
+}
+
+.diary-doodle.star-one {
+  right: 123px;
+  top: 77px;
+  color: #c7a35e;
+  transform: rotate(13deg);
+}
+
+.diary-doodle.heart-one {
+  right: 84px;
+  top: 54px;
+  color: #cf695f;
+  transform: rotate(-10deg);
+}
+
+.diary-doodle.heart-two {
+  right: 205px;
+  top: 190px;
+  color: #c88788;
+  font-size: 25px;
+}
+
+.diary-eyebrow {
+  margin: 3px 0 4px;
+  color: #4d6289;
+  font-size: 23px;
+}
+
+.diary-title {
+  margin-bottom: 7px;
+  font-size: clamp(38px, 3.55vw, 48px);
+  line-height: 1.12;
+  color: #211812;
+}
+
+.diary-title mark,
+.diary-h2 mark {
+  background: linear-gradient(transparent 61%, rgba(234, 191, 111, 0.62) 61%);
+}
+
+.diary-sub {
+  max-width: none;
+  margin-bottom: 21px;
+  color: #211812;
+  font-family: Jua, Pretendard, sans-serif;
+  font-size: 17px;
+  line-height: 1.55;
+}
+
+.diary-search {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 198px;
+  gap: 14px;
+  max-width: 650px;
+  margin: 0 auto 9px;
+}
+
+.diary-field {
+  min-width: 0;
+  min-height: 52px;
+  border-color: rgba(33, 24, 18, 0.82);
+  border-radius: 8px;
+  background: #fffefa;
+}
+
+.diary-field span {
+  color: #211812;
+  font-family: Jua, Pretendard, sans-serif;
+  font-size: 17px;
+}
+
+.diary-field input {
+  color: #211812;
+  font-family: Jua, Pretendard, sans-serif;
+  font-size: 18px;
+  font-weight: 400;
+}
+
+/* 브라우저 기본 플레이스홀더는 여기서 꽤 진하게 나와 '입력된 값'처럼 읽힌다. 확실히 더 옅게. */
+.diary-field input::placeholder {
+  color: rgba(33, 24, 18, 0.38);
+  opacity: 1; /* Firefox 는 기본 opacity 를 따로 먹인다 */
+}
+
+.diary-start {
+  min-height: 52px;
+  border-color: rgba(33, 24, 18, 0.82);
+  border-radius: 8px;
+  background: #efb579;
+  box-shadow: 2px 3px 0 rgba(82, 54, 34, 0.18);
+  color: #211812;
+  font-family: Jua, Pretendard, sans-serif;
+  font-size: 20px;
+  font-weight: 400;
+}
+
+.diary-cards {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 11px;
+  max-width: 650px;
+  margin: 0 auto 20px;
+}
+
+/* 도시 카드도 시트와 같은 결의 '작은 종이 조각' — 테두리 선 대신 찢긴 가장자리로. */
+.diary-card {
+  padding: 9px 10px 11px;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  isolation: isolate;
+}
+
+.diary-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='cardgrain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch' result='t'/%3E%3CfeColorMatrix in='t' type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23cardgrain)' opacity='0.09'/%3E%3C/svg%3E"),
+    #fdfbf4;
+  /* 시트보다 작으므로 결도 더 잘게 — 난류 주기와 displacement 를 카드 크기에 맞춰 줄였다. */
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='150' preserveAspectRatio='none'%3E%3Cfilter id='cardDeckle' x='-10%25' y='-10%25' width='120%25' height='120%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.05 0.07' numOctaves='4' seed='3' result='t'/%3E%3CfeDisplacementMap in='SourceGraphic' in2='t' scale='8' xChannelSelector='R' yChannelSelector='G'/%3E%3C/filter%3E%3Crect x='5' y='5' width='190' height='140' fill='%23fff' filter='url(%23cardDeckle)'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='150' preserveAspectRatio='none'%3E%3Cfilter id='cardDeckle' x='-10%25' y='-10%25' width='120%25' height='120%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.05 0.07' numOctaves='4' seed='3' result='t'/%3E%3CfeDisplacementMap in='SourceGraphic' in2='t' scale='8' xChannelSelector='R' yChannelSelector='G'/%3E%3C/filter%3E%3Crect x='5' y='5' width='190' height='140' fill='%23fff' filter='url(%23cardDeckle)'/%3E%3C/svg%3E");
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  filter: drop-shadow(1px 2px 4px rgba(71, 53, 36, 0.22));
+  transition: filter 0.15s ease, background-color 0.15s ease;
+  pointer-events: none;
+}
+
+/* 테두리가 없으니 강조는 '살짝 들리고 그림자가 깊어지는' 것으로. 사각형 링은 쓰지 않는다. */
+.diary-card:hover,
+.diary-card:focus-visible {
+  box-shadow: none;
+}
+.diary-card:hover::before,
+.diary-card:focus-visible::before {
+  background-color: #fff6e6;
+  filter: drop-shadow(1px 5px 9px rgba(71, 53, 36, 0.32));
+}
+
+.diary-card-photo {
+  height: 65px;
+  border: 1px solid rgba(120, 96, 66, 0.28);
+  border-radius: 4px;
+}
+
+.diary-card b {
+  margin-top: 6px;
+  color: #211812;
+  font-family: Jua, Pretendard, sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+}
+
+.diary-card-heart {
+  right: 8px;
+  bottom: 6px;
+  color: #6e5541;
+  font-size: 17px;
+}
+
+.diary-rule {
+  max-width: 650px;
+  margin: 14px auto 18px;
+  border-top: 1.5px solid rgba(33, 24, 18, 0.32);
+}
+
+.diary-h2 {
+  margin-bottom: 18px;
+  color: #080807;
+  font-size: clamp(29px, 3vw, 37px);
+}
+
+.diary-example {
+  display: none;
+}
+
+.diary-route {
+  max-width: 650px;
+  margin: 0 auto;
+  padding-bottom: 4px;
+}
+
+.diary-route::before {
+  top: 24px;
+  left: 67px;
+  right: 67px;
+  border-top-color: rgba(33, 24, 18, 0.84);
+}
+
+/* "이 코스로 시작하기" — 상단 "여행 시작하기" 버튼과 동일한 스타일. */
+.diary-today-go {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: fit-content;
+  margin: 16px auto 4px;
+  padding: 0 24px;
+  min-height: 52px;
+  border: 1.5px solid var(--amber-dark);
+  border-radius: 8px;
+  background: #efb579;
+  box-shadow: 2px 3px 0 rgba(82, 54, 34, 0.18);
+  color: #211812;
+  font-family: Jua, Pretendard, sans-serif;
+  font-size: 20px;
+  font-weight: 400;
+  transition: transform 0.14s ease, box-shadow 0.14s ease;
+}
+.diary-today-go span {
+  display: inline-block;
+  transition: transform 0.14s ease;
+}
+.diary-today-go:hover span {
+  transform: translateX(4px);
+}
+.diary-today-go:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 var(--amber-dark);
+}
+
+.diary-step {
+  width: 124px;
+}
+
+.diary-step-icon {
+  width: 52px;
+  height: 52px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  font-size: 34px;
+}
+
+.diary-step b {
+  color: #080807;
+  font-family: Jua, Pretendard, sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+}
+
+.diary-step span {
+  color: #080807;
+  font-family: Jua, Pretendard, sans-serif;
+  font-size: 15px;
+}
+
+/* "오늘은 · OO 하루 코스" — 아래 시간대 라벨(.diary-step)과 같은 글씨체로 통일 */
+.diary-today-city {
+  margin: 0 0 4px;
+  color: #080807;
+  font-family: Jua, Pretendard, sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  text-align: center;
+}
+
+.diary-must {
+  max-width: 650px;
+  margin: 18px auto 0;
+  padding: 12px;
+  border-radius: 8px;
+}
+
+/* 홈 외 화면들도 좌우 고정 이미지에 글자가 안 걸치도록 안쪽 여백을 준다. */
+.dates-screen,
+.budget-screen,
+.themes-screen,
+.origin-screen,
+.destinations-screen,
+.signup-screen,
+.course-screen {
+  /* 코스 화면만 목업처럼 좌우로 꽉 차게 — 여백을 최소로. */
+  padding-inline: clamp(20px, 4vw, 60px);
+}
+
+/* 코스 화면에서는 양옆 소품 배경을 걷어내 본문이 화면 끝까지 오도록. */
+.app:has(.course-screen) .edge-bg {
+  display: none;
+}
+
+@media (max-width: 1180px) {
+  .edge-bg {
+    display: block;
+    width: clamp(150px, 24vw, 320px);
+    opacity: 0.4;
+  }
+
+  .sketch-home,
+  .dates-screen,
+  .budget-screen,
+  .themes-screen,
+  .origin-screen,
+  .destinations-screen,
+  .signup-screen,
+  .course-screen {
+    padding-inline: clamp(16px, 3vw, 40px);
+  }
+}
+
+@media (max-width: 760px) {
+  .topbar {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 10px 18px;
+  }
+
+  .nav-links,
+  .top-actions {
+    justify-content: center;
+  }
+
+  .sketch-home {
+    padding: 14px 12px 0;
+  }
+
+  .diary-page {
+    min-height: 0;
+    padding: 30px 16px 20px;
+  }
+
+  .diary-title {
+    font-size: 34px;
+  }
+
+  .diary-search {
+    grid-template-columns: 1fr;
+  }
+
+  .diary-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+}
+
+/* (버튼 라벨을 CSS content 로 덮어쓰던 해킹 제거 —
+   로그인/로그아웃·다크/라이트 처럼 상태에 따라 바뀌는 글자를 고정시켜 버렸었다.) */
+
+/* 목적지 화면: 카드 아래 지역별 글 목록 */
+.dest-section-title {
+  max-width: 1100px;
+  margin: 28px auto 12px;
+  font-family: Gaegu, Jua, sans-serif;
+  font-weight: 700;
+  font-size: 21px;
+  color: var(--ink);
+}
+.dest-section-title:first-of-type {
+  margin-top: 0;
+}
+/* 지역 대분류 탭 — 다이어리 인덱스 탭처럼 아래 선 위에 얹힌 모양 */
+.dest-region-tabs {
+  max-width: 1100px;
+  margin: 0 auto 18px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  border-bottom: 2px solid var(--line);
+}
+.dest-region-tabs button {
+  border: 1.5px solid transparent;
+  border-bottom: 0;
+  background: none;
+  padding: 9px 20px;
+  border-radius: 12px 12px 0 0;
+  color: var(--ink);
+  opacity: 0.72;
+  font-family: Gaegu, Jua, sans-serif;
+  font-weight: 700;
+  font-size: 19px;
+  cursor: pointer;
+  transform: translateY(2px);
+  transition: color 0.14s ease, background 0.14s ease, opacity 0.14s ease;
+}
+.dest-region-tabs button:hover {
+  color: var(--ink);
+  opacity: 1;
+}
+.dest-region-tabs button.is-active {
+  color: var(--ink);
+  opacity: 1;
+  background: var(--paper-strong);
+  border-color: var(--line);
+  box-shadow: 0 -3px 8px rgba(90, 72, 52, 0.08);
+}
+
+/* 선택한 지역의 도시들 — 다이어리에 붙인 둥근 라벨 스티커(칩) */
+.dest-region-list {
+  max-width: 1100px;
+  margin: 6px auto 0;
+  list-style: none;
+  padding: 6px 2px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 13px 15px;
+}
+.dest-region-list li {
+  display: inline-flex;
+}
+.dest-region-list li button {
+  --tilt: -1.6deg;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 18px;
+  border: 1.5px solid var(--ink-line);
+  border-radius: 999px;
+  background: var(--paper-strong);
+  color: var(--ink);
+  font-family: Gaegu, Pretendard, sans-serif;
+  font-weight: 700;
+  font-size: 17px;
+  cursor: pointer;
+  box-shadow: 2px 3px 0 rgba(90, 72, 52, 0.16);
+  transform: rotate(var(--tilt));
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+.dest-region-list li:nth-child(even) button { --tilt: 1.6deg; }
+.dest-region-list li:nth-child(3n) button { --tilt: -0.6deg; }
+.dest-region-list li:nth-child(5n) button { --tilt: 1deg; }
+/* 라벨 앞 작은 스탬프/핀 점 */
+.dest-region-list li button::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--amber);
+  box-shadow: inset 0 0 0 1.5px rgba(90, 72, 52, 0.4);
+}
+.dest-region-list li button:hover {
+  transform: rotate(0) translateY(-3px);
+  box-shadow: 3px 6px 0 rgba(90, 72, 52, 0.22);
+  background: rgba(240, 202, 122, 0.22);
+}
+.dest-region-list li button:focus-visible {
+  outline: 2px solid var(--amber-dark);
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .dest-region-list li button,
+  .dest-region-list li button:hover { transform: none; transition: none; }
+}
+

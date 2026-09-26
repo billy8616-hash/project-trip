@@ -1,0 +1,736 @@
+/* ─────────────────────────────────────────────────────────────
+   04-signup.css — 회원가입 화면
+   (index.css 에서 쪼갠 파일. 원래 index.css 2534~3264번째 줄이었다.)
+   ───────────────────────────────────────────────────────────── */
+
+/* ═══ 회원가입 화면 ═════════════════════════════════════════════════════ */
+
+.signup-screen {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  justify-content: center;
+  min-height: calc(100vh - 72px);
+  padding: 48px 6% 80px;
+}
+
+.signup-card {
+  width: min(640px, 100%);
+  padding: clamp(24px, 4vw, 44px);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper-strong);
+  box-shadow: 0 26px 60px rgba(12, 24, 40, 0.22);
+}
+
+.signup-card h1 {
+  margin: 14px 0 6px;
+  font-family: Jua, sans-serif;
+  font-size: clamp(30px, 5vw, 42px);
+}
+
+.signup-lead {
+  margin: 0 0 24px;
+  color: var(--muted);
+  font-weight: 700;
+  line-height: 1.6;
+}
+
+.signup-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.signup-form label {
+  display: grid;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.signup-form label.full,
+.signup-form .full {
+  grid-column: 1 / -1;
+}
+
+.signup-form input,
+.signup-form select {
+  min-height: 46px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+  background: var(--paper);
+  outline: 0;
+}
+
+.signup-form input:focus,
+.signup-form select:focus {
+  border-color: var(--amber);
+  box-shadow: 0 0 0 3px rgba(199, 119, 34, 0.16);
+}
+
+.signup-form .req {
+  color: var(--coral);
+}
+
+.signup-form .optional {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.signup-submit {
+  min-height: 54px;
+  border: 0;
+  border-radius: 8px;
+  color: #fffaf0;
+  background: linear-gradient(180deg, var(--amber), var(--amber-dark));
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 232, 180, 0.35),
+    0 12px 20px rgba(141, 75, 20, 0.28);
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.signup-submit:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
+
+@media (max-width: 620px) {
+  .signup-form {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ============================================================
+   손그림 여행 저널 테마 (hand-drawn travel-journal skin)
+   ============================================================ */
+
+.app {
+  --ink: #3a2a1a;
+  --muted: #7a6a52;
+  --paper: #fffdf7;
+  --paper-strong: #ffffff;
+  --line: rgba(58, 42, 26, 0.28);
+  --amber: #e79a55;
+  --amber-dark: #c9752f;
+  --coral: #e2604f;
+  --sage: #7f9e6a;
+  --sky: #6f9bb5;
+  color: var(--ink);
+  background:
+    radial-gradient(
+      circle at 12% 8%,
+      rgba(232, 196, 140, 0.2),
+      transparent 32%
+    ),
+    radial-gradient(
+      circle at 88% 92%,
+      rgba(150, 190, 170, 0.16),
+      transparent 36%
+    ),
+    #f5efe0;
+}
+
+.app::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.6;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0.4 0 0 0 0 0.32 0 0 0 0 0.2 0 0 0 0.06 0'/%3E%3C/filter%3E%3Crect width='150' height='150' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.app {
+  position: relative;
+}
+/* 예전 전체 화면 테두리 프레임은 제거 — .app-stage 크림 판이 그 역할을 대신하고,
+   프레임 윗변이 상단바를 가로지르는 "검은 줄"이 됐었다. */
+
+.topbar {
+  gap: 32px;
+  background: transparent;
+  backdrop-filter: none;
+  border-bottom: 0;
+  box-shadow: none;
+  border-radius: 0;
+  color: var(--ink);
+  padding: 18px clamp(16px, 4vw, 40px) 10px;
+  min-height: 64px;
+}
+.brand {
+  gap: 14px;
+  color: var(--amber-dark);
+  font-family: Gaegu, sans-serif;
+  font-weight: 700;
+  font-size: 42px;
+  transform: rotate(-1.5deg);
+}
+.brand-mark {
+  width: 54px;
+  height: 54px;
+  border: 3.5px solid var(--amber);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 50%, var(--amber) 0 20%, transparent 22%),
+    conic-gradient(
+      from 0deg,
+      var(--amber) 0 10%,
+      transparent 10% 25%,
+      var(--amber) 25% 35%,
+      transparent 35% 50%,
+      var(--amber) 50% 60%,
+      transparent 60% 75%,
+      var(--amber) 75% 85%,
+      transparent 85%
+    );
+  font-size: 0;
+}
+.nav-links {
+  gap: 46px;
+}
+.nav-links button {
+  min-height: 48px;
+  color: var(--ink);
+  font-family: Gaegu, sans-serif;
+  font-weight: 700;
+  font-size: 23px;
+  letter-spacing: 1px;
+}
+.nav-links button.active {
+  color: var(--amber-dark);
+}
+.nav-links button.active::after {
+  width: 42px;
+  height: 5px;
+  background: var(--amber);
+}
+
+.auth-button {
+  min-width: auto;
+  min-height: 50px;
+  padding: 0 24px;
+  border: 2.5px solid var(--line);
+  border-radius: 24px 20px 26px 18px;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: Gaegu, sans-serif;
+  font-weight: 700;
+  font-size: 18px;
+  box-shadow: 2px 3px 0 rgba(58, 42, 26, 0.16);
+}
+.auth-button:hover {
+  background: #fff4e2;
+}
+.user-email {
+  color: var(--muted);
+  font-size: 15px;
+}
+
+.home {
+  padding: 30px 7% 72px;
+  z-index: 1;
+}
+.home::before,
+.home::after {
+  content: none;
+}
+
+.hero-panel {
+  width: min(900px, 100%);
+  margin: 8px auto 0;
+  padding: 40px 46px 34px;
+  border: 2px solid var(--line);
+  border-radius: 10px 8px 12px 7px;
+  background: var(--paper-strong);
+  box-shadow:
+    6px 8px 0 rgba(58, 42, 26, 0.12),
+    0 22px 44px rgba(87, 56, 25, 0.14);
+  transform: rotate(-0.5deg);
+}
+.hero-panel::before,
+.hero-panel::after {
+  content: "";
+  position: absolute;
+  top: -15px;
+  width: 118px;
+  height: 30px;
+  background: rgba(232, 196, 140, 0.55);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+}
+.hero-panel::before {
+  left: 44px;
+  transform: rotate(-6deg);
+}
+.hero-panel::after {
+  right: 54px;
+  background: rgba(150, 190, 170, 0.5);
+  transform: rotate(5deg);
+}
+
+.eyebrow {
+  color: var(--amber-dark);
+  font-family: "Nanum Pen Script", Gaegu, sans-serif;
+  font-size: 22px;
+  font-weight: 400;
+  letter-spacing: 0.5px;
+}
+.hero-panel h1 {
+  font-family: Gaegu, sans-serif;
+  font-weight: 700;
+  font-size: 46px;
+  line-height: 1.24;
+  color: var(--ink);
+}
+.hero-copy {
+  font-family: Gaegu, Pretendard, sans-serif;
+  font-size: 17px;
+  color: var(--muted);
+}
+
+.hero-search label {
+  position: relative;
+  grid-template-columns: auto 1fr auto;
+  border: 2px solid var(--line);
+  border-radius: 32px;
+  background: var(--paper-strong);
+  box-shadow: 3px 4px 0 rgba(58, 42, 26, 0.1);
+}
+.hero-search span {
+  color: var(--amber-dark);
+  font-family: Gaegu, sans-serif;
+}
+.search-icon {
+  width: 22px;
+  height: 22px;
+  color: var(--muted);
+}
+.hero-search button {
+  border: 2px solid var(--line);
+  border-radius: 30px;
+  background: var(--amber);
+  color: #3a2a1a;
+  box-shadow: 3px 4px 0 rgba(58, 42, 26, 0.16);
+  font-family: Gaegu, sans-serif;
+  font-weight: 700;
+  font-size: 20px;
+}
+.hero-search button:hover {
+  background: #efa869;
+}
+
+.map-stage {
+  position: relative;
+  width: min(760px, 100%);
+  margin: 24px auto 26px;
+}
+.korea-map {
+  max-width: none;
+  border: 2.5px solid var(--sky);
+  border-radius: 12px;
+  background: #eef4f1;
+  box-shadow: 4px 6px 0 rgba(58, 42, 26, 0.1);
+}
+.map-callout {
+  position: absolute;
+  top: -24px;
+  right: -18px;
+  z-index: 5;
+  padding: 10px 16px;
+  border: 2px solid var(--line);
+  border-radius: 18px 18px 18px 4px;
+  background: var(--paper-strong);
+  box-shadow: 2px 3px 0 rgba(58, 42, 26, 0.14);
+  color: var(--ink);
+  font-family: Gaegu, sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  line-height: 1.35;
+  text-align: center;
+  transform: rotate(3deg);
+}
+
+.destination-cards {
+  max-width: 720px;
+  gap: 18px;
+}
+.destination-card {
+  padding: 9px 9px 30px;
+  border: 1px solid rgba(58, 42, 26, 0.22);
+  border-radius: 3px;
+  background: #fffdf7;
+  box-shadow:
+    3px 5px 0 rgba(58, 42, 26, 0.12),
+    0 12px 22px rgba(48, 35, 21, 0.14);
+}
+.destination-card:nth-child(odd) {
+  transform: rotate(-1.6deg);
+}
+.destination-card:nth-child(even) {
+  transform: rotate(1.6deg);
+}
+.destination-card:hover {
+  transform: rotate(0) translateY(-3px);
+}
+.destination-card b {
+  font-family: "Nanum Pen Script", Gaegu, sans-serif;
+  font-weight: 400;
+  font-size: 24px;
+}
+
+.chip,
+.segment button {
+  border: 2px solid var(--line);
+  border-radius: 20px 16px 22px 14px;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: Gaegu, sans-serif;
+  font-weight: 700;
+}
+.chip.selected,
+.segment button.selected {
+  border-color: var(--amber-dark);
+  color: var(--amber-dark);
+  background: #fff2df;
+}
+.segment {
+  border: 2px solid var(--line);
+  border-radius: 12px 10px 14px 8px;
+  background: rgba(255, 253, 247, 0.7);
+}
+.segment legend {
+  font-family: Gaegu, sans-serif;
+}
+
+.decor {
+  position: absolute;
+  z-index: 0;
+  pointer-events: none;
+}
+.decor-camera {
+  left: -1%;
+  top: 80px;
+  width: 450px;
+  transform: rotate(-15deg);
+}
+.decor-bag {
+  left: 0.5%;
+  top: 800px;
+  width: 250px;
+  transform: rotate(7deg);
+}
+.polaroid {
+  width: 168px;
+  margin: 0;
+  padding: 9px 9px 8px;
+  background: #fffdf7;
+  border: 1px solid rgba(58, 42, 26, 0.22);
+  box-shadow:
+    3px 5px 0 rgba(58, 42, 26, 0.12),
+    0 12px 22px rgba(48, 35, 21, 0.16);
+}
+.polaroid svg {
+  display: block;
+  width: 100%;
+  border-radius: 2px;
+}
+.polaroid figcaption {
+  margin-top: 6px;
+  color: #3a2a1a;
+  font-family: "Nanum Pen Script", Gaegu, sans-serif;
+  font-size: 17px;
+  text-align: center;
+}
+.pol-gyeongju {
+  right: 1.5%;
+  top: 92px;
+  transform: rotate(4deg);
+}
+.pol-busan {
+  right: 2.5%;
+  top: 300px;
+  transform: rotate(-5deg);
+}
+
+@media (max-width: 1280px) {
+  .decor {
+    display: none;
+  }
+}
+@media (max-width: 720px) {
+  .hero-panel {
+    padding: 30px 22px 26px;
+  }
+  .hero-panel h1 {
+    font-size: 34px;
+  }
+  .map-callout {
+    font-size: 13px;
+    top: -18px;
+    right: 6px;
+  }
+}
+
+.course-header h1,
+.map-toolbar h2,
+.timeline h2,
+.score-card h2,
+.detail-card h2 {
+  font-family: Gaegu, sans-serif;
+}
+.route-map-card,
+.timeline,
+.score-card,
+.detail-card {
+  border: 2px solid var(--line);
+  border-radius: 12px 10px 14px 9px;
+  background: var(--paper);
+  box-shadow: 4px 6px 0 rgba(58, 42, 26, 0.1);
+}
+.course-actions button,
+.signup-submit,
+.auth-card form > button {
+  border: 2px solid var(--line);
+  border-radius: 24px;
+  background: var(--amber);
+  color: #3a2a1a;
+  box-shadow: 3px 4px 0 rgba(58, 42, 26, 0.16);
+  font-family: Gaegu, sans-serif;
+}
+
+/* 화면 전환: 현재 본문 슬라이드 아웃 / 다음 화면 슬라이드 인 */
+.home.is-leaving,
+.sketch-home.is-leaving,
+.destinations-screen.is-leaving,
+.dates-screen.is-leaving,
+.themes-screen.is-leaving,
+.budget-screen.is-leaving,
+.origin-screen.is-leaving,
+.mytrips-screen.is-leaving,
+.course-screen.is-leaving {
+  animation: homeSlideOut 0.38s ease forwards;
+  pointer-events: none;
+}
+@keyframes homeSlideOut {
+  to {
+    transform: translateX(-8%);
+    opacity: 0;
+  }
+}
+.course-screen,
+.sketch-home {
+  animation: courseSlideIn 0.44s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+@keyframes courseSlideIn {
+  from {
+    transform: translateX(14%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .home.is-leaving,
+  .sketch-home.is-leaving,
+  .destinations-screen.is-leaving,
+  .dates-screen.is-leaving,
+  .themes-screen.is-leaving,
+  .budget-screen.is-leaving,
+  .origin-screen.is-leaving,
+  .mytrips-screen.is-leaving,
+  .course-screen.is-leaving {
+    animation: none;
+    opacity: 0;
+  }
+  .course-screen,
+  .sketch-home,
+  .destinations-screen,
+  .dates-screen,
+  .themes-screen,
+  .budget-screen,
+  .origin-screen {
+    animation: none;
+  }
+}
+
+/* 여행지 카탈로그 화면 */
+.destinations-screen {
+  position: relative;
+  z-index: 1;
+  padding: 30px 7% 72px;
+  animation: courseSlideIn 0.44s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+.dest-header {
+  max-width: 1100px;
+  margin: 0 auto 24px;
+}
+/* 좌우 고정 배경 그림(.edge-bg)이 보이는 넓은 화면에서는 제목·본문이
+   그 그림과 겹치지 않도록 콘텐츠를 안쪽으로 더 밀어 준다. */
+@media (min-width: 1160px) {
+  .destinations-screen,
+  .origin-screen {
+    padding-left: clamp(170px, 19vw, 320px);
+    padding-right: clamp(170px, 19vw, 320px);
+  }
+}
+.dest-header .back-button {
+  margin-bottom: 10px;
+  font-family: Gaegu, sans-serif;
+  font-weight: 700;
+}
+.dest-header h1 {
+  margin-bottom: 6px;
+  font-family: Gaegu, sans-serif;
+  font-weight: 700;
+  font-size: 40px;
+  color: var(--ink);
+}
+.dest-header p {
+  margin: 0;
+  /* --muted 가 크림 배경에서 너무 흐려서, 잉크색에 살짝만 톤다운. 다크모드도 안전. */
+  color: var(--ink);
+  opacity: 0.82;
+  font-family: Gaegu, Pretendard, sans-serif;
+  font-weight: 700;
+  font-size: 17px;
+  line-height: 1.55;
+}
+.dest-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 20px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+.dest-card {
+  display: grid;
+  gap: 8px;
+  padding: 9px 9px 16px;
+  border: 1px solid rgba(58, 42, 26, 0.22);
+  border-radius: 3px;
+  background: #fffdf7;
+  box-shadow:
+    3px 5px 0 rgba(58, 42, 26, 0.12),
+    0 12px 22px rgba(48, 35, 21, 0.14);
+  cursor: pointer;
+  text-align: left;
+  transition: transform 0.15s ease;
+}
+.dest-card:nth-child(3n) {
+  transform: rotate(-1.4deg);
+}
+.dest-card:nth-child(3n + 2) {
+  transform: rotate(1.2deg);
+}
+.dest-card:hover {
+  transform: rotate(0) translateY(-3px);
+}
+.dest-card .photo {
+  height: 122px;
+}
+.dest-card b {
+  font-family: "Nanum Pen Script", Gaegu, sans-serif;
+  font-weight: 400;
+  font-size: 22px;
+}
+.dest-card small {
+  color: var(--ink);
+  opacity: 0.82;
+  font-family: Gaegu, sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+}
+
+/* 날짜 선택 / 테마 목록 / 예산 선택 / 출발지·숙소 화면 */
+.dates-screen,
+.themes-screen,
+.budget-screen,
+.origin-screen {
+  position: relative;
+  z-index: 1;
+  padding: 30px 7% 80px;
+  animation: courseSlideIn 0.44s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+.origin-form {
+  display: grid;
+  gap: 18px;
+  max-width: 560px;
+  margin: 0 auto;
+}
+.origin-form label {
+  display: grid;
+  gap: 8px;
+  padding: 14px 18px;
+  border: 2px solid var(--line);
+  border-radius: 16px;
+  background: var(--paper-strong);
+  box-shadow: 3px 4px 0 rgba(58, 42, 26, 0.1);
+}
+.origin-form span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--amber-dark);
+  font-family: Gaegu, sans-serif;
+  font-size: 15px;
+}
+.origin-form input {
+  border: none;
+  border-bottom: 2px solid var(--line);
+  background: transparent;
+  color: var(--ink);
+  font-family: Gaegu, Pretendard, sans-serif;
+  font-size: 17px;
+  padding: 4px 0;
+}
+.origin-form small {
+  color: var(--muted);
+  font-family: Gaegu, sans-serif;
+  font-size: 13px;
+}
+.origin-required,
+.origin-optional {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-family: Gaegu, sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+}
+.origin-required {
+  background: rgba(238, 91, 79, 0.16);
+  color: #c0392b;
+}
+.origin-optional {
+  background: rgba(58, 42, 26, 0.1);
+  color: var(--muted);
+}
+.origin-quick {
+  justify-self: start;
+  margin-top: 2px;
+  padding: 6px 12px;
+  border: 1px dashed var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--amber-dark);
+  font-family: Gaegu, sans-serif;
+  font-size: 13px;
+  cursor: pointer;
+}
+/* 코스 화면 상단 안내 문구 목록 (buildCourse 의 notices).
+   .course-controls 와 마찬가지로 부모(.course-screen)가 padding:0 인 full-bleed 라
+   여기서 직접 좌우로 들여야 화면 벽에 안 붙는다. */
+.course-notices {
+  display: grid;
+  gap: 6px;
+  list-style: none;
+  margin: 0 0 12px;
+  padding-inline: clamp(16px, 3vw, 44px);
+}
+

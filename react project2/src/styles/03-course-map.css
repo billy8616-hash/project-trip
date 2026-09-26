@@ -1,0 +1,517 @@
+/* ─────────────────────────────────────────────────────────────
+   03-course-map.css — 코스 화면의 카카오 지도 영역 + 경로 레일
+   (index.css 에서 쪼갠 파일. 원래 index.css 2025~2533번째 줄이었다.
+   파일 안에서 물리적으로 '여행지 고르기'와 '회원가입' 사이에 끼어 있던
+   조각이라 이름이 앞뒤 파일과 안 어울려 보일 수 있다 — 내용 자체는
+   코스 화면 것이 맞다.)
+   ───────────────────────────────────────────────────────────── */
+
+/* ─── 카카오 지도 영역 (마커 · 경로 · 안내 문구) ───────────────────── */
+
+.kakao-route-map {
+  background: #e8edf2;
+}
+
+.kakao-route-map::before {
+  content: none;
+}
+
+.kakao-map-canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+.kakao-place-marker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 3px solid #ffffff;
+  border-radius: 50%;
+  color: #ffffff;
+  /* 번호 색 = 구간 선 색 (JS 에서 --marker-color 로 주입). 앵커·미주입 시 기존 빨강. */
+  background: var(--marker-color, #ee5b4f);
+  font-weight: 800;
+  font-size: 13px;
+  box-shadow: 0 6px 16px rgba(28, 38, 54, 0.28);
+  cursor: pointer;
+}
+
+.kakao-place-marker.is-selected {
+  box-shadow:
+    0 0 0 4px color-mix(in srgb, var(--marker-color, #ee5b4f) 38%, transparent),
+    0 6px 16px rgba(28, 38, 54, 0.28);
+}
+
+/* 출발지·숙소·복귀지는 번호 마커와 구분되게 알약 모양 + 다른 색으로. */
+.kakao-anchor-marker {
+  width: auto;
+  min-width: 30px;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 13px;
+  font-size: 12px;
+  cursor: default;
+}
+
+.kakao-anchor-marker.is-origin {
+  background: #1f7a4d;
+}
+
+.kakao-anchor-marker.is-lodging {
+  background: #5b3fb0;
+}
+
+.kakao-anchor-marker.is-return {
+  background: #4b5563;
+}
+
+.kakao-place-marker.is-bouncing {
+  animation: kakao-marker-bounce 0.7s ease;
+}
+
+@keyframes kakao-marker-bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  30% {
+    transform: translateY(-10px);
+  }
+  60% {
+    transform: translateY(0);
+  }
+}
+
+.map-notice {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  z-index: 5;
+  display: grid;
+  gap: 8px;
+  width: min(420px, calc(100% - 32px));
+  padding: 22px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+  background: rgba(255, 249, 238, 0.94);
+  box-shadow: 0 18px 44px rgba(31, 39, 51, 0.2);
+  text-align: center;
+  transform: translate(-50%, -50%);
+}
+
+.map-fallback-note {
+  position: absolute;
+  left: 50%;
+  bottom: 16px;
+  z-index: 5;
+  max-width: min(460px, calc(100% - 32px));
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+  background: rgba(255, 249, 238, 0.94);
+  box-shadow: 0 12px 30px rgba(31, 39, 51, 0.18);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.4;
+  text-align: center;
+  transform: translateX(-50%);
+}
+
+.map-notice b {
+  font-family: Jua, sans-serif;
+  font-size: 24px;
+}
+
+.map-notice span {
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+/* 지도 경로 범례 — 우측 상단 구석 소형 박스. 색=구간순서, 실선=실제경로, 점선=예상직선. */
+.map-legend {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  z-index: 4;
+  display: grid;
+  gap: 5px;
+  padding: 8px 10px;
+  border: 1px solid rgba(32, 44, 62, 0.14);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.93);
+  box-shadow: 0 6px 16px rgba(28, 38, 54, 0.16);
+  pointer-events: none;
+  font-size: 11px;
+  font-weight: 700;
+  color: #2b3446;
+}
+.map-legend-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  white-space: nowrap;
+}
+.lg-swatch {
+  flex: 0 0 auto;
+  width: 22px;
+  height: 0;
+}
+.lg-seq {
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #1f5fd6 0 33%, #0f8a5f 33% 66%, #7c3aed 66% 100%);
+}
+.lg-solid {
+  border-top: 3px solid #3a2f27;
+}
+.lg-dash {
+  border-top: 3px dashed #6b5b4c;
+}
+
+/* API 출처는 기능 UI 가 아니라 워터마크 — 지도 좌측 하단 구석에 연한 회색으로 작게. */
+.map-api-badges {
+  position: absolute;
+  left: 10px;
+  bottom: 7px;
+  z-index: 3;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  pointer-events: none;
+  font-size: 10px;
+  line-height: 1.4;
+  color: rgba(58, 68, 88, 0.55);
+}
+
+.map-api-badges span {
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+  color: inherit;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.75);
+}
+
+.map-api-badges span + span::before {
+  content: "· ";
+}
+
+.route-map-card .segment {
+  margin-top: 0;
+}
+
+/* 교통편 선택(알약형 세그먼트) + 총 이동 요약을 한 줄에. 남는 우측 공간을 요약으로 채운다. */
+.route-transport-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+  margin-top: 12px;
+}
+.route-transport-row .segment {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+.segment-label {
+  color: var(--muted);
+  font-family: Gaegu, sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+}
+.route-transport-row .segment-control {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  padding: 3px;
+  border: 1.5px solid var(--ink-line);
+  border-radius: 999px;
+  background: var(--paper-strong);
+}
+.route-transport-row .segment-control button {
+  min-height: 32px;
+  padding: 0 15px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--muted);
+  font-family: Gaegu, sans-serif;
+  font-weight: 700;
+  font-size: 13.5px;
+  box-shadow: none;
+}
+.route-transport-row .segment-control button.selected {
+  border: 0;
+  background: linear-gradient(180deg, #f4c78d, #e7a765);
+  color: #3a2a17;
+  box-shadow: 1px 2px 0 rgba(90, 72, 52, 0.18);
+}
+
+.route-summary {
+  margin: 0 0 0 auto;
+  text-align: right;
+  color: var(--ink);
+  font-family: Gaegu, sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  line-height: 1.4;
+}
+.route-summary b {
+  color: var(--amber-dark);
+}
+.route-summary-sep {
+  color: var(--muted);
+  opacity: 0.7;
+}
+
+/* 구간 시간 레일: 지도 위에 겹치던 라벨을 지도 아래 1차원 띠로 내렸다.
+   방문 순서대로 [노드]-[구간분]-[노드] … 로 늘어놔 장소가 붙어 있어도 겹치지 않는다. */
+.route-rail-scroll {
+  margin-top: 14px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+}
+
+/* ─── 지도 아래 경로 레일 (구간별 이동수단 · 소요시간) ─────────────── */
+
+.route-rail {
+  display: flex;
+  align-items: flex-start;
+  min-width: min-content;
+}
+
+.route-rail .rail-node {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  width: 64px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  text-align: center;
+}
+
+.route-rail button.rail-node {
+  cursor: pointer;
+}
+
+.route-rail .rail-dot {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--coral);
+  color: #fff;
+  font-family: Gaegu, sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.route-rail .rail-dot.terminus {
+  width: 40px;
+  border-radius: 9px 7px 10px 7px;
+  background: var(--sage);
+  font-size: 12px;
+}
+
+.route-rail .rail-node small {
+  font-size: 11px;
+  line-height: 1.25;
+  color: var(--muted);
+  max-width: 64px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.route-rail .rail-node.selected .rail-dot {
+  box-shadow: 0 0 0 3px rgba(230, 92, 79, 0.28);
+}
+
+.route-rail .rail-node.selected small {
+  color: var(--ink);
+  font-weight: 800;
+}
+
+/* 카드 사이 연결 구간: 색 선(구간별 색) 위에 [교통수단 아이콘 + 소요시간] 뱃지를 얹는다. */
+.route-rail .rail-seg {
+  position: relative;
+  flex: 1 0 auto;
+  min-width: 96px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 3px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+.route-rail .rail-seg::before {
+  content: "";
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  top: 50%;
+  border-top: 2px solid var(--seg-color, var(--coral));
+}
+.route-rail .rail-badge {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border: 1px solid var(--ink-line);
+  border-radius: 999px;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: Gaegu, sans-serif;
+  font-weight: 700;
+  font-size: 12px;
+  line-height: 1;
+  white-space: nowrap;
+  box-shadow: 0 1px 3px rgba(50, 35, 22, 0.1);
+}
+.route-rail .rail-seg .rail-sub {
+  position: absolute;
+  top: calc(50% + 14px);
+  font-size: 10.5px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+@media (max-width: 760px) {
+  .topbar {
+    grid-template-columns: 1fr auto;
+    gap: 12px;
+  }
+
+  .brand {
+    font-size: 28px;
+  }
+
+  .nav-links {
+    grid-column: 1 / -1;
+    order: 3;
+    gap: 18px;
+    overflow-x: auto;
+  }
+
+  .top-actions {
+    flex-wrap: wrap;
+  }
+
+  .user-email {
+    max-width: 120px;
+  }
+
+  .auth-panel {
+    left: 16px;
+    right: 16px;
+    top: 132px;
+    width: auto;
+  }
+
+  .hero-panel {
+    padding: 28px 18px;
+  }
+
+  .hero-panel h1 {
+    font-size: 40px;
+  }
+
+  .hero-search,
+  .planner-options,
+  .destination-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-search button {
+    width: 100%;
+  }
+
+  .korea-map {
+    max-width: 380px;
+  }
+
+  .map-pin {
+    font-size: 15px;
+  }
+
+  .course-header,
+  .course-actions {
+    display: grid;
+    align-items: stretch;
+  }
+
+  .name-editor input {
+    width: 100%;
+  }
+
+  .route-map {
+    height: 420px;
+  }
+
+  .map-buttons {
+    flex-direction: column;
+  }
+
+  .time-badge {
+    min-width: 78px;
+    font-size: 13px;
+  }
+}
+
+.auth-social {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--ink-line);
+}
+
+.auth-social-button {
+  padding: 10px 14px;
+  border: 1.5px solid var(--ink-line);
+  border-radius: 10px;
+  background: var(--paper);
+  color: var(--ink);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* ===== 회원가입 화면 ===== */
+.auth-hint {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.auth-link {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--amber-dark);
+  font-weight: 900;
+  text-decoration: underline;
+}
+

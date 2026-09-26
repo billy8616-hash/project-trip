@@ -1,0 +1,393 @@
+/* ─────────────────────────────────────────────────────────────
+   00-base.css — Tailwind 브릿지, 폰트·디자인 토큰, 좌우 소품 배경, 콘텐츠 판, 상단바
+   (index.css 에서 쪼갠 파일. 원래 index.css 3~390번째 줄이었다.)
+   ───────────────────────────────────────────────────────────── */
+
+/* ════════════════════════════════════════════════════════════════════════
+   index.css — 앱 전체 스타일 (코스 상세 화면 제외)
+
+   이 프로젝트의 화면은 대부분 여기 있는 손으로 쓴 CSS 로 스타일링돼 있다.
+   Tailwind 는 나중에 만든 "코스 상세" 화면 하나에만 쓰고, 그쪽은
+   tw- 접두사와 .course-detail-root 스코프로 완전히 분리돼 있다.
+
+   디자인 방향: 따뜻한 크림색 종이 위에 잉크로 그린 여행 다이어리.
+   색·그림자·테두리 값은 아래 :root 의 토큰에 모아 두었다.
+
+   파일 순서 (아래 각 구역 주석으로 찾아갈 수 있다)
+     1. 폰트·디자인 토큰
+     2. 기본 레이아웃 (배경 · 콘텐츠 판 · 상단바)
+     3. 로그인 · 회원가입
+     4. 홈 화면
+     5. 여행지 고르기
+     6. 조건 선택 (테마 · 예산 · 날짜 · 출발지 · 필수방문)
+     7. 코스 화면 (지도 · 타임라인 · 컨트롤)
+     8. 장소 상세 모달
+     9. 내 여행
+    10. 반응형 보정
+
+   ※ 한 파일에 계속 쌓여 현재 9,700줄이 넘는다. 화면 단위로 나누는 것이
+      다음 정리 과제다 (IMPROVEMENT_PLAN.md 참고).
+   ════════════════════════════════════════════════════════════════════════ */
+
+
+/* Tailwind — "코스 상세" 새 화면 하나에만 사용. preflight(전역 리셋)는 tailwind.config.js 에서 껐고,
+   모든 유틸은 `tw-` 접두사라 기존 화면과 클래스가 겹치지 않는다. @tailwind base 는 preflight 없이
+   `--tw-*` 변수 기본값만 내보낸다(변형/그림자 유틸 동작에 필요). */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* preflight 를 껐으므로, 코스 상세 화면 안에만 필요한 최소 리셋을 스코프로 넣는다.
+   ★ 전부 :where() 로 감싼다 → 특이도 0. 그래야 Tailwind 유틸(.tw-border 등)과
+   기존 컴포넌트 CSS 가 이 리셋을 항상 이긴다. (안 감싸면 tw-border/색이 리셋에 먹힌다) */
+:where(.course-detail-root, .course-detail-root *, .course-detail-root *::before, .course-detail-root *::after) {
+  box-sizing: border-box;
+  border-width: 0;
+  border-style: solid;
+  border-color: #e7e2d8;
+}
+:where(.course-detail-root button) {
+  font: inherit;
+  color: inherit;
+  background: none;
+  cursor: pointer;
+}
+:where(.course-detail-root h1, .course-detail-root h2, .course-detail-root h3, .course-detail-root p, .course-detail-root ul) {
+  margin: 0;
+  padding: 0;
+}
+:where(.course-detail-root ul) {
+  list-style: none;
+}
+:where(.course-detail-root img) {
+  display: block;
+  max-width: 100%;
+}
+
+/* 코스 상세 안에 들어간 실제 카카오 지도: 패널을 꽉 채우고, 자체 범례는 감춘다
+   (범례는 CourseDetail 이 따로 그린다). API 표기는 왼쪽 아래로 비켜 둔다. */
+.course-detail-root .route-map {
+  height: 100%;
+  margin: 0;
+  border-radius: 0;
+}
+.course-detail-root .map-legend {
+  display: none;
+}
+.course-detail-root .map-api-badges {
+  right: auto;
+  left: 12px;
+  bottom: 8px;
+}
+
+/* 코스 화면일 때만: 가운데 카드(.app-stage) 제약을 풀고 화면을 세로로 꽉 채운다.
+   → 상단바 + 목적지/테마 줄은 그대로 두고, 그 아래를 코스 상세가 전부 차지. */
+.app-stage.stage-course {
+  width: 100vw;
+  max-width: none;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: #faf8f4;
+  display: flex;
+  flex-direction: column;
+}
+.stage-course .topbar,
+/* ─── 코스 화면 상단 컨트롤 바 (출발 시각 · 테마 · 다시 짜기) ──────── */
+
+.stage-course .course-controls {
+  flex-shrink: 0;
+}
+/* ═══ 7. 코스 화면 ══════════════════════════════════════════════════════
+   지도 · 타임라인 · 상세 카드 · 컨트롤 바가 모두 이 아래에 있다. */
+
+.stage-course .course-screen {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  /* 테마 → 예산 → … → 코스 로 넘어올 때 다른 화면들과 똑같이 슬라이드로 들어온다. */
+  animation: courseSlideIn 0.44s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+.stage-course .course-screen > .course-detail-root {
+  flex: 1;
+  min-height: 0;
+}
+
+/* ═══ 1. 폰트 ═══════════════════════════════════════════════════════════
+   손글씨 느낌의 제목용 폰트. 본문은 위 @import 로 받은 웹폰트를 쓴다. */
+
+@font-face {
+  font-family: "GriunJeong";
+  src: url("../assets/fonts/GriunXHangeul_Jeong-Rg.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ═══ 디자인 토큰 ═══════════════════════════════════════════════════════
+   색·그림자·테두리를 변수로 모아 둔 곳. 화면 톤을 바꿀 때 여기만 고치면 된다. */
+
+:root {
+  color: #2b2118;
+  background: #ede0cd;
+  font-family:
+    Pretendard,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+/* 빈티지 여행 다이어리 톤: 따뜻한 크림 종이 + 가는 가죽빛 테두리 + 낮고 부드러운 그림자.
+   --ink-line(테두리)과 --hard(옛 하드섀도우 색, 이제 아주 옅게)로 전체 톤을 잡는다. */
+.app {
+  --navy: #40342a;
+  --ink: #40342a;
+  --ink-line: rgba(107, 88, 66, 0.55);
+  --hard: rgba(75, 55, 34, 0.14);
+  --muted: #948069;
+  --paper: #fffdf9;
+  --paper-strong: #fffefb;
+  --kraft: #f1e6d3;
+  --kraft-deep: #e6d8bf;
+  --line: rgba(90, 72, 52, 0.20);
+  --amber: #e0a566;
+  --amber-dark: #a9713a;
+  --coral: #d1685a;
+  --sage: #86a074;
+  --sky: #7aa2c9;
+  --tape: rgba(240, 220, 165, 0.72);
+  --tape-alt: rgba(196, 210, 180, 0.7);
+  /* 빈티지 여행 다이어리: 부드러운 라운드 + 따뜻하고 낮은 섀도우. 굵은 잉크 외곽선은 걷어냄. */
+  --outline-w: 1.5px;
+  --radius: 14px;
+  --soft-shadow: 0 10px 26px -14px rgba(75, 55, 34, 0.35);
+  min-height: 100vh;
+  overflow-x: hidden;
+  color: var(--ink);
+  /* 좌우 고정 배경(따뜻한 한지)과 이어지도록 가운데는 잔잔한 크림 바탕만 둔다. */
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(255, 255, 255, 0.5), transparent 60%),
+    var(--kraft);
+}
+
+/* ── 뷰포트 양 끝에 고정되는 빈티지 여행 소품 배경 ─────────────────────────
+   position: fixed 라 스크롤해도 제자리. 소품이 몰린 쪽이 화면 바깥 가장자리를 향한다. */
+/* ═══ 2. 기본 레이아웃 ══════════════════════════════════════════════════
+   화면 양 끝에 고정되는 여행 소품 배경. 가운데 콘텐츠와 겹칠 만큼 좁아지면 숨긴다. */
+
+.edge-bg {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  width: clamp(150px, 17vw, 290px);
+  z-index: 0;
+  background-size: cover;
+  background-repeat: no-repeat;
+  pointer-events: none;
+}
+.edge-bg-left {
+  left: 0;
+  background-position: top left;
+  -webkit-mask-image: linear-gradient(to right, #000 86%, transparent 100%);
+  mask-image: linear-gradient(to right, #000 86%, transparent 100%);
+  animation: edgeSlideInLeft 0.38s ease;
+}
+.edge-bg-right {
+  right: 0;
+  background-position: top right;
+  -webkit-mask-image: linear-gradient(to left, #000 86%, transparent 100%);
+  mask-image: linear-gradient(to left, #000 86%, transparent 100%);
+  animation: edgeSlideInRight 0.38s ease;
+}
+/* 홈이 마운트될 때(첫 진입이든 목적지 화면에서 "홈으로" 돌아온 것이든) 양옆 소품이
+   바깥에서 제자리로 미끄러져 들어온다. fill-mode 를 안 붙인 이유 — both/forwards 를 쓰면
+   애니메이션이 끝난 뒤에도 계속 "적용 중"인 상태로 남아서, 나중에 .is-leaving 이 걸어 주는
+   transition 을 브라우저가 무시해 버린다(나갈 때 슬라이드가 아예 안 먹는 버그로 나타났었다).
+   fill-mode 없이 두면 애니메이션이 끝나자마자 손을 떼고, 그 뒤로는 평범한 엘리먼트처럼
+   .is-leaving 의 transition 이 정상적으로 먹는다 — 끝나는 값(transform:0, opacity:1)이 어차피
+   기본 스타일과 같아서 손을 떼는 순간 티도 안 난다. */
+@keyframes edgeSlideInLeft {
+  from { transform: translateX(-100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+@keyframes edgeSlideInRight {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+/* 홈에서 목적지를 골라 다음 화면으로 넘어갈 때만(slideTo 의 380ms) 양옆 소품이 각자의
+   바깥쪽으로 미끄러지며 사라진다. */
+.edge-bg-left.is-leaving {
+  transition: transform 0.38s ease, opacity 0.38s ease;
+  transform: translateX(-100%);
+  opacity: 0;
+}
+.edge-bg-right.is-leaving {
+  transition: transform 0.38s ease, opacity 0.38s ease;
+  transform: translateX(100%);
+  opacity: 0;
+}
+/* 가운데 콘텐츠와 배경이 겹칠 만큼 좁아지면 배경을 숨긴다. */
+@media (max-width: 1160px) {
+  .edge-bg { display: none; }
+}
+
+/* ── 다이어리 한 페이지처럼 보이는 가운데 콘텐츠 판 ──────────────────────── */
+/* ─── 가운데 콘텐츠 판 (다이어리 한 페이지) ─────────────────────────── */
+
+.app-stage {
+  position: relative;
+  z-index: 1;
+  width: min(1140px, calc(100vw - 40px));
+  margin: 14px auto 36px;
+  padding: 0 0 8px;
+  background: rgba(255, 253, 249, 0.88);
+  border: 1px solid rgba(120, 96, 66, 0.22);
+  border-radius: 20px;
+  box-shadow: 0 24px 60px -30px rgba(70, 50, 30, 0.4);
+  backdrop-filter: blur(1.5px);
+}
+@media (max-width: 1040px) {
+  .app-stage { margin: 0; border-radius: 0; border-left: 0; border-right: 0; }
+}
+
+/* 스크랩북 상단: 종이 위에 밑줄을 그은 헤더 (이제 가운데 판 안에 들어간다). */
+/* ─── 상단바 · 내비게이션 ──────────────────────────────────────────── */
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 28px;
+  min-height: 72px;
+  padding: 0 30px;
+  color: var(--ink);
+  background: rgba(255, 253, 249, 0.92);
+  backdrop-filter: blur(3px);
+  border-bottom: 1px solid var(--line);
+  border-radius: 20px 20px 0 0;
+}
+
+.brand,
+.nav-links button,
+.back-button {
+  border: 0;
+  background: transparent;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--ink);
+  font-family: Jua, Pretendard, sans-serif;
+  font-size: 32px;
+}
+
+/* 손으로 그린 원형 로고: 이중 링 + 살짝 기울여 도장 찍은 느낌. */
+.brand-mark {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: var(--outline-w) solid var(--ink-line);
+  border-radius: 50%;
+  background: var(--amber);
+  box-shadow: inset 0 0 0 3px var(--paper);
+  transform: rotate(-6deg);
+}
+
+.nav-links {
+  display: flex;
+  justify-content: center;
+  gap: 34px;
+}
+
+.nav-links button {
+  position: relative;
+  min-height: 44px;
+  color: var(--ink);
+  font-family: Jua, Pretendard, sans-serif;
+  font-size: 19px;
+  font-weight: 400;
+}
+
+.nav-links button.active {
+  color: var(--amber-dark);
+}
+
+/* 활성 메뉴는 손으로 쓱 그은 밑줄. 양 끝이 얇아지도록 살짝 기울인다. */
+.nav-links button.active::after {
+  position: absolute;
+  left: 50%;
+  bottom: 4px;
+  width: 100%;
+  height: 5px;
+  border-radius: 60% 40% 55% 45%;
+  background: var(--amber);
+  content: "";
+  transform: translateX(-50%) rotate(-1.2deg);
+}
+
+.top-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  min-width: 0;
+}
+
+.user-email {
+  max-width: 180px;
+  overflow: hidden;
+  color: var(--muted);
+  font-family: Gaegu, sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.auth-button {
+  min-height: 42px;
+  padding: 0 16px;
+  border: var(--outline-w) solid var(--ink-line);
+  border-radius: 12px 15px 10px 14px;
+  color: var(--ink);
+  background: var(--paper-strong);
+  box-shadow: 3px 3px 0 var(--hard);
+  font-weight: 900;
+}
+
+/* 잉크 외곽선 버튼 공통 반응: 눌리면 그림자만큼 내려앉는다 (도장 찍히는 느낌). */
+.auth-button:active {
+  box-shadow: 0 0 0 var(--hard);
+  transform: translate(3px, 3px);
+}
+
