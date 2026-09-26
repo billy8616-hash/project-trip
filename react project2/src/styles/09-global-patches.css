@@ -1,0 +1,283 @@
+/* ─────────────────────────────────────────────────────────────
+   09-global-patches.css — 화면 여러 개에 걸친 나중 패치 모음
+   (헤드라인 폰트 통일, 브랜드 마크, 발자국 커서, 코스 갤러리 카드 리디자인)
+   (index.css 에서 쪼갠 파일. 원래 index.css 7590~7865번째 줄이었다.
+   특정 화면 하나에 속한 내용이 아니라 이름을 'global-patches'로 뒀다.)
+   ───────────────────────────────────────────────────────────── */
+
+/* ═══════════════════════════════════════════════════════════════════════
+   포인트 헤드라인 폰트 통일 — 그리운X국한박 제옹체
+   사이트 전체의 주요 제목(h1/h2/h3 헤드라인)에 손글씨 포인트 폰트를 적용.
+   본문/버튼/입력창 등은 가독성을 위해 기존 Gaegu/Pretendard 유지.
+   ═══════════════════════════════════════════════════════════════════════ */
+.diary-title,
+.diary-h2,
+.hero-panel h1,
+.course-header h1,
+.course-title-row h1,
+.map-toolbar h2,
+.timeline h2,
+.score-card h2,
+.detail-card h2,
+.detail-title h3,
+.signup-card h1,
+.dest-header h1,
+.dest-section-title,
+.date-weather-panel h2,
+.schedule-head h2,
+.sch-day h3,
+.travel-paper h1,
+.route-paper h2 {
+  font-family: "GriunJeong", "Jua", "Gaegu", sans-serif;
+}
+
+/* 브랜드 로고 마크 — "발길따라": 점선 자취 + 도착 핀 */
+.brand-mark {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 auto;
+  border: 2px solid var(--amber-dark);
+  border-radius: 50%;
+  background: #fff9eb;
+  box-shadow: 2px 3px 0 rgba(78, 51, 26, 0.14);
+  color: var(--amber-dark);
+  font-size: 0;
+}
+.brand-mark::before,
+.brand-mark::after {
+  content: none;
+}
+.brand-mark svg {
+  width: 26px;
+  height: 26px;
+  display: block;
+}
+
+/* 상단바: 왼쪽 고정 이미지에 로고가 겹치지 않도록 왼쪽 여백 확보 */
+.topbar {
+  padding-left: clamp(18px, 22vw, 300px);
+  padding-right: clamp(18px, 8vw, 120px);
+}
+@media (max-width: 1180px) {
+  .topbar {
+    padding-left: clamp(16px, 6vw, 90px);
+    padding-right: clamp(16px, 4vw, 40px);
+  }
+}
+@media (max-width: 760px) {
+  .topbar {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+}
+
+/* 브랜드 로고 이미지 — 사용자 제공 "발길따라" 원형 로고 */
+.brand-logo {
+  display: block;
+  width: 60px;
+  height: 60px;
+  flex: 0 0 auto;
+  object-fit: contain;
+}
+
+/* ===== 발자국 커서 (발길따라) ===== */
+:root {
+  --cursor-paw-left: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http://www.w3.org/2000/svg'%20viewBox%3D'0%200%20100%20100'%20width%3D'44'%20height%3D'44'%3E%3Cdefs%3E%3ClinearGradient%20id%3D'padGrad'%20x1%3D'0'%20y1%3D'0'%20x2%3D'0'%20y2%3D'1'%3E%3Cstop%20offset%3D'0%25'%20stop-color%3D'%23e6c19a'/%3E%3Cstop%20offset%3D'100%25'%20stop-color%3D'%23cd9f6f'/%3E%3C/linearGradient%3E%3ClinearGradient%20id%3D'toeGrad'%20x1%3D'0'%20y1%3D'0'%20x2%3D'0'%20y2%3D'1'%3E%3Cstop%20offset%3D'0%25'%20stop-color%3D'%23e9c6a0'/%3E%3Cstop%20offset%3D'100%25'%20stop-color%3D'%23d0a374'/%3E%3C/linearGradient%3E%3C/defs%3E%3C%21--%20main%20palm%20pad%20(extends%20up%20between%20the%20two%20center%20toes%20so%20there's%20no%20gap)%20--%3E%3Cpath%20d%3D'M30,46%20C20,51%2017,64%2021,76%20C25,90%2038,95%2050,95%20C62,95%2075,90%2079,76%20C83,64%2080,51%2070,46%20C63,42%2055,44%2050,50%20C45,44%2037,42%2030,46%20Z'%0A%20%20%20%20%20%20%20%20fill%3D'url(%23padGrad)'%20stroke%3D'%238a5a34'%20stroke-width%3D'2.4'%20stroke-dasharray%3D'4%203.5'/%3E%3C%21--%20toes%20--%3E%3Cg%20stroke%3D'%238a5a34'%20stroke-width%3D'2.2'%20stroke-dasharray%3D'3.5%203'%3E%3Cellipse%20cx%3D'23'%20cy%3D'39'%20rx%3D'10.5'%20ry%3D'13'%20transform%3D'rotate(-24%2023%2039)'%20fill%3D'url(%23toeGrad)'/%3E%3Cellipse%20cx%3D'40.5'%20cy%3D'27'%20rx%3D'11.5'%20ry%3D'14.5'%20transform%3D'rotate(-7%2040.5%2027)'%20fill%3D'url(%23toeGrad)'/%3E%3Cellipse%20cx%3D'59.5'%20cy%3D'27'%20rx%3D'11.5'%20ry%3D'14.5'%20transform%3D'rotate(7%2059.5%2027)'%20fill%3D'url(%23toeGrad)'/%3E%3Cellipse%20cx%3D'77'%20cy%3D'39'%20rx%3D'10.5'%20ry%3D'13'%20transform%3D'rotate(24%2077%2039)'%20fill%3D'url(%23toeGrad)'/%3E%3C/g%3E%3C%21--%20heart%20accent%20on%20palm%20--%3E%3Cpath%20d%3D'M50,64%20C47.3,59.5%2040,60.5%2040,67%20C40,72.5%2046.5,76.5%2050,80.5%20C53.5,76.5%2060,72.5%2060,67%20C60,60.5%2052.7,59.5%2050,64%20Z'%0A%20%20%20%20%20%20%20%20fill%3D'%23c25b52'/%3E%3C/svg%3E") 10 10, auto;
+  --cursor-paw-right: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http://www.w3.org/2000/svg'%20viewBox%3D'0%200%20100%20100'%20width%3D'44'%20height%3D'44'%3E%3Cdefs%3E%3ClinearGradient%20id%3D'padGrad2'%20x1%3D'0'%20y1%3D'0'%20x2%3D'0'%20y2%3D'1'%3E%3Cstop%20offset%3D'0%25'%20stop-color%3D'%23e6c19a'/%3E%3Cstop%20offset%3D'100%25'%20stop-color%3D'%23cd9f6f'/%3E%3C/linearGradient%3E%3ClinearGradient%20id%3D'toeGrad2'%20x1%3D'0'%20y1%3D'0'%20x2%3D'0'%20y2%3D'1'%3E%3Cstop%20offset%3D'0%25'%20stop-color%3D'%23e9c6a0'/%3E%3Cstop%20offset%3D'100%25'%20stop-color%3D'%23d0a374'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath%20d%3D'M30,46%20C20,51%2017,64%2021,76%20C25,90%2038,95%2050,95%20C62,95%2075,90%2079,76%20C83,64%2080,51%2070,46%20C63,42%2055,44%2050,50%20C45,44%2037,42%2030,46%20Z'%0A%20%20%20%20%20%20%20%20fill%3D'url(%23padGrad2)'%20stroke%3D'%238a5a34'%20stroke-width%3D'2.4'%20stroke-dasharray%3D'4%203.5'/%3E%3Cg%20stroke%3D'%238a5a34'%20stroke-width%3D'2.2'%20stroke-dasharray%3D'3.5%203'%3E%3Cellipse%20cx%3D'23'%20cy%3D'39'%20rx%3D'10.5'%20ry%3D'13'%20transform%3D'rotate(-24%2023%2039)'%20fill%3D'url(%23toeGrad2)'/%3E%3Cellipse%20cx%3D'40.5'%20cy%3D'27'%20rx%3D'11.5'%20ry%3D'14.5'%20transform%3D'rotate(-7%2040.5%2027)'%20fill%3D'url(%23toeGrad2)'/%3E%3Cellipse%20cx%3D'59.5'%20cy%3D'27'%20rx%3D'11.5'%20ry%3D'14.5'%20transform%3D'rotate(7%2059.5%2027)'%20fill%3D'url(%23toeGrad2)'/%3E%3Cellipse%20cx%3D'77'%20cy%3D'39'%20rx%3D'10.5'%20ry%3D'13'%20transform%3D'rotate(24%2077%2039)'%20fill%3D'url(%23toeGrad2)'/%3E%3C/g%3E%3C%21--%20clover%20accent%20on%20palm%20(muted,%20embroidered-leather%20look)%20--%3E%3Cg%20fill%3D'%237c6236'%20stroke%3D'%236b5128'%20stroke-width%3D'1'%3E%3Ccircle%20cx%3D'44'%20cy%3D'65'%20r%3D'6.4'/%3E%3Ccircle%20cx%3D'56'%20cy%3D'65'%20r%3D'6.4'/%3E%3Ccircle%20cx%3D'50'%20cy%3D'55'%20r%3D'6.4'/%3E%3Cpath%20d%3D'M50,68%20C50,74%2048,78%2045,81'%20fill%3D'none'%20stroke%3D'%236b5128'%20stroke-width%3D'2'%20stroke-linecap%3D'round'/%3E%3C/g%3E%3C/svg%3E") 10 10, pointer;
+  --cursor-paw-pressed: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http://www.w3.org/2000/svg'%20viewBox%3D'0%200%20100%20100'%20width%3D'44'%20height%3D'44'%3E%3Cdefs%3E%3ClinearGradient%20id%3D'padGrad3'%20x1%3D'0'%20y1%3D'0'%20x2%3D'0'%20y2%3D'1'%3E%3Cstop%20offset%3D'0%25'%20stop-color%3D'%23dbb488'/%3E%3Cstop%20offset%3D'100%25'%20stop-color%3D'%23c2955f'/%3E%3C/linearGradient%3E%3ClinearGradient%20id%3D'toeGrad3'%20x1%3D'0'%20y1%3D'0'%20x2%3D'0'%20y2%3D'1'%3E%3Cstop%20offset%3D'0%25'%20stop-color%3D'%23deb98d'/%3E%3Cstop%20offset%3D'100%25'%20stop-color%3D'%23c4995f'/%3E%3C/linearGradient%3E%3C/defs%3E%3C%21--%20squished%20palm:%20wider,%20shorter%20--%3E%3Cpath%20d%3D'M22,58%20C14,62%2013,72%2018,80%20C24,92%2038,96%2050,96%20C62,96%2076,92%2082,80%20C87,72%2086,62%2078,58%20C69,53%2058,55%2050,60%20C42,55%2031,53%2022,58%20Z'%0A%20%20%20%20%20%20%20%20fill%3D'url(%23padGrad3)'%20stroke%3D'%238a5a34'%20stroke-width%3D'2.4'%20stroke-dasharray%3D'4%203.5'/%3E%3C%21--%20toes:%20flattened%20%2B%20splayed%20outward%20--%3E%3Cg%20stroke%3D'%238a5a34'%20stroke-width%3D'2.2'%20stroke-dasharray%3D'3.5%203'%3E%3Cellipse%20cx%3D'15'%20cy%3D'50'%20rx%3D'10.5'%20ry%3D'9.5'%20transform%3D'rotate(-32%2015%2050)'%20fill%3D'url(%23toeGrad3)'/%3E%3Cellipse%20cx%3D'37'%20cy%3D'41'%20rx%3D'11'%20ry%3D'10.5'%20transform%3D'rotate(-10%2037%2041)'%20fill%3D'url(%23toeGrad3)'/%3E%3Cellipse%20cx%3D'63'%20cy%3D'41'%20rx%3D'11'%20ry%3D'10.5'%20transform%3D'rotate(10%2063%2041)'%20fill%3D'url(%23toeGrad3)'/%3E%3Cellipse%20cx%3D'85'%20cy%3D'50'%20rx%3D'10.5'%20ry%3D'9.5'%20transform%3D'rotate(32%2085%2050)'%20fill%3D'url(%23toeGrad3)'/%3E%3C/g%3E%3C/svg%3E") 12 12, pointer;
+}
+
+body {
+  cursor: var(--cursor-paw-left);
+}
+
+a,
+button,
+[role="button"],
+input[type="submit"],
+input[type="button"],
+input[type="checkbox"],
+input[type="radio"],
+select,
+label,
+summary,
+.dest-card,
+.diary-card,
+.diary-start,
+.brand,
+.nav-links button {
+  cursor: var(--cursor-paw-right);
+}
+
+body:active {
+  cursor: var(--cursor-paw-pressed);
+}
+
+a:active,
+button:active,
+[role="button"]:active,
+input[type="submit"]:active,
+input[type="button"]:active,
+.dest-card:active,
+.diary-card:active,
+.diary-start:active {
+  cursor: var(--cursor-paw-pressed) !important;
+}
+
+.diary-today-retry {
+  border: 0;
+  background: none;
+  padding: 0 2px;
+  color: var(--amber-dark);
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* ============================================================
+   여행 코스 화면 리디자인: 지도 밑 "오늘 방문할 장소" 갤러리 +
+   오른쪽 "여행 일정 미리보기" 패널(요약 → 필요하면 전체 펼치기).
+   기존 색상/폰트 변수(--ink, --amber, --paper, Gaegu)만 재사용해서
+   현재 테마를 그대로 따른다.
+   ============================================================ */
+
+.stop-gallery-scroll {
+  margin-top: 14px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.stop-gallery {
+  display: flex;
+  gap: 10px;
+  padding-bottom: 4px;
+}
+
+.stop-card {
+  position: relative;
+  flex: 0 0 134px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 0 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--paper-strong);
+  color: var(--ink);
+  text-align: left;
+  overflow: hidden;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(50, 35, 22, 0.08);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+.stop-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px rgba(50, 35, 22, 0.12);
+}
+.stop-card.is-active {
+  border-color: var(--amber-dark);
+  box-shadow: 0 0 0 2px rgba(199, 119, 34, 0.22);
+}
+
+.stop-thumb {
+  position: relative;
+  width: 100%;
+  height: 84px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(160deg, #f3dcb4, #e7bd85);
+}
+.stop-thumb.kind-cafe, .preview-slot-thumb.kind-cafe { background: linear-gradient(160deg, #e9d3c2, #cfa980); }
+.stop-thumb.kind-bar, .preview-slot-thumb.kind-bar { background: linear-gradient(160deg, #ecd5a9, #cf9f5c); }
+.stop-thumb.kind-museum, .preview-slot-thumb.kind-museum { background: linear-gradient(160deg, #d9d2ea, #b3a3cf); }
+.stop-thumb.kind-viewpoint, .preview-slot-thumb.kind-viewpoint { background: linear-gradient(160deg, #cfe3f0, #93bcd6); }
+.stop-thumb.kind-market, .preview-slot-thumb.kind-market { background: linear-gradient(160deg, #f0d4c8, #d99c76); }
+.stop-thumb.kind-themepark, .preview-slot-thumb.kind-themepark { background: linear-gradient(160deg, #f6cfd8, #e592a8); }
+.stop-thumb.kind-spa, .preview-slot-thumb.kind-spa { background: linear-gradient(160deg, #cdeadd, #8fc7ab); }
+.stop-thumb.kind-nature, .preview-slot-thumb.kind-nature { background: linear-gradient(160deg, #d8ecc7, #9fc383); }
+.stop-thumb.kind-history, .preview-slot-thumb.kind-history { background: linear-gradient(160deg, #e6dcc4, #c3ac7c); }
+.stop-thumb.kind-restaurant, .preview-slot-thumb.kind-restaurant { background: linear-gradient(160deg, #f4d6c4, #dd9f6f); }
+.stop-thumb.kind-sight, .preview-slot-thumb.kind-sight { background: linear-gradient(160deg, #dbe6ee, #a9c1d1); }
+
+/* 순번 뱃지 — 썸네일 좌측 상단에 플로팅 */
+.stop-num {
+  position: absolute;
+  top: 7px;
+  left: 7px;
+  z-index: 2;
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  display: grid;
+  place-items: center;
+  background: var(--coral);
+  color: #fff8ec;
+  font-family: Gaegu, sans-serif;
+  font-weight: 700;
+  font-size: 12.5px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+}
+
+.stop-emoji {
+  font-size: 30px;
+}
+
+.stop-card b {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  margin: 8px 10px 0;
+  font-size: 13px;
+  line-height: 1.3;
+}
+.stop-card small {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+.stop-region {
+  margin: 1px 10px 0;
+}
+.stop-region::before {
+  content: "📍";
+  margin-right: 2px;
+  font-size: 10px;
+}
+
+/* 줄 끝의 "장소 추가" 카드 — 점선 테두리에 + 표시 */
+.stop-card-add {
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 8px;
+  border: 1.5px dashed var(--ink-line);
+  background: var(--paper);
+  box-shadow: none;
+}
+.stop-card-add:hover {
+  border-color: var(--amber-dark);
+  transform: translateY(-2px);
+  box-shadow: none;
+}
+.stop-card-add small {
+  margin: 0;
+}
+.stop-add-plus {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1.5px solid var(--ink-line);
+  color: var(--amber-dark);
+  font-size: 20px;
+  font-weight: 700;
+}
+
+/* --- 여행 일정 미리보기 (오른쪽 패널) --- */

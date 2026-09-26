@@ -1,0 +1,491 @@
+/* ─────────────────────────────────────────────────────────────
+   05-origin-dates.css — 숙소 자동완성 + 기간 선택 캘린더 (출발지·날짜 화면)
+   (index.css 에서 쪼갠 파일. 원래 index.css 3265~3750번째 줄이었다.)
+   ───────────────────────────────────────────────────────────── */
+
+/* ─── 숙소 자동완성 (입력칸 아래에 뜨는 후보 목록) ──────────────────────
+   이름을 정확히 몰라도 고를 수 있게, 입력하는 동안 그 지역 숙박업소를 찾아 보여 준다.
+   고르면 좌표까지 함께 확정돼 '다음' 단계에서 위치를 다시 찾지 않는다. */
+/* 숙소 입력 카드 + 그 아래 후보 목록을 한 묶음으로 세로 배치한다. */
+.origin-lodging {
+  display: grid;
+  gap: 8px;
+}
+.origin-suggest {
+  border: 2px dashed var(--line);
+  border-radius: 14px;
+  background: var(--paper-strong);
+  overflow: hidden;
+}
+.origin-suggest-note {
+  margin: 0;
+  padding: 12px 14px;
+  color: var(--muted);
+  font-family: Gaegu, sans-serif;
+  font-size: 14px;
+}
+.origin-suggest-list {
+  display: grid;
+  gap: 2px;
+  list-style: none;
+  margin: 0;
+  padding: 4px;
+  /* 후보가 많아도 화면을 다 덮지 않도록 — 대략 네 줄 높이에서 스크롤로 넘긴다. */
+  max-height: 232px;
+  overflow-y: auto;
+}
+.origin-suggest-list button {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  padding: 9px 12px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+.origin-suggest-list button:hover,
+.origin-suggest-list button:focus-visible {
+  background: rgba(224, 165, 102, 0.18);
+}
+.origin-suggest-list button.is-picked {
+  background: rgba(224, 165, 102, 0.28);
+}
+.origin-suggest-list button b {
+  color: var(--ink);
+  font-family: Gaegu, Pretendard, sans-serif;
+  font-size: 16px;
+}
+.origin-suggest-list button small {
+  color: var(--muted);
+  font-family: Gaegu, sans-serif;
+  font-size: 13px;
+}
+
+/* 좌표까지 확정된 숙소 — 목록을 닫은 뒤에도 무엇을 골랐는지 남겨 둔다. */
+.origin-picked {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 8px 14px;
+  border: 2px solid var(--line);
+  border-radius: 999px;
+  background: var(--paper-strong);
+  font-family: Gaegu, sans-serif;
+}
+.origin-picked b {
+  color: var(--ink);
+  font-size: 15px;
+}
+.origin-picked span {
+  color: var(--muted);
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.origin-picked button {
+  margin-left: auto;
+  flex: none;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: 17px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.origin-message {
+  margin: 0;
+  color: #c0392b;
+  font-family: Gaegu, sans-serif;
+  font-size: 14px;
+  text-align: center;
+}
+
+.date-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 18px;
+  max-width: 560px;
+  margin: 0 auto;
+}
+.date-form label {
+  display: grid;
+  gap: 8px;
+  padding: 14px 18px;
+  border: 2px solid var(--line);
+  border-radius: 16px;
+  background: var(--paper-strong);
+  box-shadow: 3px 4px 0 rgba(58, 42, 26, 0.1);
+}
+.date-form span {
+  color: var(--amber-dark);
+  font-family: Gaegu, sans-serif;
+  font-size: 15px;
+}
+.date-form input[type='date'],
+.date-form input[type='time'] {
+  border: none;
+  background: transparent;
+  color: var(--ink);
+  font-family: Gaegu, Pretendard, sans-serif;
+  font-size: 17px;
+}
+/* ── 기간 선택 캘린더 (Date Range Picker) ─────────────────────────────
+   숙소 예약 앱 스타일. 기존 date-form 무드(베이지·손글씨·하드 섀도우)에 맞춤. */
+.date-form-range { position: relative; }
+
+.daterange { position: relative; }
+
+/* 인풋(트리거) — 두 칸(출발/도착)을 화살표로 이은 하나의 버튼 */
+.daterange-trigger {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 12px 18px;
+  border: 2px solid var(--line);
+  border-radius: 16px;
+  background: var(--paper-strong);
+  box-shadow: 3px 4px 0 rgba(58, 42, 26, 0.1);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s ease;
+}
+.daterange-trigger:hover,
+.daterange.is-open .daterange-trigger { border-color: var(--amber-dark); }
+.dr-field { display: grid; gap: 4px; min-width: 0; }
+.dr-label {
+  color: var(--amber-dark);
+  font-family: Gaegu, sans-serif;
+  font-size: 13px;
+}
+.dr-value {
+  color: var(--ink);
+  font-family: Gaegu, Pretendard, sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dr-value.is-dim { color: var(--muted); font-weight: 400; }
+.dr-arrow { color: var(--muted); font-size: 16px; }
+
+/* 팝오버(달력) */
+.daterange-pop {
+  position: absolute;
+  z-index: 40;
+  top: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(340px, calc(100vw - 40px));
+  padding: 16px 16px 14px;
+  border: 2px solid var(--line);
+  border-radius: 18px;
+  background: var(--paper-strong);
+  box-shadow: 5px 8px 0 rgba(58, 42, 26, 0.14), 0 18px 40px -20px rgba(58, 42, 26, 0.5);
+  animation: drPop 0.16s ease both;
+}
+@keyframes drPop {
+  from { opacity: 0; transform: translateX(-50%) translateY(-6px); }
+}
+@media (prefers-reduced-motion: reduce) { .daterange-pop { animation: none; } }
+
+/* 팝오버 위쪽 삼각형 꼭지 */
+.daterange-pop::before {
+  content: "";
+  position: absolute;
+  top: -9px;
+  left: 50%;
+  width: 14px;
+  height: 14px;
+  transform: translateX(-50%) rotate(45deg);
+  background: var(--paper-strong);
+  border-left: 2px solid var(--line);
+  border-top: 2px solid var(--line);
+}
+
+.dr-caption {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 14px;
+  padding-bottom: 12px;
+  margin-bottom: 4px;
+  border-bottom: 1.5px dashed var(--line);
+  font-family: Gaegu, Pretendard, sans-serif;
+  font-size: 14px;
+  color: var(--ink);
+}
+.dr-caption b {
+  margin-right: 4px;
+  color: var(--amber-dark);
+  font-family: Gaegu, sans-serif;
+  font-size: 13px;
+}
+.dr-nights {
+  margin-left: auto;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--amber);
+  color: #3a2a1a;
+  font-family: Gaegu, sans-serif;
+  font-weight: 700;
+  font-size: 12.5px;
+}
+
+.dr-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 10px 2px 8px;
+}
+.dr-nav strong {
+  font-family: Gaegu, sans-serif;
+  font-size: 17px;
+  color: var(--ink);
+}
+.dr-nav button {
+  width: 30px;
+  height: 30px;
+  border: 2px solid var(--line);
+  border-radius: 10px;
+  background: var(--paper-strong);
+  color: var(--ink);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+.dr-nav button:hover { background: var(--amber); color: #3a2a1a; }
+
+.dr-weekdays,
+.dr-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+}
+.dr-weekdays {
+  margin-bottom: 2px;
+}
+.dr-weekdays span {
+  text-align: center;
+  padding: 4px 0;
+  color: var(--muted);
+  font-family: Gaegu, sans-serif;
+  font-size: 12.5px;
+}
+.dr-weekdays span:first-child { color: #c0554a; }
+.dr-weekdays span:last-child { color: var(--sky); }
+
+/* 날짜 칸 */
+.dr-day {
+  position: relative;
+  height: 38px;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font-family: Gaegu, Pretendard, sans-serif;
+  font-size: 15px;
+  color: var(--ink);
+}
+.dr-day > span {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  margin: 0 auto;
+  border-radius: 50%;
+}
+.dr-day.is-adjacent { color: var(--muted); opacity: 0.45; }
+.dr-day.is-past {
+  color: var(--muted);
+  opacity: 0.35;
+  cursor: not-allowed;
+  text-decoration: line-through;
+}
+.dr-day.is-today:not(.is-start):not(.is-end) > span {
+  box-shadow: inset 0 0 0 1.5px var(--amber-dark);
+}
+.dr-day:not(.is-past):not(.is-start):not(.is-end):hover > span {
+  background: rgba(231, 154, 85, 0.18);
+}
+
+/* 사이 날짜 연결 밴드 (연한 배경) */
+.dr-day.is-band::before,
+.dr-day.is-start:not(.is-single)::before,
+.dr-day.is-end:not(.is-single)::before {
+  content: "";
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  background: rgba(231, 154, 85, 0.18);
+}
+.dr-day.is-band::before { left: 0; right: 0; }
+.dr-day.is-start:not(.is-single)::before { left: 50%; right: 0; }
+.dr-day.is-end:not(.is-single)::before { left: 0; right: 50%; }
+
+/* 시작·종료일 강조 (강조 색상 원형) */
+.dr-day.is-start > span,
+.dr-day.is-end > span {
+  background: var(--amber);
+  color: #3a2a1a;
+  font-weight: 700;
+  box-shadow: 2px 2px 0 rgba(58, 42, 26, 0.18);
+}
+
+.dr-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1.5px dashed var(--line);
+}
+.dr-reset {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-family: Gaegu, sans-serif;
+  font-size: 14px;
+  cursor: pointer;
+}
+.dr-reset:hover { color: var(--ink); text-decoration: underline; }
+.dr-done {
+  padding: 8px 22px;
+  border: 2px solid var(--line);
+  border-radius: 999px;
+  background: var(--amber);
+  color: #3a2a1a;
+  font-family: Gaegu, sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  box-shadow: 2px 3px 0 rgba(58, 42, 26, 0.16);
+  cursor: pointer;
+}
+.dr-done:hover { background: #efa869; }
+
+/* date-form 레이아웃: 기간 필드는 한 줄 전체, 시각은 그 아래 */
+.date-form {
+  display: block;
+}
+.date-form .date-form-range { margin-bottom: 16px; }
+.date-form .date-form-time { max-width: 240px; }
+
+.date-summary {
+  max-width: 560px;
+  margin: 16px auto 0;
+  color: var(--muted);
+  font-family: Gaegu, sans-serif;
+  font-size: 16px;
+  text-align: center;
+}
+.date-next-button {
+  display: block;
+  margin: 20px auto 0;
+  padding: 12px 40px;
+  border: 2px solid var(--line);
+  border-radius: 30px;
+  background: var(--amber);
+  color: #3a2a1a;
+  box-shadow: 3px 4px 0 rgba(58, 42, 26, 0.16);
+  font-family: Gaegu, sans-serif;
+  font-weight: 700;
+  font-size: 20px;
+  cursor: pointer;
+}
+.date-next-button:hover:not(:disabled) {
+  background: #efa869;
+}
+.date-next-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.date-weather-panel {
+  max-width: 720px;
+  margin: 28px auto 0;
+  padding: 22px 26px 26px;
+  border: 2px solid var(--line);
+  border-radius: 18px;
+  background: var(--paper-strong);
+  box-shadow: 4px 6px 0 rgba(58, 42, 26, 0.12);
+  text-align: center;
+  animation: weatherPanelSlideIn 0.45s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+@keyframes weatherPanelSlideIn {
+  from {
+    transform: translateY(28px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .date-weather-panel {
+    animation: none;
+  }
+}
+.date-weather-panel h2 {
+  margin: 0 0 16px;
+  font-family: Gaegu, sans-serif;
+  font-weight: 700;
+  font-size: 22px;
+  color: var(--ink);
+}
+.date-weather-status {
+  margin: 0 0 16px;
+  color: var(--muted);
+  font-family: Gaegu, sans-serif;
+  font-size: 16px;
+}
+.date-weather-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.date-weather-day {
+  display: grid;
+  gap: 4px;
+  padding: 12px 8px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fffdf7;
+}
+.date-weather-day b {
+  font-family: Gaegu, sans-serif;
+  font-size: 14px;
+  color: var(--amber-dark);
+}
+.date-weather-emoji {
+  font-size: 26px;
+}
+.date-weather-day small {
+  color: var(--muted);
+  font-family: Gaegu, sans-serif;
+  font-size: 13px;
+}
+.date-weather-panel .date-next-button {
+  margin: 0 auto;
+}
+.budget-mark {
+  font-family: Gaegu, sans-serif;
+  font-weight: 700;
+  font-size: 17px;
+  letter-spacing: -1px;
+}
+.theme-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 20px;
+  max-width: 900px;
+  margin: 0 auto;
+}

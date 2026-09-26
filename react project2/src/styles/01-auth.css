@@ -1,0 +1,277 @@
+/* ─────────────────────────────────────────────────────────────
+   01-auth.css — 로그인 팝오버
+   (index.css 에서 쪼갠 파일. 원래 index.css 391~662번째 줄이었다.)
+   ───────────────────────────────────────────────────────────── */
+
+/* ═══ 3. 로그인 팝오버 ══════════════════════════════════════════════════ */
+
+.auth-panel {
+  position: fixed;
+  right: 6%;
+  top: 88px;
+  z-index: 20;
+  width: min(360px, calc(100vw - 32px));
+}
+
+.auth-card {
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper-strong);
+  box-shadow: 0 22px 54px rgba(12, 24, 40, 0.24);
+}
+
+.auth-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.auth-tabs button,
+.auth-card form > button {
+  min-height: 42px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+  background: var(--paper);
+  font-weight: 900;
+}
+
+.auth-tabs button.selected,
+.auth-card form > button {
+  color: #fffaf0;
+  background: linear-gradient(180deg, var(--amber), var(--amber-dark));
+}
+
+.auth-card form {
+  display: grid;
+  gap: 12px;
+}
+
+.auth-card label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.auth-card input {
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+  background: var(--paper);
+  outline: 0;
+}
+
+.auth-card form > button:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
+
+.auth-message,
+.auth-warning {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.auth-message {
+  color: var(--ink);
+  background: rgba(106, 161, 106, 0.16);
+}
+
+.auth-warning {
+  color: var(--amber-dark);
+  background: rgba(199, 119, 34, 0.14);
+}
+
+.home {
+  position: relative;
+  display: grid;
+  min-height: calc(100vh - 72px);
+  padding: 44px 6% 60px;
+  overflow: hidden;
+}
+
+/* 배경에 흩어둔 종이 스크랩 두 장. 색연필 해칭 + 잉크 테두리로 스케치북에 붙인 느낌. */
+.home::before,
+.home::after {
+  position: absolute;
+  z-index: 0;
+  width: 340px;
+  height: 340px;
+  border: var(--outline-w) solid var(--line);
+  border-radius: 10px 14px 8px 16px;
+  background:
+    repeating-linear-gradient(
+      48deg,
+      rgba(122, 169, 221, 0.22) 0 2px,
+      transparent 2px 10px
+    ),
+    var(--paper);
+  box-shadow: 6px 6px 0 rgba(58, 44, 30, 0.1);
+  content: "";
+  pointer-events: none;
+}
+
+.home::before {
+  left: -150px;
+  top: 300px;
+  transform: rotate(-12deg);
+}
+
+.home::after {
+  right: -120px;
+  top: 118px;
+  background:
+    repeating-linear-gradient(
+      -42deg,
+      rgba(240, 160, 90, 0.2) 0 2px,
+      transparent 2px 10px
+    ),
+    var(--paper);
+  transform: rotate(13deg);
+}
+
+/* 스크랩북의 "페이지". 굵은 잉크 테두리 + 번짐 없는 하드 그림자가 웹툰 톤의 핵심. */
+.hero-panel {
+  position: relative;
+  z-index: 2;
+  width: min(980px, 100%);
+  margin: 0 auto;
+  padding: 44px 42px 38px;
+  border: var(--outline-w) solid var(--ink-line);
+  border-radius: 18px 14px 20px 15px;
+  background:
+    repeating-linear-gradient(
+      0deg,
+      transparent 0 31px,
+      rgba(58, 44, 30, 0.05) 32px
+    ),
+    var(--paper-strong);
+  box-shadow: 8px 8px 0 var(--hard);
+  text-align: center;
+}
+
+/* 페이지 오른쪽 위에 붙인 마스킹 테이프. */
+.hero-panel::before {
+  position: absolute;
+  right: 34px;
+  top: -16px;
+  width: 116px;
+  height: 34px;
+  border: 1.5px solid rgba(58, 44, 30, 0.18);
+  background:
+    repeating-linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.35) 0 3px,
+      transparent 3px 8px
+    ),
+    var(--tape);
+  content: "";
+  transform: rotate(9deg);
+  pointer-events: none;
+}
+
+.eyebrow {
+  margin: 0 0 6px;
+  color: var(--amber-dark);
+  font-weight: 800;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin-top: 0;
+}
+
+.hero-panel h1 {
+  margin-bottom: 8px;
+  font-family: Jua, Gaegu, sans-serif;
+  font-size: 58px;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.hero-copy {
+  max-width: 680px;
+  margin: 0 auto 24px;
+  color: var(--muted);
+  font-size: 18px;
+  line-height: 1.6;
+}
+
+.hero-search {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 16px;
+  max-width: 760px;
+  margin: 0 auto 24px;
+}
+
+.hero-search label {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 14px;
+  min-height: 64px;
+  padding: 0 20px;
+  border: var(--outline-w) solid var(--ink-line);
+  border-radius: 15px 12px 16px 11px;
+  background: var(--paper-strong);
+  box-shadow: 4px 4px 0 var(--hard);
+}
+
+.hero-search label:focus-within {
+  box-shadow: 4px 4px 0 var(--amber-dark);
+}
+
+.hero-search span {
+  color: var(--amber-dark);
+  font-weight: 800;
+}
+
+.hero-search input {
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  color: var(--ink);
+  background: transparent;
+  font-size: 18px;
+}
+
+/* 주요 액션 버튼: 그라디언트 대신 플랫 채색 + 잉크 외곽선 + 하드 그림자. */
+.hero-search button,
+.course-actions button {
+  min-height: 64px;
+  padding: 0 30px;
+  border: var(--outline-w) solid var(--ink-line);
+  border-radius: 15px 12px 16px 11px;
+  color: #3a2c1e;
+  background: var(--amber);
+  box-shadow: 4px 4px 0 var(--hard);
+  font-family: Jua, Pretendard, sans-serif;
+  font-size: 21px;
+  font-weight: 400;
+}
+
+.hero-search button:hover,
+.course-actions button:hover {
+  background: #f5b273;
+}
+
+.hero-search button:active,
+.course-actions button:active {
+  box-shadow: 0 0 0 var(--hard);
+  transform: translate(4px, 4px);
+}
+
+/* 손그림 지도 패널: 색연필 해칭 바다 위에 잉크 테두리를 두른다. */
