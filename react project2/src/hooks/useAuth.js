@@ -145,6 +145,16 @@ export function useAuth() {
     setSocialLoading('')
   }, [])
 
+  // 로그인 팝오버는 바깥 클릭(.auth-backdrop) 말고 Esc 로도 닫힌다 — 모달 관례에 맞춘다.
+  useEffect(() => {
+    if (!authOpen) return undefined
+    const onKeyDown = (event) => {
+      if (event.key === 'Escape') closeAuthPanel()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [authOpen, closeAuthPanel])
+
   return {
     user,
     needsProfile,
