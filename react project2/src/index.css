@@ -211,18 +211,32 @@ button {
   background-position: top left;
   -webkit-mask-image: linear-gradient(to right, #000 86%, transparent 100%);
   mask-image: linear-gradient(to right, #000 86%, transparent 100%);
+  animation: edgeSlideInLeft 0.38s ease;
 }
 .edge-bg-right {
   right: 0;
   background-position: top right;
   -webkit-mask-image: linear-gradient(to left, #000 86%, transparent 100%);
   mask-image: linear-gradient(to left, #000 86%, transparent 100%);
+  animation: edgeSlideInRight 0.38s ease;
+}
+/* 홈이 마운트될 때(첫 진입이든 목적지 화면에서 "홈으로" 돌아온 것이든) 양옆 소품이
+   바깥에서 제자리로 미끄러져 들어온다. fill-mode 를 안 붙인 이유 — both/forwards 를 쓰면
+   애니메이션이 끝난 뒤에도 계속 "적용 중"인 상태로 남아서, 나중에 .is-leaving 이 걸어 주는
+   transition 을 브라우저가 무시해 버린다(나갈 때 슬라이드가 아예 안 먹는 버그로 나타났었다).
+   fill-mode 없이 두면 애니메이션이 끝나자마자 손을 떼고, 그 뒤로는 평범한 엘리먼트처럼
+   .is-leaving 의 transition 이 정상적으로 먹는다 — 끝나는 값(transform:0, opacity:1)이 어차피
+   기본 스타일과 같아서 손을 떼는 순간 티도 안 난다. */
+@keyframes edgeSlideInLeft {
+  from { transform: translateX(-100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+@keyframes edgeSlideInRight {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
 }
 /* 홈에서 목적지를 골라 다음 화면으로 넘어갈 때만(slideTo 의 380ms) 양옆 소품이 각자의
-   바깥쪽으로 미끄러지며 사라진다. transition 을 .is-leaving 쪽에만 둬서 "나갈 때만"
-   애니메이션이 붙는다 — 기본 .edge-bg 에 넣으면 leaving 이 꺼질 때도 같은 transition 을
-   타고 도로 미끄러져 들어오는 모양이 되는데, 원하는 건 그냥 사라지는 것뿐이라 그 되돌아오는
-   모션은 없앴다(클래스가 빠지면 transition 없이 바로 원래 자리로 돌아간다). */
+   바깥쪽으로 미끄러지며 사라진다. */
 .edge-bg-left.is-leaving {
   transition: transform 0.38s ease, opacity 0.38s ease;
   transform: translateX(-100%);
