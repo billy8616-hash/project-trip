@@ -174,12 +174,6 @@ function App() {
   // 옮긴 바로 다음 렌더에서 거리 계산이 다시 원래 순서로 되돌려버린다.
   const [manualOrderDays, setManualOrderDays] = useState(() => new Set(restored?.edits?.manualOrderDays || []))
   const mapInstRef = useRef(null)
-  // 장소 카드 줄 끝의 "장소 추가" 카드가 아래 편집 타임라인으로 스크롤할 때 쓴다.
-  const scheduleRef = useRef(null)
-  const scrollToSchedule = useCallback(() => {
-    scheduleRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  }, [])
-
   const {
     destination,
     setDestination,
@@ -1034,9 +1028,6 @@ function App() {
                 ))}
               </div>
             </div>
-            <button type="button" className="course-make-btn" onClick={scrollToSchedule}>
-              <span aria-hidden="true">☆</span> 코스 만들기
-            </button>
           </div>
 
           {/* 코스를 짜면서 생긴 안내(휴무로 뺀 곳, 비 오는 날 실내 위주, 위치를 못 찾은 필수 방문 등).
