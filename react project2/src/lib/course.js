@@ -19,6 +19,7 @@
 // 쓰는 곳: App.jsx (코스 생성·다시 짜기)
 // ─────────────────────────────────────────────────────────────
 
+import { PLACE_NAME_ALIASES } from '../data/placeAliases.js'
 import { SLOT_LABELS } from '../data/travelOptions.js'
 import { budgetAdjust } from './cost.js'
 import { optimizeRouteOrderBySlot } from './geo.js'
@@ -104,13 +105,21 @@ export function buildCourse(base, themeId, budgetTier, mustVisit = [], anchors =
   const cityHasTransit = pool.some((place) => place.transitScore === 'good' || place.transitScore === 'ok')
   // 장소 한 곳의 점수. 높을수록 코스에 먼저 들어간다.
   // wet = 그날 비·눈 예보 여부(날짜마다 다르므로 매번 넘겨받는다).
+  // 사용자가 적은 이름과 장소 이름이 같은 곳을 가리키는지 판단한다. 단순 부분 문자열
+  // 비교만으로는 "안압지"(옛 이름) ↔ "경주 동궁과 월지"(TourAPI 공식 명칭)처럼 명칭이
+  // 통째로 바뀐 곳을 못 찾으므로, data/placeAliases.js 에 등록된 옛 이름도 같이 확인한다.
+  const matchesKeyword = (name, word) => {
+    const candidates = [word, ...(PLACE_NAME_ALIASES[word] || [])]
+    return candidates.some((candidate) => name.includes(candidate) || candidate.includes(name))
+  }
+
   const scoreOf = (place, { wet = false } = {}) => {
     let score = 0
     if (themeId && place.themes.includes(themeId)) score += 4
     // 예산: LLM 이 붙인 예산대 태그는 약하게(+2), 실제 비용대(입장료·priceLevel) 대조가 주 신호.
     if (budgetTier && place.budgetTiers.includes(budgetTier)) score += 2
     score += budgetAdjust(budgetTier, place)
-    if (keywords.some((word) => place.name.includes(word) || word.includes(place.name))) score += 20
+    if (keywords.some((word) => matchesKeyword(place.name, word))) score += 20
     score += transportAdjust(place, transport, cityHasTransit)
     score += rainScoreAdjust(place, wet)
     return score
@@ -120,7 +129,6 @@ export function buildCourse(base, themeId, budgetTier, mustVisit = [], anchors =
   // 점수 +20 만으로는 부족하다. 같은 시간대에 어울리는 곳을 여러 개 적으면 한 곳만 뽑히고,
   // 풀에 아예 없는 이름(작은 가게·신규 장소·상호 표기가 다른 곳)은 조용히 사라진다.
   // 사용자가 직접 적은 곳이므로 알고리즘이 빼는 일이 없도록 여기서 먼저 확정해 둔다.
-  const matchesKeyword = (name, word) => name.includes(word) || word.includes(name)
 
   const forcedPlaces = []      // 풀에서 찾은 곳 (좌표·영업시간을 그대로 쓴다)
   const forcedMissing = []     // 풀에 없어서 이름만 아는 곳
