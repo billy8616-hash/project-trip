@@ -328,11 +328,22 @@ function App() {
     setScreen('signup')
   }
 
+  // 새 여행을 시작할 때(목적지를 새로 고를 때) 이전 여행에서 남은 값을 지운다.
+  // 안 지우면 예전에 적어 둔 "꼭 가고 싶은 곳"·출발지·숙소가 전혀 다른 여행지에도
+  // 그대로 자동 입력된 채 나온다 — 사용자는 이걸 "계속 자동으로 입력돼 있다"고 느낀다.
+  const resetTripDraft = () => {
+    setMustVisit([])
+    setMustVisitInput('')
+    setTripOrigin(null)
+    setTripLodging(null)
+  }
+
   // 홈 화면 '여행 시작하기': 입력한 목적지로 바로 코스로 가지 않고
   // 테마 -> 예산 -> 날짜(날씨) -> 코스 순서의 단계 흐름으로 들어간다.
   const startCourse = () => {
     const typed = destination.trim()
     if (!typed) return
+    resetTripDraft()
     setPickedDestination(typed)
     setJourneyTheme('')
     setTripStartDate(todayISO())
@@ -356,6 +367,7 @@ function App() {
 
   // 여행지 카탈로그에서 한 곳을 고르면 -> 테마 선택 화면
   const pickDestination = (name) => {
+    resetTripDraft()
     setPickedDestination(name)
     setJourneyTheme('')
     setTripStartDate(todayISO())
@@ -366,6 +378,7 @@ function App() {
 
   // "오늘의 추천 AI 코스" 시작 -> 오늘의 도시·테마를 미리 넣고 예산 선택부터.
   const startTodayCourse = () => {
+    resetTripDraft()
     setPickedDestination(todayCity)
     setDestination(todayCity)
     setJourneyTheme(todayThemeId)
