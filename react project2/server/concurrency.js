@@ -8,7 +8,7 @@
 //   mapLimit       동시 실행 개수를 제한한다 (Promise.all 의 안전한 버전)
 //   timeoutSignal  응답이 없으면 정해진 시간에 요청을 끊는다
 //
-// 쓰는 곳: tourApi · kakaoLocal · googlePlaces · odsay · tmap 등 외부 호출 전부
+// 쓰는 곳: tourApi · kakaoLocal · googlePlaces · odsay · ors 등 외부 호출 전부
 // ─────────────────────────────────────────────────────────────
 
 // 여러 개의 외부 API 호출을 한꺼번에 다 던지지 않고, 동시에 최대 limit 개까지만 돌린다.

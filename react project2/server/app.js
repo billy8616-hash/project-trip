@@ -4,7 +4,7 @@
 // 이 서버가 존재하는 이유는 두 가지다.
 //
 //  1) 외부 API 키를 브라우저에서 숨기기
-//     TourAPI·카카오 REST·Google·Gemini·ODsay·Tmap·OpenWeather·네이버 키는
+//     TourAPI·카카오 REST·Google·Gemini·ODsay·OpenRouteService·OpenWeather·네이버 키는
 //     전부 여기에만 있다. 브라우저는 우리 서버에만 요청하고, 서버가 대신 외부를 부른다.
 //     (브라우저에 나가는 키는 카카오맵 JS 키와 Supabase anon 키뿐 — 둘 다 공개 전제 키다)
 //

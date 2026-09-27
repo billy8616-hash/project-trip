@@ -4,7 +4,7 @@
 // 이 파일에서 가장 설명할 만한 부분은 "교통 모드마다 경로 출처가 다르다"는 점이다.
 //   자차      카카오모빌리티 길찾기 → 실제 도로를 따라가는 실선
 //   대중교통  ODsay          → 실제 지하철·버스 노선을 따라가는 실선 + 노선명 배지
-//   도보      Tmap           → 실제 인도를 따라가는 실선
+//   도보      OpenRouteService → 실제 인도를 따라가는 실선
 //   실패·불가  좌표를 직선으로 이은 점선 + 추정 시간 (drawFallbackRoute)
 //
 // 셋 중 무엇이 실패해도 지도는 항상 무언가를 그린다. 외부 API 하나가 죽었다고
@@ -449,7 +449,7 @@ export default function KakaoRouteMap({ course, places, origin, endPoint, transp
             })
         }
 
-        // 도보 모드: Tmap 보행자 경로가 있는 구간은 실제 인도를 따라가는 경로로 그린다.
+        // 도보 모드: OpenRouteService 보행자 경로가 있는 구간은 실제 인도를 따라가는 경로로 그린다.
         // (예전엔 도보가 전용 로직 없이 항상 drawFallbackRoute 를 썼는데, 그건 대중교통 API 실패 시의
         // 대체 경로와 완전히 같은 모양이라 두 모드가 똑같아 보이는 원인이었다.)
         const drawWalkRoute = () => {
@@ -508,7 +508,7 @@ export default function KakaoRouteMap({ course, places, origin, endPoint, transp
             })
             .catch((error) => {
               if (!isMounted) return
-              console.warn(`[route] Tmap 보행자 길찾기 실패: ${error.message}`)
+              console.warn(`[route] OpenRouteService 보행자 길찾기 실패: ${error.message}`)
               drawFallbackRoute()
             })
         }
@@ -617,7 +617,7 @@ export default function KakaoRouteMap({ course, places, origin, endPoint, transp
         <span>Kakao Maps API</span>
         {routeSource === 'car' && <span>카카오모빌리티 길찾기</span>}
         {routeSource === 'transit' && <span>ODsay 대중교통 길찾기</span>}
-        {routeSource === 'walk' && <span>Tmap 보행자 길찾기</span>}
+        {routeSource === 'walk' && <span>OpenRouteService 보행자 길찾기</span>}
       </div>
     </div>
   )

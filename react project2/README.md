@@ -68,7 +68,7 @@
 **편집과 지도**
 - 타임라인에서 장소를 드래그해 순서 변경, 슬롯별 장소 교체·추가·삭제
 - 직접 순서를 바꾼 날은 자동 최적화에서 제외해 편집 결과를 보호한다
-- 교통 모드별 실제 경로: 자차(카카오모빌리티), 대중교통(ODsay), 도보(Tmap)
+- 교통 모드별 실제 경로: 자차(카카오모빌리티), 대중교통(ODsay), 도보(OpenRouteService)
 - 장소 상세 모달, 주변 주차장 조회, 카카오맵·네이버지도 연결
 
 **계정과 공유**
@@ -122,7 +122,7 @@ Gemini에 장소 목록을 주고 추천 이유·주의사항·테마 태그를 
 
 - `mapLimit`으로 동시 호출 수를 제한한다 — 수십 개를 한꺼번에 던져 일부가 멈추면 전체가 지연된다
 - 모든 외부 fetch에 `AbortSignal.timeout`을 건다
-- 선택적 API(Tmap·Google Places·네이버 트렌드)는 키가 없으면 **그 기능만 빠지고 나머지는 동작**한다.
+- 선택적 API(OpenRouteService·Google Places·네이버 트렌드)는 키가 없으면 **그 기능만 빠지고 나머지는 동작**한다.
   도보 경로는 직선 동선으로, 맛집은 영업시간·사진 없이 표시된다
 
 ### 5. 키를 브라우저에 내보내지 않기
@@ -156,7 +156,7 @@ Google Places 사진도 키가 필요해서, 키를 내보내는 대신 `/api/pl
 ┌──▼───────────────────────┐  ┌────▼───────▼──────────────────────┐
 │ Supabase Postgres        │  │ TourAPI · 카카오 로컬/모빌리티    │
 │  Profile                 │  │ Google Places · Gemini            │
-│  SavedCourse             │  │ ODsay · Tmap · OpenWeather · 네이버│
+│  SavedCourse             │  │ ODsay · OpenRouteService · OpenWeather · 네이버│
 │  PlaceCache  ← 캐시       │  └───────────────────────────────────┘
 │  CoursePost/Review/Like  │
 └──────────────────────────┘
@@ -199,7 +199,7 @@ Tailwind는 나중에 만든 "코스 상세" 화면 하나에만 필요했다. �
 | OpenWeatherMap | 날씨 배지, 비 예보 반영 | 날씨 미반영 | [openweathermap.org](https://openweathermap.org) · 무료 |
 | Google Places (New) | 맛집·카페 영업시간·사진 | 영업시간·사진 없음 | Google Cloud Console · 월 $200 무료 크레딧 |
 | ODsay | 대중교통 경로·소요시간 | 직선 동선으로 대체 | [lab.odsay.com](https://lab.odsay.com) · 무료 |
-| Tmap | 도보 경로 | 직선 동선으로 대체 | [developers.sktelecom.com](https://developers.sktelecom.com) · 무료 |
+| OpenRouteService | 도보 경로 | 직선 동선으로 대체 | [openrouteservice.org](https://openrouteservice.org/dev/#/signup) · 무료(가입만, 신용카드 불필요) |
 | 네이버 데이터랩 | "지금 뜨는 중" 배지 | 배지 없음 | [developers.naver.com](https://developers.naver.com) · 무료 |
 
 > **최소 구성으로 돌려보려면** 카카오(JS + REST) · TourAPI · Supabase 네 개만 있으면 코스 생성과
@@ -266,7 +266,7 @@ react project2/
 │  ├─ app.js               Express 라우트 24개 + 인증 미들웨어
 │  ├─ placeCache.js        stale-while-revalidate 캐시
 │  ├─ placeEnrich.js       Gemini 구조화 출력
-│  ├─ tourApi.js / kakaoLocal.js / googlePlaces.js / odsay.js / tmap.js / weather.js / naverTrend.js
+│  ├─ tourApi.js / kakaoLocal.js / googlePlaces.js / odsay.js / ors.js / weather.js / naverTrend.js
 │  └─ concurrency.js       동시 호출 제한 · fetch 타임아웃
 ├─ prisma/schema.prisma    Profile · SavedCourse · PlaceCache · CoursePost/Review/Like
 ├─ ROADMAP.md              다음 마일스톤(함께 짜는 코스) 설계와 판단 근거

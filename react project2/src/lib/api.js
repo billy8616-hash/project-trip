@@ -2,7 +2,7 @@
 // lib/api.js — 로그인이 필요 없는 백엔드 호출 모음
 //
 // 외부 API 키는 전부 서버에만 있다. 브라우저는 여기 있는 함수로 우리 서버를
-// 부르고, 서버가 대신 TourAPI·카카오·ODsay·Tmap·OpenWeather 를 호출한다.
+// 부르고, 서버가 대신 TourAPI·카카오·ODsay·OpenRouteService·OpenWeather 를 호출한다.
 // (로그인이 필요한 호출은 apiClient.js → tripsApi/communityApi/profileApi)
 //
 // 담당 영역
@@ -139,7 +139,7 @@ export async function fetchTransitRoute(routePlaces) {
   return data
 }
 
-// 도보 모드일 때 Tmap 보행자 경로안내(서버 경유)로 실제 인도를 따라가는 경로를 가져온다.
+// 도보 모드일 때 OpenRouteService 보행자 경로안내(서버 경유)로 실제 인도를 따라가는 경로를 가져온다.
 // sections[i] 가 null 이면 그 구간은 보행자 경로를 못 찾았다는 뜻이라, 호출한 쪽에서 직선+추정으로 그린다.
 export async function fetchWalkRoute(routePlaces) {
   const response = await fetch(`${apiBaseUrl}/api/directions/walk?${routeParams(routePlaces)}`, {

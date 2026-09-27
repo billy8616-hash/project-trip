@@ -7,7 +7,7 @@
 
 import express from 'express'
 import { searchTransitPath } from '../odsay.js'
-import { searchWalkPath } from '../tmap.js'
+import { searchWalkPath } from '../ors.js'
 
 const kakaoRestApiKey = process.env.KAKAO_REST_API_KEY
 
@@ -102,12 +102,12 @@ router.get('/api/directions/transit', async (req, res) => {
   }
 })
 
-// 도보 모드 지도 경로용: Tmap(SK 오픈API) 보행자 경로안내를 서버에서 대신 호출한다.
+// 도보 모드 지도 경로용: OpenRouteService 보행자 경로안내를 서버에서 대신 호출한다.
 // ODsay 처럼 경유지를 한 번에 못 받아서 구간(정류장 i -> i+1)마다 따로 조회해 합친다.
 // 경로가 없는 구간은 sections 에 null 로 담아 프런트가 직선+추정으로 폴백하게 한다.
 router.get('/api/directions/walk', async (req, res) => {
-  if (!process.env.TMAP_API_KEY) {
-    return res.status(503).json({ message: '서버에 TMAP_API_KEY가 설정되지 않았어요.' })
+  if (!process.env.ORS_API_KEY) {
+    return res.status(503).json({ message: '서버에 ORS_API_KEY가 설정되지 않았어요.' })
   }
 
   const origin = String(req.query.origin || '')
