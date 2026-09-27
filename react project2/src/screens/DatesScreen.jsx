@@ -13,7 +13,7 @@
 
 import { useState } from 'react'
 import DateRangeField from '../components/DateRangeField.jsx'
-import { destinationCatalog } from '../data/destinations.js'
+import { allDestinations } from '../data/destinations.js'
 import { fetchWeatherForecast } from '../lib/api.js'
 import { durationLabelFromNights, formatShortDate, nightsBetween } from '../lib/datetime.js'
 
@@ -31,7 +31,7 @@ export default function DatesScreen({
 }) {
   const nights = nightsBetween(startDate, endDate)
   const isValid = nights >= 0
-  const cityCoord = destinationCatalog.find((item) => item.name === destination)
+  const cityCoord = allDestinations.find((item) => item.name === destination)
 
   const [forecastDays, setForecastDays] = useState([])
   const [forecastStatus, setForecastStatus] = useState('idle') // idle | loading | ready | error
