@@ -668,6 +668,64 @@
   text-align: center;
 }
 
+.course-pool-character-wrap {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  margin-bottom: 4px;
+}
+
+.course-pool-character {
+  position: absolute;
+  bottom: 18px;
+  left: 50%;
+  width: 170px;
+  height: auto;
+  transform: translateX(-50%);
+  animation: travelerBounce 1.4s ease-in-out infinite;
+}
+
+.course-pool-character-shadow {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  width: 74px;
+  height: 15px;
+  background: var(--line);
+  border-radius: 50%;
+  opacity: 0.4;
+  animation: travelerShadow 1.4s ease-in-out infinite;
+}
+
+@keyframes travelerBounce {
+  0%,
+  100% {
+    transform: translateX(-50%) translateY(0);
+  }
+  50% {
+    transform: translateX(-50%) translateY(-24px);
+  }
+}
+
+@keyframes travelerShadow {
+  0%,
+  100% {
+    transform: translateX(-50%) scale(1);
+    opacity: 0.4;
+  }
+  50% {
+    transform: translateX(-50%) scale(0.7);
+    opacity: 0.22;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .course-pool-character,
+  .course-pool-character-shadow {
+    animation: none;
+  }
+}
+
 .course-pool-notice b {
   font-family: GriunJeong, sans-serif;
   font-size: 22px;

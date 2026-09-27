@@ -8,8 +8,13 @@
 // 쓰는 곳: App.jsx (장소 풀 status 가 loading·error 일 때 코스 화면 대신 표시)
 // ─────────────────────────────────────────────────────────────
 
+import travelerCharacter from '../assets/traveler-character.webp'
+import travelerCharacterSad from '../assets/traveler-character-sad.webp'
+
 // /api/course-pool 호출이 진행 중이거나 실패했을 때 코스 화면 대신 보여주는 상태 화면.
 export default function CoursePoolNotice({ cityKey, status, onRetry, onBack }) {
+  const isError = status === 'error'
+
   return (
     <section className="course-screen course-pool-screen">
       <header className="course-header">
@@ -19,7 +24,15 @@ export default function CoursePoolNotice({ cityKey, status, onRetry, onBack }) {
         </div>
       </header>
       <div className="course-pool-notice">
-        {status === 'error' ? (
+        <div className="course-pool-character-wrap">
+          <img
+            className="course-pool-character"
+            src={isError ? travelerCharacterSad : travelerCharacter}
+            alt=""
+          />
+          <span className="course-pool-character-shadow" aria-hidden="true" />
+        </div>
+        {isError ? (
           <>
             <b>여행지 정보를 가져오지 못했어요</b>
             <span>관광지·맛집·카페 데이터를 불러오는 중 문제가 생겼어요. 잠시 후 다시 시도해 주세요.</span>
