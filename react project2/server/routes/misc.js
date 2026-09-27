@@ -1,11 +1,11 @@
 // ─────────────────────────────────────────────────────────────
 // server/routes/misc.js — 그 밖의 프록시 엔드포인트
 //
-// 사진·썸네일·트렌드·날씨·지오코딩·주차장. 모두 외부 API 키를 숨기기 위한 중계 통로다.
+// 사진·썸네일·트렌드·날씨·지오코딩. 모두 외부 API 키를 숨기기 위한 중계 통로다.
 // ─────────────────────────────────────────────────────────────
 
 import express from 'express'
-import { geocodePlace, searchLodging, searchParkingNear } from '../kakaoLocal.js'
+import { geocodePlace, searchLodging } from '../kakaoLocal.js'
 import { isPhotoRef, resolveGooglePhotoUri } from '../googlePlaces.js'
 import { getCityThumbnails } from '../tourApi.js'
 import { getCityTrends } from '../naverTrend.js'
@@ -139,22 +139,5 @@ router.get('/api/weather/forecast', async (req, res) => {
     return res.json({ days })
   } catch (error) {
     return res.status(502).json({ message: error.message || '날씨 예보를 가져오지 못했어요.' })
-  }
-})
-
-// 코스 화면에서 선택한 관광지 주변 주차장 (카카오 로컬 카테고리 검색, PK6).
-router.get('/api/parking', async (req, res) => {
-  const lat = Number(req.query.lat)
-  const lng = Number(req.query.lng)
-  const radius = Number(req.query.radius)
-  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-    return res.status(400).json({ message: 'lat, lng 파라미터가 필요해요.' })
-  }
-
-  try {
-    const items = await searchParkingNear(lat, lng, Number.isFinite(radius) ? radius : 700)
-    return res.json({ items })
-  } catch (error) {
-    return res.status(502).json({ message: error.message || '주차장 정보를 가져오지 못했어요.' })
   }
 })

@@ -9,7 +9,7 @@
 // 그때마다 외부 호출을 하면 느리고 비싸다. 실측 경로는 자차 모드에서
 // 지도를 그릴 때만 따로 받는다.
 //
-// 쓰는 곳: lib/schedule.js · ScheduleTimeline · KakaoRouteMap
+// 쓰는 곳: lib/schedule.js · KakaoRouteMap
 // ─────────────────────────────────────────────────────────────
 
 import { haversineKm } from './geo.js'

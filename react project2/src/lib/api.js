@@ -8,7 +8,7 @@
 // 담당 영역
 //   장소 풀·썸네일·트렌드    fetchCityPool · fetchCityThumbnails · fetchCityTrends
 //   날씨                     fetchWeather · fetchWeatherForecast
-//   위치                     fetchGeocode · fetchNearbyParking
+//   위치                     fetchGeocode
 //   길찾기(교통 모드별 3종)  fetchCarRoute · fetchTransitRoute · fetchWalkRoute
 //
 // 응답 처리 방식이 전부 같다 — fetch → json → 필요한 필드가 없으면 에러를 던진다.
@@ -73,17 +73,6 @@ export async function fetchWeatherForecast(lat, lng, startDate, endDate) {
   const data = await response.json().catch(() => null)
   if (!response.ok || !data?.days) throw new Error(data?.message || '날씨 예보를 가져오지 못했어요.')
   return data.days
-}
-
-// 코스 화면에서 선택한 관광지 주변 주차장 목록 (카카오 로컬 카테고리 검색 PK6, server 경유).
-export async function fetchNearbyParking(lat, lng, radius = 700) {
-  const params = new URLSearchParams({ lat: String(lat), lng: String(lng), radius: String(radius) })
-  const response = await fetch(`${apiBaseUrl}/api/parking?${params}`, { credentials: 'include' })
-  const data = await response.json().catch(() => null)
-  if (!response.ok || !Array.isArray(data?.items)) {
-    throw new Error(data?.message || '주차장 정보를 가져오지 못했어요.')
-  }
-  return data.items
 }
 
 // 숙소 이름 자동완성 후보 (카카오 로컬 숙박 검색, server 경유).
