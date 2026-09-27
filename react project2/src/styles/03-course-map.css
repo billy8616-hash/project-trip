@@ -123,7 +123,7 @@
 }
 
 .map-notice b {
-  font-family: Jua, sans-serif;
+  font-family: GriunJeong, sans-serif;
   font-size: 24px;
 }
 
@@ -227,7 +227,7 @@
 }
 .segment-label {
   color: var(--muted);
-  font-family: Gaegu, sans-serif;
+  font-family: GriunJeong, sans-serif;
   font-weight: 700;
   font-size: 13px;
 }
@@ -246,7 +246,7 @@
   border-radius: 999px;
   background: none;
   color: var(--muted);
-  font-family: Gaegu, sans-serif;
+  font-family: GriunJeong, sans-serif;
   font-weight: 700;
   font-size: 13.5px;
   box-shadow: none;
@@ -262,7 +262,7 @@
   margin: 0 0 0 auto;
   text-align: right;
   color: var(--ink);
-  font-family: Gaegu, sans-serif;
+  font-family: GriunJeong, sans-serif;
   font-weight: 700;
   font-size: 13px;
   line-height: 1.4;
@@ -317,7 +317,7 @@
   place-items: center;
   background: var(--coral);
   color: #fff;
-  font-family: Gaegu, sans-serif;
+  font-family: GriunJeong, sans-serif;
   font-weight: 700;
   font-size: 14px;
 }
@@ -381,7 +381,7 @@
   border-radius: 999px;
   background: var(--paper);
   color: var(--ink);
-  font-family: Gaegu, sans-serif;
+  font-family: GriunJeong, sans-serif;
   font-weight: 700;
   font-size: 12px;
   line-height: 1;

@@ -18,7 +18,7 @@
   background: var(--paper);
 }
 .mytrips-empty b {
-  font-family: Jua, sans-serif;
+  font-family: GriunJeong, sans-serif;
   font-size: 20px;
 }
 .mytrips-empty span {
@@ -32,7 +32,7 @@
   border-radius: 999px;
   background: linear-gradient(180deg, #f4c78d, #e7a765);
   color: #3a2a17;
-  font-family: Gaegu, sans-serif;
+  font-family: GriunJeong, sans-serif;
   font-weight: 700;
   font-size: 15px;
 }
@@ -41,7 +41,7 @@
   margin-top: 28px;
   text-align: center;
   color: var(--muted);
-  font-family: Gaegu, sans-serif;
+  font-family: GriunJeong, sans-serif;
   font-weight: 700;
 }
 .mytrips-retry {
@@ -75,7 +75,7 @@
   gap: 8px;
 }
 .mytrips-card-title b {
-  font-family: Jua, sans-serif;
+  font-family: GriunJeong, sans-serif;
   font-size: 21px;
 }
 .mytrips-edit {
@@ -127,7 +127,7 @@
   border: 1.5px solid var(--ink-line);
   border-radius: 999px;
   background: var(--paper);
-  font-family: Gaegu, sans-serif;
+  font-family: GriunJeong, sans-serif;
   font-weight: 700;
   font-size: 13.5px;
 }
@@ -153,7 +153,7 @@
 .mytrips-day > b {
   display: block;
   margin-bottom: 6px;
-  font-family: Gaegu, sans-serif;
+  font-family: GriunJeong, sans-serif;
   color: var(--amber-dark);
   font-size: 16px;
 }
@@ -173,7 +173,7 @@
   font-size: 14px;
 }
 .mytrips-time {
-  font-family: Gaegu, sans-serif;
+  font-family: GriunJeong, sans-serif;
   color: var(--muted);
 }
 .mytrips-slot {

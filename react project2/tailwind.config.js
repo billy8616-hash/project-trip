@@ -39,7 +39,7 @@ export default {
         cmark: '#FFE58A',
       },
       fontFamily: {
-        chand: ['Gaegu', '"Apple SD Gothic Neo"', 'cursive'],
+        chand: ['GriunJeong', '"Apple SD Gothic Neo"', 'cursive'],
         csans: ['"IBM Plex Sans KR"', '"Apple SD Gothic Neo"', '"Malgun Gothic"', 'system-ui', 'sans-serif'],
       },
       boxShadow: {

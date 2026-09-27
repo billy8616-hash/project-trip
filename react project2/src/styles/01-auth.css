@@ -195,7 +195,7 @@ p {
 
 .hero-panel h1 {
   margin-bottom: 8px;
-  font-family: Jua, Gaegu, sans-serif;
+  font-family: GriunJeong, sans-serif;
   font-size: 58px;
   font-weight: 700;
   letter-spacing: 0;
@@ -258,7 +258,7 @@ p {
   color: #3a2c1e;
   background: var(--amber);
   box-shadow: 4px 4px 0 var(--hard);
-  font-family: Jua, Pretendard, sans-serif;
+  font-family: GriunJeong, Pretendard, sans-serif;
   font-size: 21px;
   font-weight: 400;
 }

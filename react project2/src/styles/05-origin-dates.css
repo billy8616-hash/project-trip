@@ -21,7 +21,7 @@
   margin: 0;
   padding: 12px 14px;
   color: var(--muted);
-  font-family: Gaegu, sans-serif;
+  font-family: GriunJeong, sans-serif;
   font-size: 14px;
 }
 .origin-suggest-list {
@@ -54,12 +54,12 @@
 }
 .origin-suggest-list button b {
   color: var(--ink);
-  font-family: Gaegu, Pretendard, sans-serif;
+  font-family: GriunJeong, Pretendard, sans-serif;
   font-size: 16px;
 }
 .origin-suggest-list button small {
   color: var(--muted);
-  font-family: Gaegu, sans-serif;
+  font-family: GriunJeong, sans-serif;
   font-size: 13px;
 }
 
@@ -73,7 +73,7 @@
   border: 2px solid var(--line);
   border-radius: 999px;
   background: var(--paper-strong);
-  font-family: Gaegu, sans-serif;
+  font-family: GriunJeong, sans-serif;
 }
 .origin-picked b {
   color: var(--ink);
@@ -100,7 +100,7 @@
 .origin-message {
   margin: 0;
   color: #c0392b;
-  font-family: Gaegu, sans-serif;
+  font-family: GriunJeong, sans-serif;
   font-size: 14px;
   text-align: center;
 }
@@ -123,7 +123,7 @@
 }
 .date-form span {
   color: var(--amber-dark);
-  font-family: Gaegu, sans-serif;
+  font-family: GriunJeong, sans-serif;
   font-size: 15px;
 }
 .date-form input[type='date'],
@@ -131,7 +131,7 @@
   border: none;
   background: transparent;
   color: var(--ink);
-  font-family: Gaegu, Pretendard, sans-serif;
+  font-family: GriunJeong, Pretendard, sans-serif;
   font-size: 17px;
 }
 /* ── 기간 선택 캘린더 (Date Range Picker) ─────────────────────────────
@@ -161,12 +161,12 @@
 .dr-field { display: grid; gap: 4px; min-width: 0; }
 .dr-label {
   color: var(--amber-dark);
-  font-family: Gaegu, sans-serif;
+  font-family: GriunJeong, sans-serif;
   font-size: 13px;
 }
 .dr-value {
   color: var(--ink);
-  font-family: Gaegu, Pretendard, sans-serif;
+  font-family: GriunJeong, Pretendard, sans-serif;
   font-size: 18px;
   font-weight: 700;
   white-space: nowrap;
@@ -218,14 +218,14 @@
   padding-bottom: 12px;
   margin-bottom: 4px;
   border-bottom: 1.5px dashed var(--line);
-  font-family: Gaegu, Pretendard, sans-serif;
+  font-family: GriunJeong, Pretendard, sans-serif;
   font-size: 14px;
   color: var(--ink);
 }
 .dr-caption b {
   margin-right: 4px;
   color: var(--amber-dark);
-  font-family: Gaegu, sans-serif;
+  font-family: GriunJeong, sans-serif;
   font-size: 13px;
 }
 .dr-nights {
@@ -234,7 +234,7 @@
   border-radius: 999px;
   background: var(--amber);
   color: #3a2a1a;
-  font-family: Gaegu, sans-serif;
+  font-family: GriunJeong, sans-serif;
   font-weight: 700;
   font-size: 12.5px;
 }
@@ -246,7 +246,7 @@
   margin: 10px 2px 8px;
 }
 .dr-nav strong {
-  font-family: Gaegu, sans-serif;
+  font-family: GriunJeong, sans-serif;
   font-size: 17px;
   color: var(--ink);
 }
@@ -275,7 +275,7 @@
   text-align: center;
   padding: 4px 0;
   color: var(--muted);
-  font-family: Gaegu, sans-serif;
+  font-family: GriunJeong, sans-serif;
   font-size: 12.5px;
 }
 .dr-weekdays span:first-child { color: #c0554a; }
@@ -288,7 +288,7 @@
   border: 0;
   background: transparent;
   cursor: pointer;
-  font-family: Gaegu, Pretendard, sans-serif;
+  font-family: GriunJeong, Pretendard, sans-serif;
   font-size: 15px;
   color: var(--ink);
 }
@@ -351,7 +351,7 @@
   border: 0;
   background: transparent;
   color: var(--muted);
-  font-family: Gaegu, sans-serif;
+  font-family: GriunJeong, sans-serif;
   font-size: 14px;
   cursor: pointer;
 }
@@ -362,7 +362,7 @@
   border-radius: 999px;
   background: var(--amber);
   color: #3a2a1a;
-  font-family: Gaegu, sans-serif;
+  font-family: GriunJeong, sans-serif;
   font-weight: 700;
   font-size: 15px;
   box-shadow: 2px 3px 0 rgba(58, 42, 26, 0.16);
@@ -381,7 +381,7 @@
   max-width: 560px;
   margin: 16px auto 0;
   color: var(--muted);
-  font-family: Gaegu, sans-serif;
+  font-family: GriunJeong, sans-serif;
   font-size: 16px;
   text-align: center;
 }
@@ -394,7 +394,7 @@
   background: var(--amber);
   color: #3a2a1a;
   box-shadow: 3px 4px 0 rgba(58, 42, 26, 0.16);
-  font-family: Gaegu, sans-serif;
+  font-family: GriunJeong, sans-serif;
   font-weight: 700;
   font-size: 20px;
   cursor: pointer;
@@ -435,7 +435,7 @@
 }
 .date-weather-panel h2 {
   margin: 0 0 16px;
-  font-family: Gaegu, sans-serif;
+  font-family: GriunJeong, sans-serif;
   font-weight: 700;
   font-size: 22px;
   color: var(--ink);
@@ -443,7 +443,7 @@
 .date-weather-status {
   margin: 0 0 16px;
   color: var(--muted);
-  font-family: Gaegu, sans-serif;
+  font-family: GriunJeong, sans-serif;
   font-size: 16px;
 }
 .date-weather-grid {
@@ -461,7 +461,7 @@
   background: #fffdf7;
 }
 .date-weather-day b {
-  font-family: Gaegu, sans-serif;
+  font-family: GriunJeong, sans-serif;
   font-size: 14px;
   color: var(--amber-dark);
 }
@@ -470,14 +470,14 @@
 }
 .date-weather-day small {
   color: var(--muted);
-  font-family: Gaegu, sans-serif;
+  font-family: GriunJeong, sans-serif;
   font-size: 13px;
 }
 .date-weather-panel .date-next-button {
   margin: 0 auto;
 }
 .budget-mark {
-  font-family: Gaegu, sans-serif;
+  font-family: GriunJeong, sans-serif;
   font-weight: 700;
   font-size: 17px;
   letter-spacing: -1px;

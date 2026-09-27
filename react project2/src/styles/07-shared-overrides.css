@@ -80,7 +80,7 @@
   gap: 6px;
   margin-bottom: 9px;
   color: var(--amber-dark);
-  font-family: Jua, sans-serif;
+  font-family: GriunJeong, sans-serif;
   font-weight: 400;
   font-size: 16px;
   letter-spacing: 0.02em;
@@ -102,7 +102,7 @@
   gap: 9px;
   align-items: start;
   color: var(--ink);
-  font-family: Jua, sans-serif;
+  font-family: GriunJeong, sans-serif;
   font-weight: 400;
   font-size: 16px;
   line-height: 1.65;
@@ -204,7 +204,7 @@ textarea:focus {
   gap: 14px;
   min-width: 0;
   color: #c87335;
-  font-family: Gaegu, Jua, sans-serif;
+  font-family: GriunJeong, sans-serif;
   font-size: 39px;
   font-weight: 700;
   line-height: 1;
@@ -274,7 +274,7 @@ textarea:focus {
   min-height: 46px;
   padding: 0 2px;
   color: #2e241b;
-  font-family: Gaegu, Jua, sans-serif;
+  font-family: GriunJeong, sans-serif;
   font-size: 22px;
   font-weight: 700;
   letter-spacing: 0;
@@ -323,7 +323,7 @@ textarea:focus {
 .user-email {
   max-width: 170px;
   color: #7d6d5a;
-  font-family: Gaegu, sans-serif;
+  font-family: GriunJeong, sans-serif;
   font-size: 15px;
   font-weight: 700;
 }
@@ -340,7 +340,7 @@ textarea:focus {
   box-shadow:
     3px 4px 0 rgba(67, 50, 34, 0.16),
     inset 0 1px 0 rgba(255, 255, 255, 0.86);
-  font-family: Gaegu, Jua, sans-serif;
+  font-family: GriunJeong, sans-serif;
   font-size: 18px;
   font-weight: 700;
 }

@@ -306,7 +306,7 @@ button {
   align-items: center;
   gap: 10px;
   color: var(--ink);
-  font-family: Jua, Pretendard, sans-serif;
+  font-family: GriunJeong, Pretendard, sans-serif;
   font-size: 32px;
 }
 
@@ -333,7 +333,7 @@ button {
   position: relative;
   min-height: 44px;
   color: var(--ink);
-  font-family: Jua, Pretendard, sans-serif;
+  font-family: GriunJeong, Pretendard, sans-serif;
   font-size: 19px;
   font-weight: 400;
 }
@@ -367,7 +367,7 @@ button {
   max-width: 180px;
   overflow: hidden;
   color: var(--muted);
-  font-family: Gaegu, sans-serif;
+  font-family: GriunJeong, sans-serif;
   font-size: 15px;
   font-weight: 700;
   text-overflow: ellipsis;

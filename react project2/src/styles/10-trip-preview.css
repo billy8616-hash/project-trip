@@ -21,7 +21,7 @@
   border-radius: 999px;
   background: var(--amber);
   color: #3a2a1a;
-  font-family: Gaegu, sans-serif;
+  font-family: GriunJeong, sans-serif;
   font-weight: 700;
   font-size: 12.5px;
   white-space: nowrap;
@@ -56,7 +56,7 @@
   border-radius: 7px 5px 8px 5px;
   background: var(--coral);
   color: #fff6ef;
-  font-family: Gaegu, sans-serif;
+  font-family: GriunJeong, sans-serif;
   font-weight: 700;
   font-size: 15px;
   letter-spacing: 0.04em;
@@ -93,7 +93,7 @@
 .preview-slot-label {
   color: var(--ink);
   opacity: 0.85;
-  font-family: Gaegu, sans-serif;
+  font-family: GriunJeong, sans-serif;
   font-weight: 700;
   font-size: 13px;
 }
@@ -146,7 +146,7 @@
   border-radius: 999px;
   background: var(--paper-strong);
   color: var(--amber-dark);
-  font-family: Gaegu, sans-serif;
+  font-family: GriunJeong, sans-serif;
   font-weight: 700;
   font-size: 14px;
   cursor: pointer;
@@ -163,7 +163,7 @@
 }
 .timeline-full h3 {
   margin: 0 0 4px;
-  font-family: Gaegu, sans-serif;
+  font-family: GriunJeong, sans-serif;
   font-size: 20px;
   color: var(--ink);
 }
@@ -205,7 +205,7 @@
 .course-tip-text {
   margin: 0;
   color: var(--muted);
-  font-family: Gaegu, sans-serif;
+  font-family: GriunJeong, sans-serif;
   font-weight: 700;
   font-size: 14px;
 }
@@ -220,7 +220,7 @@
   border-radius: 999px;
   background: var(--paper-strong);
   color: var(--ink);
-  font-family: Gaegu, sans-serif;
+  font-family: GriunJeong, sans-serif;
   font-weight: 700;
   font-size: 13px;
   white-space: nowrap;
@@ -248,7 +248,7 @@
   min-width: 240px;
 }
 .course-ctl-label {
-  font-family: Gaegu, sans-serif;
+  font-family: GriunJeong, sans-serif;
   font-weight: 700;
   font-size: 17px;
   color: var(--ink);
@@ -282,7 +282,7 @@
   border: 0;
   background: transparent;
   color: var(--ink);
-  font-family: Gaegu, sans-serif;
+  font-family: GriunJeong, sans-serif;
   font-weight: 700;
   font-size: 18px;
 }
@@ -319,7 +319,7 @@
   border-radius: 999px;
   background: var(--paper-strong);
   color: var(--ink);
-  font-family: Gaegu, sans-serif;
+  font-family: GriunJeong, sans-serif;
   font-weight: 700;
   font-size: 16.5px;
   cursor: pointer;
@@ -408,7 +408,7 @@
   border-radius: 7px 5px 8px 5px;
   background: var(--amber);
   color: #3a2a1a;
-  font-family: Gaegu, sans-serif;
+  font-family: GriunJeong, sans-serif;
   font-weight: 700;
   font-size: 15px;
   letter-spacing: 0.04em;
@@ -423,7 +423,7 @@
   border-radius: 999px;
   background: var(--paper-strong);
   color: var(--ink);
-  font-family: Gaegu, sans-serif;
+  font-family: GriunJeong, sans-serif;
   font-weight: 700;
   font-size: 13px;
   cursor: pointer;

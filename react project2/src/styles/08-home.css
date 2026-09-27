@@ -52,7 +52,7 @@
 .diary-eyebrow {
   margin: 0 0 8px;
   color: var(--sky);
-  font-family: Gaegu, Pretendard, sans-serif;
+  font-family: GriunJeong, Pretendard, sans-serif;
   font-weight: 700;
   font-size: 16px;
   letter-spacing: 0.02em;
@@ -63,7 +63,7 @@
 .diary-title {
   margin: 0 0 12px;
   color: var(--ink);
-  font-family: "GriunJeong", "Jua", "Gaegu", sans-serif;
+  font-family: GriunJeong, sans-serif;
   font-weight: 400;
   font-size: clamp(25px, 3.4vw, 37px);
   line-height: 1.34;
@@ -104,7 +104,7 @@
   background: var(--paper-strong);
 }
 .diary-field span {
-  font-family: Gaegu, sans-serif;
+  font-family: GriunJeong, sans-serif;
   font-weight: 700;
   font-size: 14px;
   color: var(--muted);
@@ -130,7 +130,7 @@
   border-radius: 12px;
   background: var(--amber);
   color: #4a2f14;
-  font-family: Gaegu, sans-serif;
+  font-family: GriunJeong, sans-serif;
   font-weight: 700;
   font-size: 17px;
   box-shadow: 0 4px 0 var(--amber-dark);
@@ -176,7 +176,7 @@
 .diary-card b {
   display: block;
   margin-top: 7px;
-  font-family: Gaegu, sans-serif;
+  font-family: GriunJeong, sans-serif;
   font-size: 15px;
 }
 .diary-card-heart {
@@ -192,7 +192,7 @@
   border: 0;
   background: none;
   color: var(--amber-dark);
-  font-family: Gaegu, sans-serif;
+  font-family: GriunJeong, sans-serif;
   font-weight: 700;
   font-size: 14px;
   cursor: pointer;
@@ -206,7 +206,7 @@
 
 .diary-h2 {
   margin: 0 0 4px;
-  font-family: Jua, Gaegu, sans-serif;
+  font-family: GriunJeong, sans-serif;
   font-weight: 400;
   font-size: clamp(21px, 2.6vw, 27px);
   color: var(--ink);
@@ -219,7 +219,7 @@
 .diary-example {
   margin: 0 0 18px;
   color: var(--muted);
-  font-family: Gaegu, sans-serif;
+  font-family: GriunJeong, sans-serif;
   font-size: 13px;
 }
 
@@ -265,7 +265,7 @@
   font-size: 20px;
 }
 .diary-step b {
-  font-family: Gaegu, sans-serif;
+  font-family: GriunJeong, sans-serif;
   font-size: 13px;
   color: var(--amber-dark);
 }
@@ -285,7 +285,7 @@
   background: rgba(241, 230, 211, 0.4);
 }
 .diary-must-head b {
-  font-family: Gaegu, sans-serif;
+  font-family: GriunJeong, sans-serif;
   font-size: 15px;
 }
 .diary-must-head span {
@@ -317,7 +317,7 @@
   border-radius: 10px;
   background: var(--amber);
   color: #4a2f14;
-  font-family: Gaegu, sans-serif;
+  font-family: GriunJeong, sans-serif;
   font-weight: 700;
   cursor: pointer;
 }
@@ -459,7 +459,7 @@
   background: #fffdf8;
   box-shadow: none;
   color: #211812;
-  font-family: Jua, Pretendard, sans-serif;
+  font-family: GriunJeong, Pretendard, sans-serif;
   font-size: 16px;
   font-weight: 400;
 }
@@ -520,7 +520,7 @@
 .diary-doodle {
   position: absolute;
   color: #be6458;
-  font-family: Gaegu, sans-serif;
+  font-family: GriunJeong, sans-serif;
   font-size: 31px;
   pointer-events: none;
 }
@@ -568,7 +568,7 @@
   max-width: none;
   margin-bottom: 21px;
   color: #211812;
-  font-family: Jua, Pretendard, sans-serif;
+  font-family: GriunJeong, Pretendard, sans-serif;
   font-size: 17px;
   line-height: 1.55;
 }
@@ -591,13 +591,13 @@
 
 .diary-field span {
   color: #211812;
-  font-family: Jua, Pretendard, sans-serif;
+  font-family: GriunJeong, Pretendard, sans-serif;
   font-size: 17px;
 }
 
 .diary-field input {
   color: #211812;
-  font-family: Jua, Pretendard, sans-serif;
+  font-family: GriunJeong, Pretendard, sans-serif;
   font-size: 18px;
   font-weight: 400;
 }
@@ -631,7 +631,7 @@
   background: #efb579;
   box-shadow: 2px 3px 0 rgba(82, 54, 34, 0.18);
   color: #211812;
-  font-family: Jua, Pretendard, sans-serif;
+  font-family: GriunJeong, Pretendard, sans-serif;
   font-size: 20px;
   font-weight: 400;
 }
@@ -693,7 +693,7 @@
 .diary-card b {
   margin-top: 6px;
   color: #211812;
-  font-family: Jua, Pretendard, sans-serif;
+  font-family: GriunJeong, Pretendard, sans-serif;
   font-size: 16px;
   font-weight: 400;
 }
@@ -749,7 +749,7 @@
   background: #efb579;
   box-shadow: 2px 3px 0 rgba(82, 54, 34, 0.18);
   color: #211812;
-  font-family: Jua, Pretendard, sans-serif;
+  font-family: GriunJeong, Pretendard, sans-serif;
   font-size: 20px;
   font-weight: 400;
   transition: transform 0.14s ease, box-shadow 0.14s ease;
@@ -781,14 +781,14 @@
 
 .diary-step b {
   color: #080807;
-  font-family: Jua, Pretendard, sans-serif;
+  font-family: GriunJeong, Pretendard, sans-serif;
   font-size: 16px;
   font-weight: 400;
 }
 
 .diary-step span {
   color: #080807;
-  font-family: Jua, Pretendard, sans-serif;
+  font-family: GriunJeong, Pretendard, sans-serif;
   font-size: 15px;
 }
 
@@ -796,7 +796,7 @@
 .diary-today-city {
   margin: 0 0 4px;
   color: #080807;
-  font-family: Jua, Pretendard, sans-serif;
+  font-family: GriunJeong, Pretendard, sans-serif;
   font-size: 16px;
   font-weight: 400;
   text-align: center;
@@ -887,7 +887,7 @@
 .dest-section-title {
   max-width: 1100px;
   margin: 28px auto 12px;
-  font-family: Gaegu, Jua, sans-serif;
+  font-family: GriunJeong, sans-serif;
   font-weight: 700;
   font-size: 21px;
   color: var(--ink);
@@ -912,7 +912,7 @@
   border-radius: 12px 12px 0 0;
   color: var(--ink);
   opacity: 0.72;
-  font-family: Gaegu, Jua, sans-serif;
+  font-family: GriunJeong, sans-serif;
   font-weight: 700;
   font-size: 19px;
   cursor: pointer;
@@ -954,7 +954,7 @@
   border-radius: 999px;
   background: var(--paper-strong);
   color: var(--ink);
-  font-family: Gaegu, Pretendard, sans-serif;
+  font-family: GriunJeong, Pretendard, sans-serif;
   font-weight: 700;
   font-size: 17px;
   cursor: pointer;
