@@ -16,7 +16,7 @@
 //   isOpenAround(place, min)   대체 후보가 그 시각에 열려 있는지
 //   formatClock / parseClock   분 ↔ "HH:MM" 변환
 //
-// 쓰는 곳: lib/course.js · App.jsx · ScheduleTimeline
+// 쓰는 곳: lib/course.js · App.jsx · hooks/useCourseBuilder.js
 // ─────────────────────────────────────────────────────────────
 
 import { estimateTravelMin } from './travelTime.js'

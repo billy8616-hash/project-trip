@@ -188,51 +188,6 @@ function toKakaoPlace(doc, groupCode) {
   }
 }
 
-// 좌표 주변 주차장 (카카오 로컬 카테고리 검색). category_group_code PK6 = 주차장.
-// 반경 안에서 가까운 순으로 정리해 상위 몇 곳만 돌려준다. 요금·만차 여부는 이 API 에 없다.
-const parkingCache = new Map() // "lat,lng,radius" -> { items, cachedAt }
-const PARKING_TTL_MS = 24 * 60 * 60 * 1000
-
-export async function searchParkingNear(lat, lng, radius = 700, limit = 3) {
-  if (!kakaoRestApiKey) throw new Error('KAKAO_REST_API_KEY가 설정되지 않았어요.')
-  if (!Number.isFinite(lat) || !Number.isFinite(lng)) throw new Error('lat, lng가 필요해요.')
-
-  // 카카오 category 검색 radius 는 0~20000m.
-  const safeRadius = Math.min(Math.max(Math.round(radius) || 700, 100), 20000)
-  const key = `${lat.toFixed(4)},${lng.toFixed(4)},${safeRadius}`
-  const cached = parkingCache.get(key)
-  if (cached && Date.now() - cached.cachedAt < PARKING_TTL_MS) return cached.items.slice(0, limit)
-
-  const params = new URLSearchParams({
-    category_group_code: 'PK6',
-    x: String(lng),
-    y: String(lat),
-    radius: String(safeRadius),
-    sort: 'distance',
-    size: '15',
-  })
-  const response = await fetch(`https://dapi.kakao.com/v2/local/search/category.json?${params}`, {
-    headers: { Authorization: `KakaoAK ${kakaoRestApiKey}` },
-    signal: timeoutSignal(8000),
-  })
-  const data = await response.json().catch(() => null)
-  if (!response.ok || !data) {
-    throw new Error(data?.message || '주차장 검색에 실패했어요.')
-  }
-
-  const items = (data.documents || []).map((doc) => ({
-    id: `kakao-${doc.id}`,
-    name: doc.place_name,
-    address: doc.road_address_name || doc.address_name || '',
-    lat: Number(doc.y),
-    lng: Number(doc.x),
-    distanceM: Number(doc.distance) || null,
-    url: doc.place_url || '',
-  }))
-  parkingCache.set(key, { items, cachedAt: Date.now() })
-  return items.slice(0, limit)
-}
-
 // 검색어를 나눠 던지는 이유: "{도시} 맛집" 하나로는 45건이 천장인데, 그중 상당수가
 // 주소 필터(isInCity)에서 떨어져 나가 실제로 쓸 수 있는 건 훨씬 적다.
 // 결이 다른 검색어를 섞으면 겹치는 결과를 빼고도 후보가 눈에 띄게 늘어난다.

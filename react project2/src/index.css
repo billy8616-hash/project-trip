@@ -24,10 +24,9 @@
 @import './styles/04-signup.css';
 @import './styles/05-origin-dates.css';
 @import './styles/06-theme-budget.css';
-@import './styles/07-course-timeline.css';
+@import './styles/07-shared-overrides.css';
 @import './styles/08-home.css';
 @import './styles/09-global-patches.css';
 @import './styles/10-trip-preview.css';
-@import './styles/11-place-modal.css';
 @import './styles/12-mytrips.css';
 @import './styles/13-responsive-fixes.css';

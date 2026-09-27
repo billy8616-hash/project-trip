@@ -8,7 +8,7 @@
 // JavaScript 키다. 대신 카카오 콘솔에서 도메인 제한을 걸어 보호한다.
 // 나머지 외부 API 키는 전부 서버에만 둔다.
 //
-// 쓰는 곳: KakaoRouteMap · MapMarks
+// 쓰는 곳: KakaoRouteMap
 // ─────────────────────────────────────────────────────────────
 
 export const kakaoMapApiKey = import.meta.env.VITE_KAKAO_MAP_API_KEY

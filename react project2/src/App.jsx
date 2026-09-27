@@ -31,7 +31,7 @@
 //       → 편집(currentTimelineDays) → displayPlaces → 타임라인·지도에 표시
 // ═════════════════════════════════════════════════════════════
 
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import SignupScreen from './SignupScreen.jsx'
 import { budgets, journeyThemes, SLOT_LABELS } from './data/travelOptions.js'
 import { allDestinations, destinationCatalog, destinationGroups, fallbackCity } from './data/destinations.js'
@@ -48,13 +48,10 @@ import { clearTripSession, loadTripSession, saveTripSession } from './lib/tripSe
 import CoursePoolNotice from './components/CoursePoolNotice.jsx'
 import Icon from './components/Icon.jsx'
 import KakaoRouteMap from './components/KakaoRouteMap.jsx'
-import PlaceDetailModal from './components/PlaceDetailModal.jsx'
-import ScheduleTimeline from './components/ScheduleTimeline.jsx'
 import CourseDetail from './screens/CourseDetail.jsx'
 import CommunityScreen from './screens/CommunityScreen.jsx'
 import Segment from './components/Segment.jsx'
 import TravelSketchHome from './components/TravelSketchHome.jsx'
-import { KakaoMark, NaverMark } from './components/MapMarks.jsx'
 import balgilLogoMark from './assets/balgil-logo-mark.webp'
 import BudgetScreen from './screens/BudgetScreen.jsx'
 import DatesScreen from './screens/DatesScreen.jsx'
@@ -72,41 +69,8 @@ const DAY_SEED = Math.floor(Date.now() / 86400000)
 const TODAY_CITY = destinationCatalog[DAY_SEED % destinationCatalog.length].name
 const TODAY_THEME_ID = journeyThemes[DAY_SEED % journeyThemes.length].id
 
-// "여행 일정 미리보기" 갤러리/카드에 쓰는 장소 종류별 이모지·라벨.
-const KIND_EMOJI = {
-  cafe: '☕',
-  bar: '🍺',
-  museum: '🖼️',
-  viewpoint: '🌇',
-  market: '🏮',
-  themepark: '🎡',
-  spa: '♨️',
-  nature: '🌳',
-  history: '🏛️',
-  restaurant: '🍽️',
-  sight: '📍',
-}
-const KIND_LABEL = {
-  cafe: '카페',
-  bar: '술집',
-  museum: '전시',
-  viewpoint: '전망',
-  market: '시장',
-  themepark: '테마파크',
-  spa: '온천',
-  nature: '자연',
-  history: '고궁·유적',
-  restaurant: '식당',
-  sight: '명소',
-}
-const SLOT_EMOJI = { 오전: '🌤️', '점심 맛집': '🍽️', '오후 카페': '☕', 저녁: '🌙' }
-
 // 코스 화면 저장 버튼의 평상시 레이블 (누른 뒤엔 "저장 중…" → "저장됨 ✓" 등으로 잠깐 바뀐다).
 const SAVE_LABEL = '현재 여행 코스 저장'
-
-// 지도 위 장소 정렬 방식.
-// 코스 정렬 기준. distance = 이동거리 최소, slot = 시간대 순서 그대로.
-const SORT_MODES = ['distance', 'slot']
 
 
 

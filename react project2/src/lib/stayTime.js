@@ -5,7 +5,7 @@
 // API 는 없다. 그래서 종류별 평균치로 출발값을 주고, 사용자가 타임라인에서
 // 직접 조정하는 것을 전제로 한다.
 //
-// 쓰는 곳: lib/schedule.js (도착 시각 누적) · ScheduleTimeline (표시)
+// 쓰는 곳: lib/schedule.js (도착 시각 누적) · hooks/useCourseBuilder.js (표시용 라벨)
 // ─────────────────────────────────────────────────────────────
 
 import { placeKindOf } from './placeKind.js'
