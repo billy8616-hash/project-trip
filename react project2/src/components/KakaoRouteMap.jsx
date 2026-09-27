@@ -32,6 +32,14 @@ function stopLabel(stop) {
   return `${stop.placeNo}`
 }
 
+// 두 좌표가 지도에서 사실상 같은 지점인지(20m 이내). 숙소를 안 적으면 출발지로 복귀하는
+// 왕복 코스라 출발·복귀 앵커가 완전히 같은 좌표를 갖는데, 그대로 두면 마커 두 개가
+// 정확히 같은 자리에 겹쳐져서 나중에 그려진 하나만 보이고 "출발" 마커는 가려져 버린다.
+const SAME_SPOT_DEG = 0.0002
+function isSameSpot(a, b) {
+  return Math.abs(a.lat - b.lat) < SAME_SPOT_DEG && Math.abs(a.lng - b.lng) < SAME_SPOT_DEG
+}
+
 // 좌표열의 각 마디를 per 등분해 촘촘하게 만든다 — 직선 구간을 부드럽게 자라나게 하려고.
 function densifyPath(pts, per, kakao) {
   if (pts.length < 2) return pts
@@ -196,6 +204,19 @@ export default function KakaoRouteMap({ course, places, origin, endPoint, transp
 
         // 장소는 번호(1,2,3…) 마커, 출발지·숙소·복귀지는 라벨 마커로 구분해서 찍는다.
         const placeStopMarker = (stop) => {
+          // 숙소를 안 적으면 출발지 = 복귀지라 두 앵커가 같은 좌표를 갖는다. 이미 그 자리에
+          // 앵커 마커가 있으면 새로 겹쳐 찍지 않고 라벨만 합친다("출발" + "복귀" -> "출발·복귀").
+          if (stop.kind !== 'place') {
+            const existing = markersRef.current.find(
+              (m) => m.kind && m.kind !== 'place' && isSameSpot(m.position, stop.location),
+            )
+            if (existing) {
+              existing.element.textContent = `${existing.element.textContent}·${stopLabel(stop)}`
+              existing.element.title = `${existing.element.title} · ${stop.name}`
+              return
+            }
+          }
+
           const position = new kakao.maps.LatLng(stop.location.lat, stop.location.lng)
           const el = document.createElement('button')
           el.type = 'button'
@@ -222,7 +243,8 @@ export default function KakaoRouteMap({ course, places, origin, endPoint, transp
           markersRef.current.push({
             overlay,
             element: el,
-            position,
+            position: stop.location,
+            kind: stop.kind,
             placeNo: stop.kind === 'place' ? stop.placeNo : null,
             stopIndex: stops.indexOf(stop),
           })
