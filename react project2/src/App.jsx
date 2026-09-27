@@ -114,6 +114,8 @@ function App() {
   // ── 화면 표시 상태 ──────────────────────────────────────────
   // 코스 자체가 아니라 "어떻게 보고 있는지"에 해당하는 값들.
   // 선택한 장소·날짜, 저장·공유 버튼의 문구 등.
+  // 홈 화면 목적지 입력이 지원하는 40개 여행지 중 어디에도 해당하지 않을 때 보여줄 안내.
+  const [destinationError, setDestinationError] = useState('')
   const [selectedPlace, setSelectedPlace] = useState(0)
   // 지도 구간 트레이싱을 "누를 때마다" 다시 트리거하려고, 같은 번호를 눌러도 값이 바뀌는 카운터.
   const [selectPulse, setSelectPulse] = useState(0)
@@ -338,13 +340,30 @@ function App() {
     setTripLodging(null)
   }
 
+  // 목적지 입력창을 고칠 때마다 이전 입력에 달려 있던 "지원 안 함" 에러부터 지운다.
+  const changeDestinationInput = (value) => {
+    setDestinationError('')
+    setDestination(value)
+  }
+
   // 홈 화면 '여행 시작하기': 입력한 목적지로 바로 코스로 가지 않고
   // 테마 -> 예산 -> 날짜(날씨) -> 코스 순서의 단계 흐름으로 들어간다.
+  //
+  // 코스 데이터(TourAPI 풀)는 지원하는 40개 여행지에만 있다. 예전엔 아무 텍스트나
+  // 넘어갔는데, 그러면 cityKey 매칭에 실패해 fallbackCity(경주)로 조용히 바뀌면서
+  // "이름은 내가 적은 곳, 코스는 전혀 다른 곳"이 됐다. 여기서 정확히 일치하는
+  // 이름인지 먼저 확인한다.
   const startCourse = () => {
     const typed = destination.trim()
     if (!typed) return
+    const matched = allDestinations.find((item) => item.name === typed)
+    if (!matched) {
+      setDestinationError(`'${typed}'은(는) 아직 지원하지 않는 여행지예요. 목록에서 골라주세요.`)
+      return
+    }
+    setDestinationError('')
     resetTripDraft()
-    setPickedDestination(typed)
+    setPickedDestination(matched.name)
     setJourneyTheme('')
     setTripStartDate(todayISO())
     setTripEndDate(todayISO())
@@ -824,11 +843,12 @@ function App() {
         <TravelSketchHome
           cityPhotos={cityPhotos}
           destination={destination}
+          destinationError={destinationError}
           leaving={leaving}
           todayCity={todayCity}
           todayCourse={todayCourse}
           todayStatus={todayStatus}
-          onChangeDestination={setDestination}
+          onChangeDestination={changeDestinationInput}
           onPickCity={pickDestination}
           onRetryToday={retryTodayPool}
           onStartCourse={startCourse}

@@ -608,6 +608,22 @@
   opacity: 1; /* Firefox 는 기본 opacity 를 따로 먹인다 */
 }
 
+/* 목적지 자동완성 — 입력칸 바로 아래에 뜨는 후보 목록(지원하는 40개 여행지만). */
+.diary-dest-wrap {
+  position: relative;
+  min-width: 0;
+}
+.diary-dest-suggest {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 20;
+}
+.diary-dest-error {
+  margin: 8px 0 0;
+}
+
 .diary-start {
   min-height: 52px;
   border-color: rgba(33, 24, 18, 0.82);

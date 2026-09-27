@@ -11,8 +11,12 @@
 // 쓰는 곳: App.jsx (screen === 'home')
 // ─────────────────────────────────────────────────────────────
 
+import { useMemo, useState } from 'react'
 import { formatClock } from '../lib/schedule.js'
-import { destinationCatalog } from '../data/destinations.js'
+import { allDestinations, destinationCatalog } from '../data/destinations.js'
+
+// 자동완성 후보를 이 개수까지만 보여준다 — 다 보여주면 스크롤이 길어져 오히려 고르기 번거롭다.
+const SUGGEST_LIMIT = 8
 
 const FEATURED_NAMES = ['서울', '제주', '경주', '부산']
 const featuredCities = FEATURED_NAMES.map((name) => {
@@ -31,6 +35,7 @@ const SLOT_ICON = {
 export default function TravelSketchHome({
   cityPhotos,
   destination,
+  destinationError,
   leaving,
   todayCity,
   todayCourse,
@@ -42,6 +47,34 @@ export default function TravelSketchHome({
   onStartToday,
 }) {
   const todaySteps = todayCourse?.days?.[0]?.places || []
+
+  // ── 목적지 자동완성 ────────────────────────────────────────────────────
+  // 지원하는 40개 여행지 중에서만 코스를 만들 수 있는데, 이전엔 입력창이 자유
+  // 텍스트라 목록에 없는 이름을 적어도 그대로 다음 화면으로 넘어갔다(그러면
+  // 코스 생성 단계에서 조용히 다른 도시로 대체됐다). 타이핑하는 동안 실제로
+  // 되는 도시만 후보로 보여주고, 그중 하나를 정확히 골라야만 시작되게 한다.
+  const [suggestOpen, setSuggestOpen] = useState(false)
+  // 방금 후보에서 고른 이름은 다시 검색하지 않는다 — 고르자마자 같은 이름으로
+  // 또 필터링해서 목록이 다시 펼쳐지는 것을 막는다.
+  const [pickedName, setPickedName] = useState('')
+
+  const trimmedDestination = destination.trim()
+  const suggestions = useMemo(() => {
+    if (!trimmedDestination || trimmedDestination === pickedName) return []
+    return allDestinations.filter((city) => city.name.includes(trimmedDestination)).slice(0, SUGGEST_LIMIT)
+  }, [trimmedDestination, pickedName])
+
+  const changeDestination = (value) => {
+    setPickedName('')
+    onChangeDestination(value)
+  }
+
+  const pickSuggestion = (name) => {
+    setPickedName(name)
+    onChangeDestination(name)
+    setSuggestOpen(false)
+  }
+
   return (
     <section className={leaving ? 'sketch-home is-leaving' : 'sketch-home'}>
       <article className="diary-page">
@@ -63,19 +96,48 @@ export default function TravelSketchHome({
         </p>
 
         <div className="diary-search">
-          <label className="diary-field">
-            <span>목적지</span>
-            <input
-              value={destination}
-              onChange={(event) => onChangeDestination(event.target.value)}
-              placeholder="어디로 떠나볼까요? (예: 강릉)"
-              aria-label="목적지"
-            />
-          </label>
+          <div className="diary-dest-wrap">
+            <label className="diary-field">
+              <span>목적지</span>
+              <input
+                value={destination}
+                onChange={(event) => changeDestination(event.target.value)}
+                onFocus={() => setSuggestOpen(true)}
+                onBlur={() => window.setTimeout(() => setSuggestOpen(false), 120)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Escape') setSuggestOpen(false)
+                }}
+                placeholder="어디로 떠나볼까요? (예: 강릉)"
+                aria-label="목적지"
+                autoComplete="off"
+              />
+            </label>
+
+            {suggestOpen && trimmedDestination && (
+              <div className="origin-suggest diary-dest-suggest">
+                {suggestions.length > 0 ? (
+                  <ul className="origin-suggest-list">
+                    {suggestions.map((city) => (
+                      <li key={city.name}>
+                        <button type="button" onMouseDown={() => pickSuggestion(city.name)}>
+                          <b>{city.name}</b>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="origin-suggest-note">
+                    아직 지원하지 않는 도시예요. 목록에 있는 여행지 중에서 골라주세요.
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
           <button type="button" className="diary-start" onClick={onStartCourse}>
             여행 시작하기 <span aria-hidden="true">→</span>
           </button>
         </div>
+        {destinationError && <p className="origin-message diary-dest-error">{destinationError}</p>}
 
         <div className="diary-cards">
           {featuredCities.map((city) => (
