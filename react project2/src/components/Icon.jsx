@@ -45,6 +45,11 @@ export default function Icon({ type }) {
         <circle cx="12" cy="9" r="2.5" />
       </svg>
     ),
+    bookmark: (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1z" />
+      </svg>
+    ),
   }
   return icons[type] || null
 }

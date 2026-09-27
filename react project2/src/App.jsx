@@ -889,18 +889,24 @@ function App() {
             </div>
             <div className="course-ctl course-ctl-theme">
               <span className="course-ctl-label">여행 테마</span>
-              <div className="course-theme-chips" role="group" aria-label="여행 테마">
-                {journeyThemes.map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    className={journeyTheme === item.id ? 'course-theme-chip is-active' : 'course-theme-chip'}
-                    onClick={() => setJourneyTheme(item.id)}
-                  >
-                    <span className="course-theme-chip-ic" aria-hidden="true"><Icon type={item.icon} /></span>
-                    {item.label}
-                  </button>
-                ))}
+              <div className="course-theme-row">
+                <div className="course-theme-chips" role="group" aria-label="여행 테마">
+                  {journeyThemes.map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      className={journeyTheme === item.id ? 'course-theme-chip is-active' : 'course-theme-chip'}
+                      onClick={() => setJourneyTheme(item.id)}
+                    >
+                      <span className="course-theme-chip-ic" aria-hidden="true"><Icon type={item.icon} /></span>
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+                <button type="button" className="course-save-button" onClick={saveCourse}>
+                  <span className="course-save-button-ic" aria-hidden="true"><Icon type="bookmark" /></span>
+                  {saveState}
+                </button>
               </div>
             </div>
           </div>
@@ -962,8 +968,6 @@ function App() {
             onZoomOut={() => zoomMap(1)}
             onRecenter={recenterMap}
             actions={{
-              onSave: saveCourse,
-              saveLabel: saveState,
               onShare: shareCourse,
               shareLabel: copyState,
               onOpenMap: mapUrl ? () => window.open(mapUrl, '_blank', 'noopener') : undefined,

@@ -305,10 +305,54 @@
   background: var(--coral);
   color: #fff6ef;
 }
+.course-theme-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
 .course-theme-chips {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+.course-save-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-left: auto;
+  padding: 9px 20px;
+  border: 2px solid var(--line);
+  border-radius: 999px;
+  background: var(--amber);
+  color: #3a2a1a;
+  box-shadow: 3px 4px 0 rgba(58, 42, 26, 0.16);
+  font-family: GriunJeong, sans-serif;
+  font-weight: 700;
+  font-size: 16.5px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.course-save-button:hover {
+  background: #efa869;
+}
+@media (max-width: 480px) {
+  .course-save-button {
+    flex: 1 1 100%;
+    justify-content: center;
+    margin-left: 0;
+  }
+}
+.course-save-button-ic {
+  display: inline-flex;
+  width: 17px;
+  height: 17px;
+}
+.course-save-button-ic svg {
+  width: 17px;
+  height: 17px;
+  fill: currentColor;
+  stroke: none;
 }
 .course-theme-chip {
   display: inline-flex;
