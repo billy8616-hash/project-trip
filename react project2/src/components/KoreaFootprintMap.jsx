@@ -29,14 +29,11 @@ export function KoreaFootprintMap({ cities, scale = 4300 }) {
             <Geography
               key={geo.rsmKey}
               geography={geo}
+              tabIndex={-1}
               fill="#CBD5E1"
               stroke="#64748B"
               strokeWidth={1}
-              style={{
-                default: { outline: 'none' },
-                hover: { outline: 'none', fill: '#FDE9D9' },
-                pressed: { outline: 'none' },
-              }}
+              style={{ outline: 'none' }}
             />
           ))
         }
@@ -45,6 +42,7 @@ export function KoreaFootprintMap({ cities, scale = 4300 }) {
       {/* 방문 도시 마커: 은은하게 번지는 pulse 원(tw-animate-pulse) + 위에 얹은 작은 점 */}
       {cities.map((city) => (
         <Marker key={city.name} coordinates={city.coordinates}>
+          <title>{city.name}</title>
           <circle r={9} fill="#F97316" fillOpacity={0.35} className="tw-animate-pulse" />
           <circle r={3.5} fill="#F97316" stroke="#ffffff" strokeWidth={1.2} />
         </Marker>
