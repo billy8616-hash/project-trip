@@ -22,7 +22,7 @@ export default function FootprintMapWidget({ cities = [], onViewFullMap }) {
 
       <div className="tw-relative tw-aspect-[4/5] tw-w-full tw-overflow-hidden tw-rounded-2xl tw-bg-sky-50">
         {cities.length > 0 ? (
-          <KoreaFootprintMap cities={cities} />
+          <KoreaFootprintMap cities={cities} width={400} height={500} scale={5000} markerRadius={14} />
         ) : (
           <p className="tw-flex tw-h-full tw-items-center tw-justify-center tw-px-6 tw-text-center tw-text-sm tw-text-neutral-400">
             아직 저장된 여행에 발자국을 남길 곳이 없어요.
