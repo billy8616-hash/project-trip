@@ -21,7 +21,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { fetchCarRoute, fetchTransitRoute, fetchWalkRoute } from '../lib/api.js'
 import { kakaoMapApiKey, legColor, loadKakaoMaps } from '../lib/kakaoMaps.js'
-import { estimateTravelMin, formatMinutes } from '../lib/travelTime.js'
+import { estimateTravelMin, formatDurationMin, formatMinutes } from '../lib/travelTime.js'
 import MapNotice from './MapNotice.jsx'
 
 // 마커에 찍을 글자. 장소는 방문 순서 번호(1,2,3…), 앵커는 역할 이름으로 표시한다.
@@ -30,6 +30,12 @@ function stopLabel(stop) {
   if (stop.kind === 'lodging') return '숙소'
   if (stop.kind === 'return') return '복귀'
   return `${stop.placeNo}`
+}
+
+// 예전엔 30분이 넘으면 "30분 이내"로 뭉개서, 실제로 훨씬 오래 걸리는(또는 걸어서 못 가는)
+// 구간도 지도에선 짧아 보였다. 있는 그대로의 시간을 보여준다.
+function walkDurationLabel(minutes) {
+  return formatDurationMin(minutes)
 }
 
 // 두 좌표가 지도에서 사실상 같은 지점인지(20m 이내). 숙소를 안 적으면 출발지로 복귀하는
@@ -515,8 +521,8 @@ export default function KakaoRouteMap({ course, places, origin, endPoint, transp
                 registerLeg(outline, polyline, index, 5, color)
 
                 const duration = section
-                  ? `${section.totalMinutes}분`
-                  : `${estimateTravelMin(stops[index], stops[index + 1], transport)}분`
+                  ? walkDurationLabel(section.totalMinutes)
+                  : walkDurationLabel(estimateTravelMin(stops[index], stops[index + 1], transport))
                 placeStopMarker(stops[index])
                 return { ...meta, duration, summary: null }
               })

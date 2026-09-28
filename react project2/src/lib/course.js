@@ -23,6 +23,7 @@ import { PLACE_NAME_ALIASES } from '../data/placeAliases.js'
 import { SLOT_LABELS } from '../data/travelOptions.js'
 import { budgetAdjust } from './cost.js'
 import { optimizeRouteOrderBySlot } from './geo.js'
+import { isWithinWalkLimit } from './travelTime.js'
 import { isClosedOnDate } from './openingHours.js'
 import {
   placeKindOf,
@@ -92,6 +93,10 @@ export function buildCourse(base, themeId, budgetTier, mustVisit = [], anchors =
   const keywords = mustVisit.map((word) => word.trim()).filter(Boolean)
   const used = new Set()
   const usesTransit = transport === '대중교통' || transport === '도보'
+  // '발길따라' 테마이거나 교통편을 도보로 골랐으면, 실제로 걸어갈 수 있는 거리인지
+  // (isWithinWalkLimit) 확인해 가며 장소를 잇는다 — 안 그러면 섬·외곽처럼 걸어서는
+  // 갈 수 없는 곳이 같은 날 옆자리로 붙어서 "도보 30분"처럼 말도 안 되는 이동시간이 나온다.
+  const walkAware = themeId === 'step' || transport === '도보'
 
   // 여행 날짜에 문을 닫는 곳은 먼저 걸러낸다. 단, 그 바람에 후보가 슬롯 수보다 적어지면
   // (지방 소도시 등) 필터를 포기하고 원래 풀을 쓴다 — 빈 코스보다는 낫다.
@@ -167,7 +172,7 @@ export function buildCourse(base, themeId, budgetTier, mustVisit = [], anchors =
   // 그래도 후보가 없어 비어 있는 슬롯만 2단계에서 태그와 무관하게 채운다. 한 번에 순서대로
   // 채우면, 아직 처리 안 한 뒤 슬롯(예: 저녁)에 정확히 맞는 곳이 앞 슬롯(오후 카페)의
   // 대체용으로 먼저 가로채질 수 있기 때문이다.
-  const pickOneDay = (wet = false, skipSlots = new Set()) => {
+  const pickOneDay = (wet = false, skipSlots = new Set(), requiredPlaces = []) => {
     const rankAndPick = (candidates) => {
       const sorted = candidates
         .map((place, index) => ({ place, index }))
@@ -176,6 +181,50 @@ export function buildCourse(base, themeId, budgetTier, mustVisit = [], anchors =
     }
 
     const slots = SLOT_LABELS.filter((slot) => !skipSlots.has(slot))
+
+    if (walkAware) {
+      const picks = []
+      let routeCursor = null
+      let remainingSlots = slots.slice()
+
+      SLOT_LABELS.forEach((slot) => {
+        const requiredInSlot = requiredPlaces.filter((place) => place.assignedSlot === slot)
+        if (skipSlots.has(slot)) {
+          if (requiredInSlot.length) routeCursor = requiredInSlot[requiredInSlot.length - 1]
+          remainingSlots = remainingSlots.filter((remainingSlot) => remainingSlot !== slot)
+          return
+        }
+
+        const canReachFromCursor = (place) => !routeCursor || isWithinWalkLimit(routeCursor, place)
+        const matching = pool.filter((place) => !used.has(place.name) && place.slots.includes(slot) && canReachFromCursor(place))
+        let pick = rankAndPick(matching)
+
+        if (!pick) {
+          // 다음 시간대에 어울리는 장소를 먼저 남겨 두고, 가까운 일반 후보로 빈 슬롯을 채운다.
+          const laterSlots = remainingSlots.slice(1)
+          const fallback = pool.filter(
+            (place) =>
+              !used.has(place.name) &&
+              !place.slots.some((candidateSlot) => laterSlots.includes(candidateSlot)) &&
+              canReachFromCursor(place),
+          )
+          pick = rankAndPick(fallback)
+          if (!pick) {
+            pick = rankAndPick(pool.filter((place) => !used.has(place.name) && canReachFromCursor(place)))
+          }
+        }
+
+        if (pick) {
+          used.add(pick.name)
+          picks.push({ ...pick, assignedSlot: slot })
+          routeCursor = pick
+        }
+        remainingSlots = remainingSlots.slice(1)
+      })
+
+      return picks
+    }
+
     const picks = slots.map((slot) => {
       const pick = rankAndPick(pool.filter((place) => !used.has(place.name) && place.slots.includes(slot)))
       if (pick) used.add(pick.name)
@@ -202,9 +251,9 @@ export function buildCourse(base, themeId, budgetTier, mustVisit = [], anchors =
     // 가장 확실하게 지켜지는 첫날에 두고 사용자가 원하면 다른 날로 옮기게 한다.
     const forcedToday = d === 0 ? [...forcedPlaces, ...forcedManual] : []
     const takenSlots = new Set(forcedToday.map((place) => place.assignedSlot))
-    let dayPicks = [...forcedToday, ...pickOneDay(Boolean(wetDays[d]), takenSlots)]
+    let dayPicks = [...forcedToday, ...pickOneDay(Boolean(wetDays[d]), takenSlots, forcedToday)]
     // 슬롯을 두 곳도 못 채웠으면 남은 풀에서 아무거나 끌어와 최소한의 하루는 만든다.
-    if (dayPicks.length < 2) {
+    if (dayPicks.length < 2 && !walkAware) {
       const filler = pool
         .filter((place) => !used.has(place.name))
         .slice(0, SLOT_LABELS.length - dayPicks.length)
@@ -225,7 +274,23 @@ export function buildCourse(base, themeId, budgetTier, mustVisit = [], anchors =
       return insertManualBySlot(optimizeRouteOrderBySlot(located, anchors), manual)
     }
 
-    let scheduled = scheduleDay(orderPicks(dayPicks), { dayStartMin, transport })
+    const keepWalkablePicks = (list) => {
+      if (!walkAware) return list
+      const connected = []
+      let cursor = null
+      list.forEach((place) => {
+        if (!cursor || place.mustVisit || isWithinWalkLimit(cursor, place)) {
+          connected.push(place)
+          cursor = place
+        } else {
+          used.delete(place.name)
+        }
+      })
+      return connected
+    }
+
+    let orderedPicks = keepWalkablePicks(orderPicks(dayPicks))
+    let scheduled = scheduleDay(orderedPicks, { dayStartMin, transport })
 
     // 늦게 출발하면 도착 시점에 이미 문을 닫는 곳이 생긴다. 그런 곳은 코스에서 빼고,
     // 그 슬롯에 그 시각에도 여는 다른 곳으로 교체한다. 한 곳 빼면 뒤 일정이 앞당겨지므로
@@ -244,14 +309,18 @@ export function buildCourse(base, themeId, budgetTier, mustVisit = [], anchors =
         (place) =>
           !used.has(place.name) &&
           place.slots.includes(dropped.assignedSlot) &&
-          isOpenAround(place, dropped.arriveMin),
+          isOpenAround(place, dropped.arriveMin) &&
+          (!walkAware ||
+            ((!scheduled[closedIndex - 1] || isWithinWalkLimit(scheduled[closedIndex - 1], place)) &&
+              (!scheduled[closedIndex + 1] || isWithinWalkLimit(place, scheduled[closedIndex + 1])))),
       )
       if (replacement) {
         used.add(replacement.name)
         remaining = [...remaining, { ...replacement, assignedSlot: dropped.assignedSlot }]
       }
 
-      scheduled = scheduleDay(orderPicks(remaining), { dayStartMin, transport })
+      orderedPicks = keepWalkablePicks(orderPicks(remaining))
+      scheduled = scheduleDay(orderedPicks, { dayStartMin, transport })
     }
 
     days.push({ places: scheduled })

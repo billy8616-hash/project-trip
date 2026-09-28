@@ -16,9 +16,10 @@ import { haversineKm } from './geo.js'
 
 // 좌표가 없는(사용자가 새로 추가한) 장소용 이동시간 기본값(분)
 export const TRAVEL_FALLBACK = { 도보: 18, 대중교통: 22, 자차: 13 }
+export const MAX_WALK_LEG_MIN = 30
 
-// 순서가 바뀔 때마다 두 장소 사이 예상 이동시간(분)을 다시 계산한다.
-export function estimateTravelMin(from, to, transport) {
+// 거리 기준 예상 이동시간(분). 도보 구간이 지나치게 길어지지 않도록 계산값을 제한한다.
+function estimateRawTravelMin(from, to, transport) {
   if (from?.location && to?.location) {
     const km = haversineKm(from.location, to.location)
     const speed = transport === '도보' ? 4.5 : transport === '자차' ? 26 : 17
@@ -26,6 +27,20 @@ export function estimateTravelMin(from, to, transport) {
     return Math.max(1, Math.round(base + (km / speed) * 60))
   }
   return TRAVEL_FALLBACK[transport] ?? 20
+}
+
+// 순서가 바뀔 때마다 두 장소 사이 예상 이동시간(분)을 다시 계산한다.
+// (예전엔 도보일 때 이 값을 MAX_WALK_LEG_MIN 으로 뭉개서, 실제로는 걸어서 갈 수 없는
+// 거리인데도 화면·일정 계산에 "30분"처럼 거짓 값이 쓰였다. 실제로 걸을 수 있는지는
+// course.js 가 isWithinWalkLimit 로 장소를 고르는 단계에서 따로 걸러 내므로, 여기서는
+// 있는 그대로의 예상 시간을 돌려준다.)
+export function estimateTravelMin(from, to, transport) {
+  return estimateRawTravelMin(from, to, transport)
+}
+
+// 발길따라 추천 코스에서 장소를 이을 수 있는지 판단할 때는 제한 전 값을 쓴다.
+export function isWithinWalkLimit(from, to, maxMinutes = MAX_WALK_LEG_MIN) {
+  return estimateRawTravelMin(from, to, '도보') <= maxMinutes
 }
 
 // 길찾기 API가 주는 초 단위 소요시간을 화면 표기용 "N분"으로.
