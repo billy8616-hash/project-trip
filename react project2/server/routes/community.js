@@ -5,6 +5,7 @@
 // ─────────────────────────────────────────────────────────────
 
 import express from 'express'
+import multer from 'multer'
 import { optionalAuth, requireAuth } from '../authMiddleware.js'
 import {
   createPost,
@@ -15,8 +16,14 @@ import {
   toggleLike,
   upsertReview,
 } from '../communityStore.js'
+import { communityPhotoLimits, uploadCommunityPhotos } from '../communityStorage.js'
 
 export const router = express.Router()
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: communityPhotoLimits.maxFileBytes, files: communityPhotoLimits.maxFiles },
+})
 
 // 공유된 코스 목록. ?city=제주 &sort=recent|likes|rating
 router.get('/api/community', optionalAuth, async (req, res) => {
@@ -45,9 +52,37 @@ router.get('/api/community/:id', optionalAuth, async (req, res) => {
   }
 })
 
+// multer 가 던지는 용량/개수 초과 에러를 JSON 메시지로 바꿔 준다(그냥 두면 기본 에러 페이지가 나간다).
+function parsePhotos(req, res, next) {
+  upload.array('photos', communityPhotoLimits.maxFiles)(req, res, (err) => {
+    if (!err) return next()
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({ message: `사진 한 장은 ${Math.round(communityPhotoLimits.maxFileBytes / (1024 * 1024))}MB 이하여야 해요.` })
+    }
+    if (err.code === 'LIMIT_FILE_COUNT') {
+      return res.status(400).json({ message: `사진은 최대 ${communityPhotoLimits.maxFiles}장까지 올릴 수 있어요.` })
+    }
+    return res.status(400).json({ message: '사진을 처리하지 못했어요.' })
+  })
+}
+
+// 글쓰기 화면에서 고른 사진들을 먼저 업로드하고 공개 URL을 받는다.
+// (사진은 코스 공유(POST /api/community) 전에 따로 올려서, 그 URL을 payload처럼 함께 보낸다.)
+router.post('/api/community/upload', requireAuth, parsePhotos, async (req, res) => {
+  if (!req.files || req.files.length === 0) {
+    return res.status(400).json({ message: '올릴 사진을 선택해 주세요.' })
+  }
+  try {
+    const urls = await uploadCommunityPhotos(req.files, req.userId)
+    return res.status(201).json({ urls })
+  } catch (error) {
+    return res.status(error.status || 500).json({ message: error.message || '사진을 올리지 못했어요.' })
+  }
+})
+
 // 내 코스를 커뮤니티에 공유하기.
 router.post('/api/community', requireAuth, async (req, res) => {
-  const { title, city, dayCount, summary, body, rating, payload } = req.body || {}
+  const { title, city, dayCount, summary, body, rating, payload, images } = req.body || {}
   if (typeof title !== 'string' || !title.trim()) {
     return res.status(400).json({ message: '제목이 필요해요.' })
   }
@@ -59,7 +94,7 @@ router.post('/api/community', requireAuth, async (req, res) => {
   }
   try {
     const post = await createPost(req.userId, req.userName, {
-      title: title.trim(), city: city.trim(), dayCount, summary, body, rating, payload,
+      title: title.trim(), city: city.trim(), dayCount, summary, body, rating, payload, images,
     })
     return res.status(201).json({ post })
   } catch (error) {

@@ -5,11 +5,14 @@
 // 소개 글과 별점을 붙여 올린다.
 // ─────────────────────────────────────────────────────────────
 
-import { useEffect, useState } from 'react'
-import { sharePost } from '../../lib/communityApi.js'
+import { useEffect, useMemo, useState } from 'react'
+import { sharePost, uploadPostImages } from '../../lib/communityApi.js'
 import { listTrips } from '../../lib/tripsApi.js'
 import { RoutePreview } from './RoutePreview.jsx'
 import { StarPicker } from './Stars.jsx'
+
+const MAX_PHOTOS = 5
+const MAX_PHOTO_BYTES = 8 * 1024 * 1024
 
 export function ComposeView({ onClose, onDone }) {
   const [trips, setTrips] = useState([])
@@ -20,7 +23,44 @@ export function ComposeView({ onClose, onDone }) {
   const [summary, setSummary] = useState('')
   const [body, setBody] = useState('')
   const [rating, setRating] = useState(0)
+  const [photos, setPhotos] = useState([]) // 아직 안 올린 사진 File 목록
   const [busy, setBusy] = useState(false)
+  const [uploadingPhotos, setUploadingPhotos] = useState(false)
+
+  // photos 와 순서를 맞춘 미리보기 URL. photos 가 바뀔 때만 새로 만들고,
+  // 다음번에 바뀌거나 화면을 나갈 때 이전 URL을 메모리에서 정리한다.
+  const previews = useMemo(() => photos.map((file) => URL.createObjectURL(file)), [photos])
+  useEffect(() => () => previews.forEach((url) => URL.revokeObjectURL(url)), [previews])
+
+  const handlePhotoSelect = (event) => {
+    const picked = Array.from(event.target.files || [])
+    event.target.value = '' // 같은 파일을 다시 골라도 onChange 가 또 일어나게
+    if (picked.length === 0) return
+    if (photos.length >= MAX_PHOTOS) {
+      setMessage(`사진은 최대 ${MAX_PHOTOS}장까지 올릴 수 있어요.`)
+      return
+    }
+    const tooBig = picked.some((file) => file.size > MAX_PHOTO_BYTES)
+    if (tooBig) setMessage('8MB보다 큰 사진은 제외했어요.')
+    const valid = picked.filter((file) => file.size <= MAX_PHOTO_BYTES)
+    setPhotos((prev) => [...prev, ...valid].slice(0, MAX_PHOTOS))
+  }
+
+  const removePhoto = (index) => {
+    setPhotos((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  // 목록·상세에서는 항상 첫 번째 사진을 대표 사진으로 쓰므로, 대표로 지정한다는 건
+  // 곧 그 사진을 맨 앞으로 옮긴다는 뜻이다.
+  const makeCover = (index) => {
+    setPhotos((prev) => {
+      if (index <= 0) return prev
+      const next = prev.slice()
+      const [file] = next.splice(index, 1)
+      next.unshift(file)
+      return next
+    })
+  }
 
   useEffect(() => {
     let alive = true
@@ -62,6 +102,12 @@ export function ComposeView({ onClose, onDone }) {
     }
     setBusy(true)
     try {
+      let images = []
+      if (photos.length > 0) {
+        setUploadingPhotos(true)
+        images = await uploadPostImages(photos)
+        setUploadingPhotos(false)
+      }
       const post = await sharePost({
         title: title.trim(),
         city: picked.city,
@@ -70,11 +116,13 @@ export function ComposeView({ onClose, onDone }) {
         body: body.trim(),
         rating,
         payload: picked.payload,
+        images,
       })
       onDone(post)
     } catch (error) {
       setMessage(error.message)
       setBusy(false)
+      setUploadingPhotos(false)
     }
   }
 
@@ -182,6 +230,50 @@ export function ComposeView({ onClose, onDone }) {
             />
           </label>
 
+          <div>
+            <span className="tw-mb-1.5 tw-block tw-text-[13px] tw-font-bold tw-text-cink">
+              사진 <span className="tw-font-normal tw-text-cink-faint">(선택, 최대 {MAX_PHOTOS}장)</span>
+            </span>
+            {photos.length > 1 && (
+              <p className="tw-mb-2 tw-text-[11.5px] tw-text-cink-faint">대표 사진은 목록·상세 화면 썸네일로 쓰여요.</p>
+            )}
+            <div className="tw-flex tw-flex-wrap tw-gap-2.5">
+              {photos.map((file, index) => (
+                <div key={`${file.name}-${index}`} className="tw-relative tw-h-20 tw-w-20 tw-shrink-0 tw-overflow-hidden tw-rounded-xl tw-border tw-border-cline">
+                  <img src={previews[index]} alt={`첨부 사진 ${index + 1}`} className="tw-h-full tw-w-full tw-object-cover" />
+                  {index === 0 ? (
+                    <span className="tw-absolute tw-bottom-1 tw-left-1 tw-rounded tw-bg-caccent tw-px-1.5 tw-py-0.5 tw-text-[10px] tw-font-semibold tw-text-white">
+                      대표
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => makeCover(index)}
+                      className="tw-absolute tw-bottom-1 tw-left-1 tw-rounded tw-bg-black/60 tw-px-1.5 tw-py-0.5 tw-text-[10px] tw-font-semibold tw-text-white hover:tw-bg-black/75"
+                    >
+                      대표로
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => removePhoto(index)}
+                    aria-label="사진 빼기"
+                    className="tw-absolute tw-right-1 tw-top-1 tw-grid tw-h-5 tw-w-5 tw-place-items-center tw-rounded-full tw-bg-black/60 tw-text-[11px] tw-text-white"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+              {photos.length < MAX_PHOTOS && (
+                <label className="tw-flex tw-h-20 tw-w-20 tw-shrink-0 tw-cursor-pointer tw-flex-col tw-items-center tw-justify-center tw-gap-1 tw-rounded-xl tw-border tw-border-dashed tw-border-cline tw-text-cink-faint hover:tw-border-caccent/50 hover:tw-text-caccent">
+                  <span className="tw-text-[20px] tw-leading-none">+</span>
+                  <span className="tw-text-[11px]">사진 추가</span>
+                  <input type="file" accept="image/*" multiple onChange={handlePhotoSelect} className="tw-hidden" />
+                </label>
+              )}
+            </div>
+          </div>
+
           <div className="tw-flex tw-items-center tw-gap-3">
             <span className="tw-text-[13px] tw-font-bold tw-text-cink">
               내 별점 <b className="tw-font-normal tw-text-cink-faint">(필수)</b>
@@ -201,7 +293,7 @@ export function ComposeView({ onClose, onDone }) {
               disabled={busy}
               className="tw-rounded-full tw-bg-caccent tw-px-5 tw-py-2.5 tw-text-[13px] tw-font-semibold tw-text-white disabled:tw-opacity-50"
             >
-              {busy ? '공유 중…' : '공유하기'}
+              {uploadingPhotos ? '사진 올리는 중…' : busy ? '공유 중…' : '공유하기'}
             </button>
             <button
               type="button"

@@ -30,12 +30,21 @@ export async function getCommunityPost(id) {
 }
 
 // 지금 보고 있는 코스를 공유한다. payload 는 "내 여행" 저장과 같은 모양.
-export async function sharePost({ title, city, dayCount, summary, body, rating, payload }) {
+// images 는 uploadPostImages 로 먼저 올려 받은 공개 URL 배열(선택).
+export async function sharePost({ title, city, dayCount, summary, body, rating, payload, images }) {
   const data = await request('/api/community', {
     method: 'POST',
-    body: JSON.stringify({ title, city, dayCount, summary, body, rating, payload }),
+    body: JSON.stringify({ title, city, dayCount, summary, body, rating, payload, images }),
   })
   return data.post
+}
+
+// 글쓰기 화면에서 고른 사진 파일들을 올리고 공개 URL 배열을 받는다.
+export async function uploadPostImages(files) {
+  const formData = new FormData()
+  files.forEach((file) => formData.append('photos', file))
+  const data = await request('/api/community/upload', { method: 'POST', body: formData })
+  return data.urls || []
 }
 
 export async function deletePost(id) {

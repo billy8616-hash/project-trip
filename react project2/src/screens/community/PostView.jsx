@@ -14,6 +14,7 @@ import {
   writeReview,
 } from '../../lib/communityApi.js'
 import { saveTrip } from '../../lib/tripsApi.js'
+import { journeyThemes } from '../../data/travelOptions.js'
 import { fmtDate } from './fmtDate.js'
 import { RoutePreview } from './RoutePreview.jsx'
 import { Stars, StarPicker } from './Stars.jsx'
@@ -26,6 +27,7 @@ export function PostView({ postId, user, onRequireLogin, onClose, onChanged }) {
   const [body, setBody] = useState('')
   const [busy, setBusy] = useState(false)
   const [saveState, setSaveState] = useState('내 여행에 담기')
+  const [lightboxIndex, setLightboxIndex] = useState(null) // 사진을 크게 보는 중이면 그 인덱스
 
   // 받아온 글을 화면 상태에 반영한다. (첫 로드와 새로고침이 같은 처리를 쓰도록 분리)
   const apply = useCallback((data) => {
@@ -56,6 +58,19 @@ export function PostView({ postId, user, onRequireLogin, onClose, onChanged }) {
       })
     return () => { alive = false }
   }, [postId, apply])
+
+  // 라이트박스가 떠 있는 동안만 키보드로 넘기고 닫을 수 있게 한다.
+  useEffect(() => {
+    if (lightboxIndex === null) return undefined
+    const images = post?.images || []
+    const onKey = (event) => {
+      if (event.key === 'Escape') setLightboxIndex(null)
+      else if (event.key === 'ArrowRight') setLightboxIndex((i) => (i + 1) % images.length)
+      else if (event.key === 'ArrowLeft') setLightboxIndex((i) => (i - 1 + images.length) % images.length)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [lightboxIndex, post])
 
   // 로그인이 필요한 동작 앞에서 부른다. 로그인 안 됐으면 로그인 패널을 열고 true 반환.
   const needLogin = () => {
@@ -152,6 +167,8 @@ export function PostView({ postId, user, onRequireLogin, onClose, onChanged }) {
     }
   }
 
+  const theme = journeyThemes.find((item) => item.id === post?.journeyTheme)
+
   return (
     <div className="tw-mx-auto tw-max-w-[820px] tw-px-5 tw-py-6">
       <button
@@ -165,6 +182,7 @@ export function PostView({ postId, user, onRequireLogin, onClose, onChanged }) {
       {status === 'error' && <p className="tw-py-16 tw-text-center tw-text-sm tw-text-cink-muted">{message}</p>}
 
       {status === 'ready' && post && (
+        <>
         <div className="tw-space-y-4">
           {/* 헤더 */}
           <header className="tw-rounded-cxl tw-border tw-border-cline tw-bg-surface tw-p-5 tw-shadow-ccard">
@@ -173,6 +191,11 @@ export function PostView({ postId, user, onRequireLogin, onClose, onChanged }) {
                 {post.city}
               </span>
               <span className="tw-text-[11px] tw-text-cink-faint">{post.dayCount}일 코스</span>
+              {theme && (
+                <span className="tw-rounded-md tw-bg-surface-2 tw-px-1.5 tw-py-0.5 tw-text-[11px] tw-font-semibold tw-text-cink-muted">
+                  {theme.label}
+                </span>
+              )}
             </div>
             <h1 className="tw-mt-2 tw-text-[20px] tw-font-bold tw-text-cink">{post.title}</h1>
             <p className="tw-mt-1 tw-text-[12.5px] tw-text-cink-faint">
@@ -214,6 +237,26 @@ export function PostView({ postId, user, onRequireLogin, onClose, onChanged }) {
                 </button>
               )}
             </div>
+
+            {post.images?.length > 0 && (
+              <div className="tw-mt-4 tw-flex tw-gap-2 tw-overflow-x-auto tw-border-t tw-border-cline tw-pt-4">
+                {post.images.map((url, index) => (
+                  <button
+                    key={url}
+                    type="button"
+                    onClick={() => setLightboxIndex(index)}
+                    className="tw-shrink-0"
+                    aria-label={`${post.title} 사진 ${index + 1} 크게 보기`}
+                  >
+                    <img
+                      src={url}
+                      alt={`${post.title} 사진 ${index + 1}`}
+                      className="tw-h-40 tw-w-56 tw-rounded-xl tw-border tw-border-cline tw-object-cover"
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
 
             {post.body && (
               <p className="tw-mt-4 tw-whitespace-pre-wrap tw-border-t tw-border-cline tw-pt-4 tw-text-[13.5px] tw-leading-relaxed tw-text-cink-muted">
@@ -299,6 +342,57 @@ export function PostView({ postId, user, onRequireLogin, onClose, onChanged }) {
             )}
           </section>
         </div>
+
+        {lightboxIndex !== null && (
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="사진 크게 보기"
+            onClick={() => setLightboxIndex(null)}
+            className="tw-fixed tw-inset-0 tw-z-50 tw-flex tw-items-center tw-justify-center tw-bg-black/85 tw-p-4"
+          >
+            <button
+              type="button"
+              onClick={() => setLightboxIndex(null)}
+              aria-label="닫기"
+              className="tw-absolute tw-right-4 tw-top-4 tw-grid tw-h-9 tw-w-9 tw-place-items-center tw-rounded-full tw-bg-white/10 tw-text-[20px] tw-text-white hover:tw-bg-white/20"
+            >
+              ×
+            </button>
+            {post.images.length > 1 && (
+              <>
+                <button
+                  type="button"
+                  onClick={(event) => { event.stopPropagation(); setLightboxIndex((i) => (i - 1 + post.images.length) % post.images.length) }}
+                  aria-label="이전 사진"
+                  className="tw-absolute tw-left-3 tw-top-1/2 tw-grid tw-h-10 tw-w-10 tw--translate-y-1/2 tw-place-items-center tw-rounded-full tw-bg-white/10 tw-text-[18px] tw-text-white hover:tw-bg-white/20"
+                >
+                  ‹
+                </button>
+                <button
+                  type="button"
+                  onClick={(event) => { event.stopPropagation(); setLightboxIndex((i) => (i + 1) % post.images.length) }}
+                  aria-label="다음 사진"
+                  className="tw-absolute tw-right-3 tw-top-1/2 tw-grid tw-h-10 tw-w-10 tw--translate-y-1/2 tw-place-items-center tw-rounded-full tw-bg-white/10 tw-text-[18px] tw-text-white hover:tw-bg-white/20"
+                >
+                  ›
+                </button>
+              </>
+            )}
+            <img
+              src={post.images[lightboxIndex]}
+              alt={`${post.title} 사진 ${lightboxIndex + 1}`}
+              onClick={(event) => event.stopPropagation()}
+              className="tw-max-h-[85vh] tw-max-w-[90vw] tw-rounded-lg tw-object-contain"
+            />
+            {post.images.length > 1 && (
+              <span className="tw-absolute tw-bottom-5 tw-left-1/2 tw--translate-x-1/2 tw-text-[12px] tw-tabular-nums tw-text-white/70">
+                {lightboxIndex + 1} / {post.images.length}
+              </span>
+            )}
+          </div>
+        )}
+        </>
       )}
     </div>
   )

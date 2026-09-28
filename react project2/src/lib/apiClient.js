@@ -18,10 +18,13 @@ import { supabase } from './supabaseClient.js'
 export async function authedRequest(path, options = {}) {
   const { data: { session } } = await supabase.auth.getSession()
 
+  // FormData(사진 업로드처럼 멀티파트로 보낼 때)는 브라우저가 경계(boundary)를 넣어
+  // Content-Type을 알아서 정하므로, 여기서 'application/json'을 강제로 덮어쓰면 안 된다.
+  const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData
   const response = await fetch(`${apiBaseUrl}${path}`, {
     ...options,
     headers: {
-      ...(options.body ? { 'Content-Type': 'application/json' } : null),
+      ...(options.body && !isFormData ? { 'Content-Type': 'application/json' } : null),
       ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : null),
       ...options.headers,
     },

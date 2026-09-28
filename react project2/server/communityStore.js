@@ -36,6 +36,16 @@ function parsePayload(raw) {
   }
 }
 
+const MAX_IMAGES = 5
+function parseImages(raw) {
+  try {
+    const list = JSON.parse(raw)
+    return Array.isArray(list) ? list.filter((url) => typeof url === 'string') : []
+  } catch {
+    return []
+  }
+}
+
 const iso = (value) => (value instanceof Date ? value.toISOString() : value)
 
 /* ── 목록 ──────────────────────────────────────────────────────────── */
@@ -80,6 +90,12 @@ export async function listPosts({ city = '', sort = 'recent', viewerId = null, l
   return { posts: rows, total }
 }
 
+// 목록 카드에 테마 배지를 보여주기 위해, 저장된 동선 스냅샷(payload.meta.journeyTheme)에서
+// 테마 id만 뽑아 온다. payload 전체를 목록 응답에 실으면 무거워지니 이 한 줄만 꺼내 쓴다.
+function journeyThemeOf(post) {
+  return parsePayload(post.payload)?.meta?.journeyTheme || null
+}
+
 function summarize(post, { likeCount, review, liked }) {
   const count = 1 + review.count // 작성자 본인 별점 포함
   return {
@@ -88,6 +104,7 @@ function summarize(post, { likeCount, review, liked }) {
     authorName: post.authorName,
     title: post.title,
     city: post.city,
+    journeyTheme: journeyThemeOf(post),
     dayCount: post.dayCount,
     summary: post.summary,
     rating: post.rating,
@@ -95,6 +112,7 @@ function summarize(post, { likeCount, review, liked }) {
     reviewCount: review.count,
     likeCount,
     liked,
+    images: parseImages(post.images),
     createdAt: iso(post.createdAt),
   }
 }
@@ -132,13 +150,16 @@ export async function getPost(id, viewerId = null) {
 }
 
 /* ── 글 작성/삭제 ──────────────────────────────────────────────────── */
-export async function createPost(userId, authorName, { title, city, dayCount, summary, body, rating, payload }) {
+export async function createPost(userId, authorName, { title, city, dayCount, summary, body, rating, payload, images }) {
   const count = await prisma.coursePost.count({ where: { userId } })
   if (count >= MAX_POSTS_PER_USER) {
     const error = new Error(`공유는 최대 ${MAX_POSTS_PER_USER}개까지 가능해요. 이전 글을 지우고 다시 시도해주세요.`)
     error.status = 409
     throw error
   }
+  const safeImages = Array.isArray(images)
+    ? images.filter((url) => typeof url === 'string' && url.trim()).slice(0, MAX_IMAGES)
+    : []
   const row = await prisma.coursePost.create({
     data: {
       userId,
@@ -150,6 +171,7 @@ export async function createPost(userId, authorName, { title, city, dayCount, su
       body: cut(body, LIMITS.body),
       rating: clampRating(rating),
       payload: JSON.stringify(payload),
+      images: JSON.stringify(safeImages),
     },
   })
   return summarize(row, { likeCount: 0, review: { count: 0, sum: 0 }, liked: false })

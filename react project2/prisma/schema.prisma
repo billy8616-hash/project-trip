@@ -109,6 +109,7 @@ model CoursePost {
   body       String   @default("") // 작성자 후기 본문
   rating     Int      @default(5) // 작성자 본인 별점 1~5
   payload    String // 동선 스냅샷 JSON
+  images     String   @default("[]") // 첨부 사진 URL 배열, JSON 문자열 (Supabase Storage)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
