@@ -14,7 +14,7 @@ import { StarPicker } from './Stars.jsx'
 const MAX_PHOTOS = 5
 const MAX_PHOTO_BYTES = 8 * 1024 * 1024
 
-export function ComposeView({ onClose, onDone }) {
+export function ComposeView({ onClose, onDone, initialTripId }) {
   const [trips, setTrips] = useState([])
   const [status, setStatus] = useState('loading') // loading | ready | error
   const [message, setMessage] = useState('')
@@ -69,9 +69,11 @@ export function ComposeView({ onClose, onDone }) {
         if (!alive) return
         setTrips(rows)
         setStatus('ready')
-        if (rows[0]) {
-          setTripId(rows[0].id)
-          setTitle(rows[0].title || rows[0].city + ' 여행 코스')
+        // '내 여행'에서 특정 코스를 골라 넘어온 경우 그 코스를, 아니면 첫 번째 코스를 기본 선택한다.
+        const picked = (initialTripId && rows.find((row) => row.id === initialTripId)) || rows[0]
+        if (picked) {
+          setTripId(picked.id)
+          setTitle(picked.title || picked.city + ' 여행 코스')
         }
       })
       .catch((error) => {
@@ -82,7 +84,7 @@ export function ComposeView({ onClose, onDone }) {
     return () => {
       alive = false
     }
-  }, [])
+  }, [initialTripId])
 
   const picked = trips.find((t) => t.id === tripId) || null
 

@@ -89,6 +89,10 @@ function App() {
 
   const [screen, setScreen] = useState(restoredScreen)
   const [leaving, setLeaving] = useState(false)
+  // '내 여행'에서 "커뮤니티에 공유"를 누른 코스 id. community 화면으로 넘어가는 동안만
+  // 들고 있다가 CommunityScreen이 글쓰기 화면을 그 코스로 열자마자 비운다(재방문 시 자동으로
+  // 다시 열리지 않게).
+  const [shareTripId, setShareTripId] = useState(null)
 
   // 브라우저 뒤로/앞으로 버튼으로도 화면(screen)이 넘어가도록 History API 와 동기화한다.
   // popstate 로 들어온 화면 변경은 다시 pushState 하지 않도록 플래그로 걸러낸다.
@@ -884,6 +888,8 @@ function App() {
           leaving={leaving}
           onRequireLogin={() => setAuthOpen(true)}
           onBack={() => setScreen('home')}
+          initialTripId={shareTripId}
+          onConsumedInitialTrip={() => setShareTripId(null)}
         />
       ) : screen === 'mytrips' ? (
         <MyTripsScreen
@@ -891,6 +897,7 @@ function App() {
           leaving={leaving}
           onRequireLogin={() => setAuthOpen(true)}
           onReplan={replanFromSaved}
+          onShareTrip={(tripId) => { setShareTripId(tripId); setScreen('community') }}
           onBack={() => setScreen('home')}
           onViewFootprintMap={() => setScreen('footprint')}
         />
@@ -947,11 +954,13 @@ function App() {
               buildCourse 가 만들어 두기만 하고 화면에 나오지 않던 것을 여기서 보여 준다 —
               "왜 이렇게 나왔는지"를 알려 주지 않으면 앱이 빠뜨린 것으로 오해하게 된다. */}
           {(course?.notices || []).length > 0 && (
-            <ul className="course-notices">
-              {course.notices.map((text) => (
-                <li className="course-notice" key={text}>{text}</li>
-              ))}
-            </ul>
+            <div className="course-notices">
+              <ul className="course-notice">
+                {course.notices.map((text) => (
+                  <li key={text}>{text}</li>
+                ))}
+              </ul>
+            </div>
           )}
 
           {/* 출발지·숙소(startAnchor·endAnchor)는 들르는 장소가 아니라 하루의 시작점·끝점이라

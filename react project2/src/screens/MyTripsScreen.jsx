@@ -37,7 +37,7 @@ function scheduleFromPayload(payload) {
   })
 }
 
-export default function MyTripsScreen({ user, onRequireLogin, onReplan, onBack, onViewFootprintMap, leaving }) {
+export default function MyTripsScreen({ user, onRequireLogin, onReplan, onShareTrip, onBack, onViewFootprintMap, leaving }) {
   // trips: null = 아직 안 불러옴(로딩), 배열 = 결과. error 가 있으면 에러 표시.
   const [trips, setTrips] = useState(null)
   const [error, setError] = useState('')
@@ -191,6 +191,11 @@ export default function MyTripsScreen({ user, onRequireLogin, onReplan, onBack, 
                     <button type="button" className="mytrips-replan" onClick={() => onReplan(trip.payload)}>
                       이 조건으로 다시 계획하기
                     </button>
+                    {onShareTrip && (
+                      <button type="button" className="mytrips-share" onClick={() => onShareTrip(trip.id)}>
+                        커뮤니티에 공유
+                      </button>
+                    )}
                     <button type="button" className="mytrips-delete" onClick={() => handleDelete(trip.id)}>삭제</button>
                   </div>
 

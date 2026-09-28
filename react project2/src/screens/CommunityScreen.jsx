@@ -33,7 +33,7 @@ const SORTS = [
 // 목록 첫 페이지 크기이자 "더보기"를 누를 때마다 늘어나는 단위.
 const PAGE_SIZE = 60
 
-export default function CommunityScreen({ user, onRequireLogin, onBack, leaving }) {
+export default function CommunityScreen({ user, onRequireLogin, onBack, leaving, initialTripId, onConsumedInitialTrip }) {
   const [posts, setPosts] = useState([])
   const [total, setTotal] = useState(0)
   const [status, setStatus] = useState('loading')
@@ -42,7 +42,14 @@ export default function CommunityScreen({ user, onRequireLogin, onBack, leaving 
   const [sort, setSort] = useState('recent')
   const [limit, setLimit] = useState(PAGE_SIZE)
   const [openId, setOpenId] = useState(null)
-  const [composing, setComposing] = useState(false)
+  // '내 여행'에서 "커뮤니티에 공유" 버튼으로 넘어온 경우, 그 코스를 미리 골라 둔 채로
+  // 글쓰기 화면부터 바로 연다. initialTripId 는 한 번만 쓰고, 다시 이 화면에 들어와도
+  // 글쓰기가 계속 자동으로 열리지 않도록 상위(App)에 소비했다고 바로 알린다.
+  const [composing, setComposing] = useState(() => Boolean(initialTripId))
+  useEffect(() => {
+    if (initialTripId) onConsumedInitialTrip?.()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // 글을 올리거나 추천/후기 뒤에 목록을 다시 불러올 때 쓴다 (핸들러에서 호출).
   const load = useCallback(
@@ -95,6 +102,7 @@ export default function CommunityScreen({ user, onRequireLogin, onBack, leaving 
     <section className={leaving ? 'course-detail-root community-screen is-leaving' : 'course-detail-root community-screen'}>
       {composing ? (
         <ComposeView
+          initialTripId={initialTripId}
           onClose={() => setComposing(false)}
           onDone={(post) => {
             setComposing(false)

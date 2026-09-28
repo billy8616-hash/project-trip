@@ -163,6 +163,13 @@
   background: linear-gradient(180deg, #f4c78d, #e7a765) !important;
   color: #3a2a17;
 }
+.mytrips-share {
+  border-color: var(--sky) !important;
+  color: var(--sky);
+}
+.mytrips-share:hover {
+  background: rgba(122, 162, 201, 0.12);
+}
 .mytrips-delete {
   color: var(--coral);
 }
