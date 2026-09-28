@@ -29,9 +29,9 @@ export function KoreaFootprintMap({ cities, scale = 4300 }) {
             <Geography
               key={geo.rsmKey}
               geography={geo}
-              fill="#F3F4F6"
-              stroke="#E2E8F0"
-              strokeWidth={0.7}
+              fill="#CBD5E1"
+              stroke="#64748B"
+              strokeWidth={1}
               style={{
                 default: { outline: 'none' },
                 hover: { outline: 'none', fill: '#FDE9D9' },

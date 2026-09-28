@@ -17,9 +17,10 @@
 // ─────────────────────────────────────────────────────────────
 
 import { useCallback, useEffect, useState } from 'react'
-import { destinationCatalog } from '../data/destinations.js'
+import { allDestinations } from '../data/destinations.js'
 import { listCommunityPosts, toggleLike } from '../lib/communityApi.js'
 import { ComposeView } from './community/ComposeView.jsx'
+import { CommunityMap } from './community/CommunityMap.jsx'
 import { PostCard } from './community/PostCard.jsx'
 import { PostView } from './community/PostView.jsx'
 
@@ -137,6 +138,8 @@ export default function CommunityScreen({ user, onRequireLogin, onBack, leaving 
             </div>
           </header>
 
+          <CommunityMap city={city} onSelectCity={changeCity} onOpenPost={setOpenId} />
+
           {/* 필터: 여행지 + 정렬 */}
           <div className="tw-mb-4 tw-flex tw-flex-wrap tw-items-center tw-gap-3">
             <select
@@ -146,7 +149,7 @@ export default function CommunityScreen({ user, onRequireLogin, onBack, leaving 
               className="tw-rounded-lg tw-border tw-border-cline tw-bg-surface tw-px-3 tw-py-2 tw-text-[13px] tw-text-cink focus:tw-border-caccent focus:tw-outline-none"
             >
               <option value="">전체 여행지</option>
-              {destinationCatalog.map((item) => (
+              {allDestinations.map((item) => (
                 <option key={item.name} value={item.name}>{item.name}</option>
               ))}
             </select>
