@@ -38,7 +38,7 @@ function Thumb({ place }) {
   )
 }
 
-export function PlaceCard({ place, isFirst, isLast, isActive, onPick, onMoveUp, onMoveDown }) {
+export function PlaceCard({ place, isFirst, isLast, isActive, onPick, onMoveUp, onMoveDown, onRemove }) {
   // 처음엔 다 접힌 채로 보여준다. 카드 자체를 누르면 펼침/접힘 + 지도 선택이 같이 일어난다.
   const [open, setOpen] = useState(false)
   const k = kindStyle(place.kind)
@@ -46,6 +46,11 @@ export function PlaceCard({ place, isFirst, isLast, isActive, onPick, onMoveUp, 
   const toggle = () => {
     setOpen((v) => !v)
     onPick && onPick(place)
+  }
+
+  const remove = (e) => {
+    e.stopPropagation()
+    if (window.confirm(`'${place.name}'을(를) 코스에서 뺄까요?`)) onRemove()
   }
 
   return (
@@ -124,6 +129,16 @@ export function PlaceCard({ place, isFirst, isLast, isActive, onPick, onMoveUp, 
                 </div>
               </div>
               <div className="tw-flex tw-shrink-0 tw-items-center tw-gap-1">
+                {onRemove && (
+                  <button
+                    type="button"
+                    onClick={remove}
+                    aria-label={`${place.name} 코스에서 빼기`}
+                    className="tw--mr-1 tw-rounded-lg tw-p-1.5 tw-text-cink-faint tw-transition-colors hover:tw-bg-surface-2 hover:tw-text-red-500"
+                  >
+                    <Icon name="trash" size={15} stroke={1.8} />
+                  </button>
+                )}
                 {/* 접힌 상태에도 보이는 유일한 "딥 데이터" — 숫자 하나만. 리뷰수·요약·링크는 펼쳤을 때만. */}
                 {Number.isFinite(place.rating) && (
                   <span className="tw-inline-flex tw-items-center tw-gap-0.5 tw-text-[12px] tw-font-semibold tw-tabular-nums tw-text-cink-muted">

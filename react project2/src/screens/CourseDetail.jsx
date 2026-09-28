@@ -33,6 +33,7 @@ export default function CourseDetail({
   selectedIndex = -1,
   onPickPlace,
   onMovePlace,
+  onRemovePlace,
   pool,
   excludeNames,
   onAddPlace,
@@ -60,6 +61,7 @@ export default function CourseDetail({
       <TimelinePanel
         day={day} days={days} activeDay={activeDay} onSelectDay={onSelectDay}
         places={places} routes={routes} selectedIndex={selectedIndex} onPick={pick} onMovePlace={onMovePlace}
+        onRemovePlace={onRemovePlace}
         pool={pool} excludeNames={excludeNames} onAddPlace={onAddPlace} onGeocode={onGeocode}
         startAnchor={startAnchor} endAnchor={endAnchor}
       />

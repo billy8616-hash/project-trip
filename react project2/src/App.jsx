@@ -607,6 +607,29 @@ function App() {
     handleTimelineDaysChange(baseDays)
   }, [displayPlaces, currentTimelineDays, editableDaysFromCourse, selectedDay, handleTimelineDaysChange])
 
+  // 지금 보고 있는 날에서 카드를 하나 뺀다. index 는 onMovePlace와 마찬가지로 displayPlaces 기준.
+  const handleRemovePlace = useCallback((index) => {
+    if (index < 0 || index >= displayPlaces.length) return
+    const next = displayPlaces
+      .filter((_, i) => i !== index)
+      .map((place) => ({
+        name: place.name,
+        location: place.location,
+        assignedSlot: place.assignedSlot,
+        manual: place.manual,
+      }))
+
+    const baseDays = currentTimelineDays.length ? currentTimelineDays.map((list) => list.slice()) : editableDaysFromCourse()
+    if (!baseDays[selectedDay]) return
+    baseDays[selectedDay] = next
+    setManualOrderDays((prev) => {
+      const nextSet = new Set(prev)
+      nextSet.add(selectedDay)
+      return nextSet
+    })
+    handleTimelineDaysChange(baseDays)
+  }, [displayPlaces, currentTimelineDays, editableDaysFromCourse, selectedDay, handleTimelineDaysChange])
+
 
   // ── 화면 그리기 ─────────────────────────────────────────────
   // 아래부터는 JSX. screen 값에 따라 해당 화면 컴포넌트를 하나씩 보여 준다.
@@ -952,6 +975,7 @@ function App() {
             selectedIndex={safeSelectedPlace}
             onPickPlace={(index) => selectPlace(index)}
             onMovePlace={handleMovePlace}
+            onRemovePlace={handleRemovePlace}
             pool={cityData?.pool || []}
             excludeNames={usedPlaceNames}
             onAddPlace={(candidate) => handleAddPlace(selectedDay, candidate)}

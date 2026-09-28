@@ -13,7 +13,7 @@ import { PlaceCard } from './PlaceCard.jsx'
 import { RouteBadge } from './RouteBadge.jsx'
 
 export function TimelinePanel({
-  day, days, activeDay, onSelectDay, places, routes, selectedIndex, onPick, onMovePlace,
+  day, days, activeDay, onSelectDay, places, routes, selectedIndex, onPick, onMovePlace, onRemovePlace,
   pool, excludeNames, onAddPlace, onGeocode, startAnchor, endAnchor,
 }) {
   const routeByFrom = useMemo(() => {
@@ -50,6 +50,7 @@ export function TimelinePanel({
               onPick={() => onPick && onPick(i, place)}
               onMoveUp={onMovePlace ? () => onMovePlace(i, i - 1) : undefined}
               onMoveDown={onMovePlace ? () => onMovePlace(i, i + 1) : undefined}
+              onRemove={onRemovePlace ? () => onRemovePlace(i) : undefined}
             />
           </div>
         ))}

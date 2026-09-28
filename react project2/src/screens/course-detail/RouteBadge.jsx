@@ -15,13 +15,13 @@ export function RouteBadge({ route }) {
   return (
     <div className="tw-grid tw-grid-cols-[32px_minmax(0,1fr)] tw-items-center tw-gap-3">
       <div className="tw-flex tw-justify-center">
-        <span className={`tw-grid tw-h-6 tw-w-6 tw-place-items-center tw-rounded-full tw-border ${
+        <span className={`tw-grid tw-h-7 tw-w-7 tw-place-items-center tw-rounded-full tw-border ${
           walk ? 'tw-border-cwalk/30 tw-bg-cwalk-soft tw-text-cwalk' : 'tw-border-caccent/25 tw-bg-caccent-soft tw-text-caccent'
         }`}>
-          <Icon name={icon} size={13} stroke={2.2} />
+          <Icon name={icon} size={14} stroke={2.2} />
         </span>
       </div>
-      <span className={`tw-py-1.5 tw-text-xs tw-font-medium tw-tabular-nums ${walk ? 'tw-text-cwalk' : 'tw-text-cink-muted'}`}>
+      <span className={`tw-py-1.5 tw-text-[14px] tw-font-semibold tw-tabular-nums ${walk ? 'tw-text-cwalk' : 'tw-text-cink-muted'}`}>
         {text || '이동'}
       </span>
     </div>
