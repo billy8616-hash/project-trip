@@ -28,10 +28,11 @@ export const styles = ['느긋한 일정', '빡빡한 일정', '사진 중심', 
 export const SLOT_LABELS = ['오전', '점심 맛집', '오후 카페', '저녁']
 
 // 여행지를 고른 뒤 슬라이드로 펼쳐지는 여행 테마 목록.
+// color는 테마 칩 강조색이자, FootprintTrail 배경이 고른 테마에 맞춰 물드는 색이다.
 export const journeyThemes = [
-  { id: 'step', label: '발길따라', desc: '발길 닿는 대로, 느긋하게 걷는 하루', icon: 'leaf' },
-  { id: 'mood', label: '감성따라', desc: '분위기 좋은 골목과 카페 위주로', icon: 'heart' },
-  { id: 'sns', label: 'SNS따라', desc: '사진 잘 나오는 인기 스팟 중심으로', icon: 'pin' },
-  { id: 'view', label: '풍경따라', desc: '바다·산·노을, 풍경이 좋은 곳으로', icon: 'family' },
-  { id: 'food', label: '맛집따라', desc: '현지 맛집과 먹거리 위주로', icon: 'fork' },
+  { id: 'step', label: '발길따라', desc: '발길 닿는 대로, 느긋하게 걷는 하루', icon: 'leaf', color: '#c8702a' },
+  { id: 'mood', label: '감성따라', desc: '분위기 좋은 골목과 카페 위주로', icon: 'heart', color: '#b8677a' },
+  { id: 'sns', label: 'SNS따라', desc: '사진 잘 나오는 인기 스팟 중심으로', icon: 'pin', color: '#cf9a3e' },
+  { id: 'view', label: '풍경따라', desc: '바다·산·노을, 풍경이 좋은 곳으로', icon: 'family', color: '#6f8f6a' },
+  { id: 'food', label: '맛집따라', desc: '현지 맛집과 먹거리 위주로', icon: 'fork', color: '#b5502e' },
 ]

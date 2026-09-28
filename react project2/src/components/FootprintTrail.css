@@ -13,7 +13,7 @@
 }
 
 .footprint {
-  fill: #c8702a;
+  fill: var(--footprint-accent, #c8702a);
   opacity: 0;
   transform-box: fill-box;
   transform-origin: center;
@@ -21,6 +21,7 @@
   animation-timing-function: ease-out;
   animation-iteration-count: infinite;
   animation-fill-mode: both;
+  transition: fill .5s ease;
 }
 
 /* 한 사이클 = 발자국 전체 개수 × STEP_MS
@@ -33,7 +34,35 @@
   100% { opacity: 0; }
 }
 
-/* 움직임 줄이기 설정한 사용자에겐 정지된 발자국으로 */
+/* 경로 전체를 옅은 점선으로 살짝 비쳐 보여준다 — "길을 걷고 있다"는 게 읽히도록 */
+.footprint-guide {
+  fill: none;
+  stroke: var(--footprint-accent, #c8702a);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-dasharray: 1 16;
+  opacity: 0.2;
+  transition: stroke .5s ease;
+}
+
+/* 발자국보다 한 걸음 앞서 같은 길을 걷는 은은한 안내 빛. 흐릿하게 번지며 살짝씩 숨쉰다.
+   발자국보다 살짝 밝게 섞어서(color-mix) "빛"과 "발자국"이 같은 색이어도 구분되게 한다. */
+.footprint-light {
+  fill: color-mix(in srgb, var(--footprint-accent, #c8702a) 65%, white);
+  filter: blur(2.5px);
+  opacity: 0.7;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: footprint-light-pulse 1.6s ease-in-out infinite;
+  transition: fill .5s ease;
+}
+@keyframes footprint-light-pulse {
+  0%, 100% { transform: scale(0.85); opacity: 0.45; }
+  50%      { transform: scale(1.15); opacity: 0.85; }
+}
+
+/* 움직임 줄이기 설정한 사용자에겐 정지된 발자국으로, 안내 빛은 아예 숨긴다 */
 @media (prefers-reduced-motion: reduce) {
   .footprint { animation: none; opacity: .3; }
+  .footprint-light { display: none; }
 }

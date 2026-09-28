@@ -1,16 +1,28 @@
 // ─────────────────────────────────────────────────────────────
 // components/FootprintTrail.jsx — 조건 선택 화면들 배경에 깔리는 발자국 애니메이션
 //
-// 경로(TRAIL)를 따라 발자국을 일정 간격(GAP)으로 배치하고, 각 발자국이
-// STEP_MS 만큼 시차를 두고 찍혔다 사라지길 반복해 걸어가는 느낌을 낸다.
-// 좌우 발을 번갈아 찍도록 경로에 수직인 방향으로 살짝 어긋나게 그린다.
+// 세 겹으로 구성된다.
+//   1) 점선 가이드   경로 전체를 옅은 점선으로 살짝 비쳐 보여줘 "길"이라는 게 읽히게 한다.
+//   2) 발자국        경로를 일정 간격(GAP)으로 밟아 나가며, 각자 STEP_MS 만큼 시차를 두고
+//                    찍혔다 사라지길 반복한다. 좌우 발을 번갈아 찍도록 경로에 수직인
+//                    방향으로 살짝 어긋나게 그린다.
+//   3) 안내 빛       발자국과 별개로, 같은 경로를 따라 은은하게 빛나며 계속 앞서 걷는
+//                    작은 빛 하나(animateMotion) — "발길따라"라는 이름처럼 길을 이끄는
+//                    느낌을 준다.
+//
+// themeId를 주면 세 겹 모두 그 여행 테마 색(data/travelOptions.js의 journeyThemes)으로
+// 물든다 — CSS 변수 하나(--footprint-accent)로 색을 흘려보내고 transition으로 부드럽게
+// 바뀌게 한다. 안 주거나 모르는 id면 기본 색(#c8702a, '발길따라')을 쓴다.
 //
 // 화면을 가리면 안 되므로 pointer-events: none 에 z-index로 맨 뒤에 깐다(FootprintTrail.css).
-// 쓰는 곳: App.jsx (목적지~꼭 가고 싶은 곳까지, 조건 선택 화면 배경)
+// 쓰는 곳: App.jsx (목적지~꼭 가고 싶은 곳까지, 조건 선택 화면 + 내 여행 + 커뮤니티 배경)
 // ─────────────────────────────────────────────────────────────
 
 import { useEffect, useRef, useState } from 'react'
+import { journeyThemes } from '../data/travelOptions.js'
 import './FootprintTrail.css'
+
+const DEFAULT_ACCENT = '#c8702a'
 
 // 발자국이 지나갈 길 (1600x820 기준 좌표). 왼쪽 위에서 시작해 위쪽을 따라 오른쪽으로,
 // 오른쪽 가장자리를 크게 돌아 아래로, 다시 아래쪽을 따라 왼쪽으로 빠져나간다.
@@ -20,9 +32,10 @@ const TRAIL =
 const GAP = 46 // 발자국 간격(px)
 const STEP_MS = 320 // 한 걸음 찍히는 간격(ms)
 
-export default function FootprintTrail() {
+export default function FootprintTrail({ themeId }) {
   const pathRef = useRef(null)
   const [steps, setSteps] = useState([])
+  const accent = journeyThemes.find((theme) => theme.id === themeId)?.color || DEFAULT_ACCENT
 
   useEffect(() => {
     const path = pathRef.current
@@ -50,7 +63,7 @@ export default function FootprintTrail() {
   const cycle = steps.length * STEP_MS
 
   return (
-    <div className="footprint-trail" aria-hidden="true">
+    <div className="footprint-trail" style={{ '--footprint-accent': accent }} aria-hidden="true">
       <svg viewBox="0 0 1600 820" preserveAspectRatio="xMidYMax slice">
         <defs>
           <g id="bf-foot">
@@ -61,7 +74,10 @@ export default function FootprintTrail() {
             <circle cx="4.8" cy="-10" r="1.4" />
           </g>
         </defs>
-        <path ref={pathRef} d={TRAIL} fill="none" stroke="none" />
+        {/* 1) 점선 가이드: 길이 측정에도 쓰는 그 path를, 이번엔 눈에 옅게 보이게 */}
+        <path id="bf-trail" ref={pathRef} d={TRAIL} className="footprint-guide" />
+
+        {/* 2) 발자국 */}
         {steps.map((s, i) => (
           <g
             key={i}
@@ -74,6 +90,15 @@ export default function FootprintTrail() {
             />
           </g>
         ))}
+
+        {/* 3) 안내 빛: 발자국과 같은 한 바퀴(cycle) 동안 경로를 따라 계속 앞서 걷는다 */}
+        {cycle > 0 && (
+          <circle r="7" className="footprint-light">
+            <animateMotion dur={`${cycle}ms`} repeatCount="indefinite">
+              <mpath href="#bf-trail" />
+            </animateMotion>
+          </circle>
+        )}
       </svg>
     </div>
   )

@@ -675,7 +675,7 @@ function App() {
       )}
 
       <div className={screen === 'course' && course ? 'app-stage stage-course' : 'app-stage'}>
-      {FOOTPRINT_TRAIL_SCREENS.has(screen) && <FootprintTrail />}
+      {FOOTPRINT_TRAIL_SCREENS.has(screen) && <FootprintTrail themeId={journeyTheme} />}
       <nav className="topbar">
         <button className="brand" type="button" onClick={() => slideTo('home')} aria-label="홈으로 이동">
           <img src={balgilLogoMark} alt="" aria-hidden="true" className="brand-logo" />
