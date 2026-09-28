@@ -46,6 +46,7 @@ import { useCourseBuilder } from './hooks/useCourseBuilder.js'
 import { useTripPlan } from './hooks/useTripPlan.js'
 import { clearTripSession, loadTripSession, saveTripSession } from './lib/tripSession.js'
 import CoursePoolNotice from './components/CoursePoolNotice.jsx'
+import FootprintTrail from './components/FootprintTrail.jsx'
 import Icon from './components/Icon.jsx'
 import KakaoRouteMap from './components/KakaoRouteMap.jsx'
 import CourseDetail from './screens/CourseDetail.jsx'
@@ -80,6 +81,14 @@ const SAVE_LABEL = '현재 여행 코스 저장'
 
 
 
+
+// 발자국 애니메이션(FootprintTrail)을 배경으로 까는 화면들.
+// 목적지 고르기부터 "꼭 가고 싶은 곳"까지(코스가 나오기 전 조건 선택 화면)와
+// 내 여행·커뮤니티 — 코스 결과 화면(course)에는 넣지 않는다.
+const FOOTPRINT_TRAIL_SCREENS = new Set([
+  'destinations', 'themes', 'budget', 'dates', 'origin', 'mustvisit',
+  'mytrips', 'community',
+])
 
 // ─── 앱 본체 ─────────────────────────────────────────────────
 function App() {
@@ -663,6 +672,7 @@ function App() {
       )}
 
       <div className={screen === 'course' && course ? 'app-stage stage-course' : 'app-stage'}>
+      {FOOTPRINT_TRAIL_SCREENS.has(screen) && <FootprintTrail />}
       <nav className="topbar">
         <button className="brand" type="button" onClick={() => slideTo('home')} aria-label="홈으로 이동">
           <img src={balgilLogoMark} alt="" aria-hidden="true" className="brand-logo" />

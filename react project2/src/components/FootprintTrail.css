@@ -1,0 +1,39 @@
+/* 페이지 배경 뒤에 깔리는 발자국 레이어 */
+.footprint-trail {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+.footprint-trail svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.footprint {
+  fill: #c8702a;
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation-name: footprint-step;
+  animation-timing-function: ease-out;
+  animation-iteration-count: infinite;
+  animation-fill-mode: both;
+}
+
+/* 한 사이클 = 발자국 전체 개수 × STEP_MS
+   찍힘(0~3%) → 잠시 남아 있음(~30%) → 서서히 사라짐(~45%) → 다음 바퀴까지 대기 */
+@keyframes footprint-step {
+  0%   { opacity: 0;   transform: scale(1.35); }
+  3%   { opacity: .45; transform: scale(1); }
+  30%  { opacity: .45; }
+  45%  { opacity: 0; }
+  100% { opacity: 0; }
+}
+
+/* 움직임 줄이기 설정한 사용자에겐 정지된 발자국으로 */
+@media (prefers-reduced-motion: reduce) {
+  .footprint { animation: none; opacity: .3; }
+}
