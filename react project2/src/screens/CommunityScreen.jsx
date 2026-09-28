@@ -18,6 +18,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { allDestinations } from '../data/destinations.js'
+import { journeyThemes } from '../data/travelOptions.js'
 import { listCommunityPosts, toggleLike } from '../lib/communityApi.js'
 import { ComposeView } from './community/ComposeView.jsx'
 import { CommunityMap } from './community/CommunityMap.jsx'
@@ -39,6 +40,7 @@ export default function CommunityScreen({ user, onRequireLogin, onBack, leaving,
   const [status, setStatus] = useState('loading')
   const [message, setMessage] = useState('')
   const [city, setCity] = useState('')
+  const [theme, setTheme] = useState('')
   const [sort, setSort] = useState('recent')
   const [limit, setLimit] = useState(PAGE_SIZE)
   const [openId, setOpenId] = useState(null)
@@ -54,16 +56,20 @@ export default function CommunityScreen({ user, onRequireLogin, onBack, leaving,
   // 글을 올리거나 추천/후기 뒤에 목록을 다시 불러올 때 쓴다 (핸들러에서 호출).
   const load = useCallback(
     () =>
-      listCommunityPosts({ city, sort, limit })
+      listCommunityPosts({ city, theme, sort, limit })
         .then(({ posts: rows, total: count }) => { setPosts(rows); setTotal(count); setStatus('ready') })
         .catch((error) => { setMessage(error.message); setStatus('error') }),
-    [city, sort, limit],
+    [city, theme, sort, limit],
   )
 
-  // 여행지·정렬 필터를 바꿀 때 페이지 크기도 처음으로 되돌린다 — 안 그러면 필터를
+  // 여행지·테마·정렬 필터를 바꿀 때 페이지 크기도 처음으로 되돌린다 — 안 그러면 필터를
   // 바꿔도 이전에 눌러 둔 "더보기" 만큼 계속 많이 불러오게 된다.
   const changeCity = (value) => {
     setCity(value)
+    setLimit(PAGE_SIZE)
+  }
+  const changeTheme = (value) => {
+    setTheme((prev) => (prev === value ? '' : value)) // 같은 테마를 다시 누르면 필터 해제
     setLimit(PAGE_SIZE)
   }
   const changeSort = (value) => {
@@ -74,7 +80,7 @@ export default function CommunityScreen({ user, onRequireLogin, onBack, leaving,
   // 목록 로드: setState 는 promise 콜백에서만, 언마운트/필터 변경 시 이전 응답은 버린다.
   useEffect(() => {
     let alive = true
-    listCommunityPosts({ city, sort, limit })
+    listCommunityPosts({ city, theme, sort, limit })
       .then(({ posts: rows, total: count }) => {
         if (!alive) return
         setPosts(rows)
@@ -83,7 +89,7 @@ export default function CommunityScreen({ user, onRequireLogin, onBack, leaving,
       })
       .catch((error) => { if (!alive) return; setMessage(error.message); setStatus('error') })
     return () => { alive = false }
-  }, [city, sort, limit])
+  }, [city, theme, sort, limit])
 
   const like = async (postId) => {
     if (!user) {
@@ -178,6 +184,32 @@ export default function CommunityScreen({ user, onRequireLogin, onBack, leaving,
             </div>
 
             <span className="tw-ml-auto tw-text-[12px] tw-tabular-nums tw-text-cink-faint">{total}개</span>
+          </div>
+
+          {/* 필터: 테마. 같은 테마를 다시 누르면 해제된다. */}
+          <div className="tw-mb-4 tw-flex tw-flex-wrap tw-gap-1.5">
+            <button
+              type="button" onClick={() => changeTheme('')}
+              className={`tw-rounded-full tw-px-3 tw-py-1.5 tw-text-[13px] tw-font-semibold tw-transition-colors ${
+                theme === ''
+                  ? 'tw-bg-cink tw-text-white'
+                  : 'tw-border tw-border-cline tw-text-cink-muted hover:tw-text-cink'
+              }`}
+            >
+              전체 테마
+            </button>
+            {journeyThemes.map((item) => (
+              <button
+                key={item.id} type="button" onClick={() => changeTheme(item.id)}
+                className={`tw-rounded-full tw-px-3 tw-py-1.5 tw-text-[13px] tw-font-semibold tw-transition-colors ${
+                  theme === item.id
+                    ? 'tw-bg-cink tw-text-white'
+                    : 'tw-border tw-border-cline tw-text-cink-muted hover:tw-text-cink'
+                }`}
+              >
+                {item.label}
+              </button>
+            ))}
           </div>
 
           {status === 'loading' && <p className="tw-py-16 tw-text-center tw-text-sm tw-text-cink-faint">불러오는 중…</p>}

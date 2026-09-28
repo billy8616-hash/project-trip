@@ -104,6 +104,7 @@ model CoursePost {
   authorName String // 작성 시점 이름 스냅샷 (계정 이름이 바뀌어도 글은 그대로)
   title      String
   city       String
+  journeyTheme String @default("") // payload.meta.journeyTheme 에서 뽑아 둔 사본 — 테마별 필터링용
   dayCount   Int      @default(1)
   summary    String   @default("") // 한 줄 소개
   body       String   @default("") // 작성자 후기 본문
@@ -114,6 +115,7 @@ model CoursePost {
   updatedAt  DateTime @updatedAt
 
   @@index([city])
+  @@index([journeyTheme])
   @@index([createdAt])
 }
 

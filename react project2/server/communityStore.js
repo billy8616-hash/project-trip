@@ -49,8 +49,8 @@ function parseImages(raw) {
 const iso = (value) => (value instanceof Date ? value.toISOString() : value)
 
 /* ── 목록 ──────────────────────────────────────────────────────────── */
-export async function listPosts({ city = '', sort = 'recent', viewerId = null, limit = 60 } = {}) {
-  const where = city ? { city } : undefined
+export async function listPosts({ city = '', theme = '', sort = 'recent', viewerId = null, limit = 60 } = {}) {
+  const where = city || theme ? { ...(city ? { city } : null), ...(theme ? { journeyTheme: theme } : null) } : undefined
   const [posts, total] = await Promise.all([
     prisma.coursePost.findMany({
       where,
@@ -90,12 +90,6 @@ export async function listPosts({ city = '', sort = 'recent', viewerId = null, l
   return { posts: rows, total }
 }
 
-// 목록 카드에 테마 배지를 보여주기 위해, 저장된 동선 스냅샷(payload.meta.journeyTheme)에서
-// 테마 id만 뽑아 온다. payload 전체를 목록 응답에 실으면 무거워지니 이 한 줄만 꺼내 쓴다.
-function journeyThemeOf(post) {
-  return parsePayload(post.payload)?.meta?.journeyTheme || null
-}
-
 function summarize(post, { likeCount, review, liked }) {
   const count = 1 + review.count // 작성자 본인 별점 포함
   return {
@@ -104,7 +98,7 @@ function summarize(post, { likeCount, review, liked }) {
     authorName: post.authorName,
     title: post.title,
     city: post.city,
-    journeyTheme: journeyThemeOf(post),
+    journeyTheme: post.journeyTheme || null,
     dayCount: post.dayCount,
     summary: post.summary,
     rating: post.rating,
@@ -166,6 +160,7 @@ export async function createPost(userId, authorName, { title, city, dayCount, su
       authorName: cut(authorName, 40) || '여행자',
       title: cut(title, LIMITS.title),
       city: cut(city, LIMITS.city),
+      journeyTheme: cut(payload?.meta?.journeyTheme, 40),
       dayCount: Number.isFinite(dayCount) ? Math.max(1, Math.min(30, Math.floor(dayCount))) : 1,
       summary: cut(summary, LIMITS.summary),
       body: cut(body, LIMITS.body),
