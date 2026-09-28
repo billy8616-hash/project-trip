@@ -59,6 +59,7 @@ import DestinationsScreen from './screens/DestinationsScreen.jsx'
 import OriginScreen from './screens/OriginScreen.jsx'
 import MustVisitScreen from './screens/MustVisitScreen.jsx'
 import MyTripsScreen from './screens/MyTripsScreen.jsx'
+import FootprintMapScreen from './screens/FootprintMapScreen.jsx'
 import ThemeScreen from './screens/ThemeScreen.jsx'
 import { saveTrip } from './lib/tripsApi.js'
 import leftEdgeBg from './assets/left_bg.webp'
@@ -868,6 +869,14 @@ function App() {
           onRequireLogin={() => setAuthOpen(true)}
           onReplan={replanFromSaved}
           onBack={() => setScreen('home')}
+          onViewFootprintMap={() => setScreen('footprint')}
+        />
+      ) : screen === 'footprint' ? (
+        <FootprintMapScreen
+          user={user}
+          leaving={leaving}
+          onRequireLogin={() => setAuthOpen(true)}
+          onBack={() => setScreen('mytrips')}
         />
       ) : !course ? (
         <CoursePoolNotice

@@ -9,9 +9,11 @@
 // 계산 규칙이 바뀌어도 예전 코스가 옛 규칙에 묶이지 않게 하려는 것이다.
 // ─────────────────────────────────────────────────────────────
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import FootprintMapWidget from '../components/FootprintMapWidget.jsx'
 import { journeyThemes, SLOT_LABELS } from '../data/travelOptions.js'
 import { deleteTrip, listTrips, renameTrip } from '../lib/tripsApi.js'
+import { deriveVisitedCities } from '../lib/footprint.js'
 import { formatClock, parseClock, scheduleDay } from '../lib/schedule.js'
 import { formatShortDate, nightsBetween, durationLabelFromNights } from '../lib/datetime.js'
 
@@ -35,7 +37,7 @@ function scheduleFromPayload(payload) {
   })
 }
 
-export default function MyTripsScreen({ user, onRequireLogin, onReplan, onBack, leaving }) {
+export default function MyTripsScreen({ user, onRequireLogin, onReplan, onBack, onViewFootprintMap, leaving }) {
   // trips: null = 아직 안 불러옴(로딩), 배열 = 결과. error 가 있으면 에러 표시.
   const [trips, setTrips] = useState(null)
   const [error, setError] = useState('')
@@ -44,6 +46,9 @@ export default function MyTripsScreen({ user, onRequireLogin, onReplan, onBack, 
   const [openId, setOpenId] = useState(null)
   const [editingId, setEditingId] = useState(null)
   const [editValue, setEditValue] = useState('')
+
+  // "나의 발자국 지도" 위젯용 — 실제로 저장된 여행의 도시만 뽑는다(가상 데이터 아님).
+  const visitedCities = useMemo(() => deriveVisitedCities(trips), [trips])
 
   const reload = useCallback(() => {
     setTrips(null)
@@ -122,6 +127,7 @@ export default function MyTripsScreen({ user, onRequireLogin, onReplan, onBack, 
       ) : (
         <>
           {message && <p className="mytrips-status">{message}</p>}
+          <div className="mytrips-layout">
           <ul className="mytrips-list">
             {trips.map((trip) => {
               const meta = trip.payload?.meta || {}
@@ -216,6 +222,10 @@ export default function MyTripsScreen({ user, onRequireLogin, onReplan, onBack, 
               )
             })}
           </ul>
+          <aside className="mytrips-side">
+            <FootprintMapWidget cities={visitedCities} onViewFullMap={onViewFootprintMap} />
+          </aside>
+          </div>
         </>
       )}
     </section>

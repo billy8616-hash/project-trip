@@ -511,6 +511,7 @@
 .budget-screen.is-leaving,
 .origin-screen.is-leaving,
 .mytrips-screen.is-leaving,
+.footprint-screen.is-leaving,
 .course-screen.is-leaving {
   animation: homeSlideOut 0.38s ease forwards;
   pointer-events: none;
@@ -544,6 +545,7 @@
   .budget-screen.is-leaving,
   .origin-screen.is-leaving,
   .mytrips-screen.is-leaving,
+  .footprint-screen.is-leaving,
   .course-screen.is-leaving {
     animation: none;
     opacity: 0;

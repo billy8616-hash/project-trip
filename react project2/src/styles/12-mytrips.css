@@ -50,13 +50,40 @@
   text-decoration: underline;
 }
 
+/* 목록(왼쪽) + 발자국 지도 위젯(오른쪽)을 나란히 두는 레이아웃.
+   좁은 화면에서는 위젯이 목록 아래로 내려간다(아래 미디어쿼리). */
+.mytrips-layout {
+  display: flex;
+  align-items: flex-start;
+  gap: 24px;
+  max-width: 1100px;
+  margin: 22px auto 0;
+}
+.mytrips-side {
+  flex: 0 0 300px;
+  /* 상단바(sticky)에 안 가리게, 그 높이만큼 띄운 채로 목록을 스크롤해도 같이 붙어 있게. */
+  position: sticky;
+  top: 96px;
+}
+@media (max-width: 900px) {
+  .mytrips-layout {
+    flex-direction: column;
+  }
+  .mytrips-side {
+    position: static;
+    flex-basis: auto;
+    width: 100%;
+  }
+}
+
 .mytrips-list {
   list-style: none;
-  margin: 22px auto 0;
+  margin: 0;
   padding: 0;
   display: grid;
   gap: 14px;
-  max-width: 760px;
+  flex: 1;
+  min-width: 0;
 }
 .mytrips-card {
   padding: 16px 18px;
