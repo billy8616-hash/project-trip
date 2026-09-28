@@ -56,7 +56,7 @@ export default function CourseDetail({
   }
 
   return (
-    <div className="course-detail-root tw-flex tw-h-full tw-flex-col tw-overflow-hidden tw-bg-cbg tw-font-csans tw-text-cink lg:tw-flex-row">
+    <div className="course-detail-root tw-flex tw-min-h-full tw-flex-col tw-bg-cbg tw-font-csans tw-text-cink lg:tw-flex-row">
       <TimelinePanel
         day={day} days={days} activeDay={activeDay} onSelectDay={onSelectDay}
         places={places} routes={routes} selectedIndex={selectedIndex} onPick={pick} onMovePlace={onMovePlace}
@@ -66,8 +66,11 @@ export default function CourseDetail({
 
       {/* 데스크톱 폭에서는 지도가 왼쪽, 코스 목록이 오른쪽에 오도록 순서만 뒤집는다
           (lg:tw-order-*). DOM 순서는 그대로 둬서 모바일(세로 쌓기)에서는
-          코스 목록이 위, 지도가 아래인 기존 배치를 그대로 유지한다. */}
-      <div className="tw-relative tw-h-[34vh] tw-w-full tw-shrink-0 lg:tw-order-first lg:tw-h-auto lg:tw-flex-1 lg:tw-p-4">
+          코스 목록이 위, 지도가 아래인 기존 배치를 그대로 유지한다.
+          코스 목록은 이제 페이지와 함께 자연스럽게 길어진다(내부 스크롤 없음) — 그래서
+          지도가 목록을 따라 같이 늘어나지 않도록, 데스크톱에서는 지도를 화면에 sticky 로
+          붙여 두고 높이를 뷰포트 기준으로 고정한다(lg:tw-self-start 로 행의 stretch를 끈다). */}
+      <div className="tw-relative tw-h-[34vh] tw-w-full tw-shrink-0 lg:tw-sticky lg:tw-top-24 lg:tw-order-first lg:tw-h-[calc(100vh-7rem)] lg:tw-flex-1 lg:tw-self-start lg:tw-p-4">
         <div
           className="tw-relative tw-h-full tw-w-full tw-overflow-hidden tw-bg-surface-2 lg:tw-rounded-cxl lg:tw-border lg:tw-border-cline lg:tw-shadow-ccard"
           style={{ backgroundImage: 'radial-gradient(rgba(43,42,39,0.07) 1px, transparent 1px)', backgroundSize: '22px 22px' }}

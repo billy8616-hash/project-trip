@@ -23,9 +23,9 @@ export function TimelinePanel({
   }, [routes])
 
   return (
-    <div className="tw-flex tw-min-h-0 tw-flex-1 tw-flex-col tw-border-cline lg:tw-flex-none lg:tw-w-[47%] lg:tw-min-w-[360px] lg:tw-max-w-[620px] lg:tw-border-l">
+    <div className="tw-flex tw-flex-col tw-border-cline lg:tw-w-[47%] lg:tw-min-w-[360px] lg:tw-max-w-[620px] lg:tw-border-l">
       <DaySummaryHeader day={day} days={days} activeDay={activeDay} onSelectDay={onSelectDay} count={places.length} />
-      <div className="tw-min-h-0 tw-flex-1 tw-overflow-y-auto tw-overflow-x-hidden tw-px-5 tw-py-5">
+      <div className="tw-px-5 tw-py-5">
         {/* 맨 위에 둔다 — 목록 끝(스크롤을 한참 내려야 하는 자리)에 있으면 검색 결과가 화면
             밖으로 가려지기 쉽고, 찾기도 번거롭다. 여기 있으면 화면을 열자마자 바로 보인다.
             시간대 순서는 그대로 지켜진다 — 여기서 골라도 실제로는 CourseDetail 을 부르는 쪽에서
