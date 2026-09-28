@@ -8,8 +8,7 @@ import { journeyThemes } from '../../data/travelOptions.js'
 import { fmtDate } from './fmtDate.js'
 import { Stars } from './Stars.jsx'
 
-export function PostCard({ post, user, onOpen, onLike }) {
-  const isMine = Boolean(user && post.userId === user.id)
+export function PostCard({ post, onOpen, onLike }) {
   const theme = journeyThemes.find((item) => item.id === post.journeyTheme)
   return (
     <article
@@ -62,10 +61,8 @@ export function PostCard({ post, user, onOpen, onLike }) {
           <span className="tw-text-[12px] tw-tabular-nums tw-text-cink-faint">후기 {post.reviewCount}</span>
           <button
             type="button"
-            disabled={isMine}
-            title={isMine ? '내가 올린 코스는 추천할 수 없어요.' : undefined}
             onClick={(event) => { event.stopPropagation(); onLike(post.id) }}
-            className={`tw-inline-flex tw-items-center tw-gap-1 tw-rounded-full tw-border tw-px-2.5 tw-py-1 tw-text-[12px] tw-font-semibold tw-tabular-nums tw-transition-colors disabled:tw-cursor-not-allowed disabled:tw-opacity-50 ${
+            className={`tw-inline-flex tw-items-center tw-gap-1 tw-rounded-full tw-border tw-px-2.5 tw-py-1 tw-text-[12px] tw-font-semibold tw-tabular-nums tw-transition-colors ${
               post.liked
                 ? 'tw-border-caccent tw-bg-caccent tw-text-white'
                 : 'tw-border-cline tw-text-cink-muted hover:tw-border-caccent/50 hover:tw-text-caccent'

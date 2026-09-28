@@ -226,7 +226,7 @@ export default function CommunityScreen({ user, onRequireLogin, onBack, leaving,
           {status === 'ready' && posts.length > 0 && (
             <div className="tw-grid tw-gap-3 sm:tw-grid-cols-2">
               {posts.map((post) => (
-                <PostCard key={post.id} post={post} user={user} onOpen={setOpenId} onLike={like} />
+                <PostCard key={post.id} post={post} onOpen={setOpenId} onLike={like} />
               ))}
             </div>
           )}

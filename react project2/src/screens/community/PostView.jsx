@@ -212,9 +212,7 @@ export function PostView({ postId, user, onRequireLogin, onClose, onChanged }) {
               </span>
               <button
                 type="button" onClick={like}
-                disabled={post.isMine}
-                title={post.isMine ? '내가 올린 코스는 추천할 수 없어요.' : undefined}
-                className={`tw-inline-flex tw-items-center tw-gap-1.5 tw-rounded-full tw-border tw-px-3 tw-py-1.5 tw-text-[13px] tw-font-semibold tw-tabular-nums tw-transition-colors disabled:tw-cursor-not-allowed disabled:tw-opacity-50 ${
+                className={`tw-inline-flex tw-items-center tw-gap-1.5 tw-rounded-full tw-border tw-px-3 tw-py-1.5 tw-text-[13px] tw-font-semibold tw-tabular-nums tw-transition-colors ${
                   post.liked
                     ? 'tw-border-caccent tw-bg-caccent tw-text-white'
                     : 'tw-border-cline tw-text-cink-muted hover:tw-border-caccent/50 hover:tw-text-caccent'
