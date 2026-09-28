@@ -50,10 +50,12 @@ export function useCityPool(cityKey) {
   const [, bump] = useState(0)
   const rerender = useCallback(() => bump((n) => n + 1), [])
 
-  const data = poolCache.get(cityKey) || null
-  const status = data ? 'ready' : failedCache.has(cityKey) ? 'error' : 'loading'
+  const data = cityKey ? poolCache.get(cityKey) || null : null
+  // cityKey 가 없으면(목적지를 아직 안 골랐으면) 'empty' — 이때는 서버에 요청조차 하지 않는다.
+  const status = !cityKey ? 'empty' : data ? 'ready' : failedCache.has(cityKey) ? 'error' : 'loading'
 
   useEffect(() => {
+    if (!cityKey) return undefined
     if (poolCache.has(cityKey) || failedCache.has(cityKey)) return undefined
     let alive = true
     loadCityPool(cityKey).then(() => {
@@ -66,6 +68,7 @@ export function useCityPool(cityKey) {
 
   // 실패 기록을 지우고 다시 시도한다.
   const retry = useCallback(() => {
+    if (!cityKey) return
     failedCache.delete(cityKey)
     loadCityPool(cityKey).then(rerender)
   }, [cityKey, rerender])

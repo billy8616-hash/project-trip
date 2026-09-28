@@ -96,5 +96,3 @@ export const allDestinations = [
   ...destinationCatalog,
   ...destinationGroups.flatMap((group) => group.cities),
 ]
-
-export const fallbackCity = '경주'

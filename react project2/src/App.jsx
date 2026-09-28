@@ -34,7 +34,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import SignupScreen from './SignupScreen.jsx'
 import { budgets, journeyThemes, SLOT_LABELS } from './data/travelOptions.js'
-import { allDestinations, destinationCatalog, destinationGroups, fallbackCity } from './data/destinations.js'
+import { allDestinations, destinationCatalog, destinationGroups } from './data/destinations.js'
 import { buildCourse } from './lib/course.js'
 import { formatClock, scheduleDay } from './lib/schedule.js'
 import { fetchGeocode } from './lib/api.js'
@@ -260,7 +260,10 @@ function App() {
     closeAuthPanel,
   } = useAuth()
 
-  const cityKey = allDestinations.find((item) => destination.includes(item.name))?.name || fallbackCity
+  // 목적지를 아직 하나도 고르지 않았으면(destination·pickedDestination 둘 다 빈 값) cityKey 를
+  // null 로 둔다 — 예전엔 fallbackCity(경주)로 조용히 넘어가서, 아무것도 안 고른 채 상단 '여행
+  // 코스' 탭만 눌러도 경주 코스가 튀어나왔다.
+  const cityKey = allDestinations.find((item) => (pickedDestination || destination).includes(item.name))?.name || null
   const { photos: cityPhotos, trends: cityTrends } = useCityHighlights()
 
   // "오늘의 추천 AI 코스" — 날짜로 도시·테마를 회전시켜 매일 다른 1일 코스를 보여준다.
@@ -924,6 +927,7 @@ function App() {
           status={cityPoolStatus}
           onRetry={retryCityPool}
           onBack={() => setScreen('home')}
+          onPickDestination={goToDestinations}
         />
       ) : (
         <section className="course-screen">
