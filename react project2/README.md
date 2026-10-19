@@ -39,9 +39,6 @@
 
 ## 화면
 
-<!-- TODO: 실행 화면 캡처 4장을 docs/screenshots/ 에 넣고 아래 주석을 해제하세요.
-     추천 구성: (1) 홈 (2) 여행지 선택 (3) 코스 타임라인 + 지도 (4) 커뮤니티
-
 | 홈 | 여행지 선택 |
 |---|---|
 | ![홈](docs/screenshots/home.png) | ![여행지](docs/screenshots/destinations.png) |
@@ -49,7 +46,10 @@
 | 코스 타임라인 | 커뮤니티 |
 |---|---|
 | ![코스](docs/screenshots/course.png) | ![커뮤니티](docs/screenshots/community.png) |
--->
+
+커뮤니티 조건 검색 (검색어 · 여행지 · 기간 · 예산 · 교통편 · 테마 · 사진 유무)
+
+![커뮤니티 검색](docs/screenshots/community-search.png)
 
 ## 핵심 기능
 
