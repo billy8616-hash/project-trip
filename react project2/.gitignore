@@ -11,3 +11,6 @@ src/assets/_original/
 src/assets/home-original.png
 src/assets/home-approved-preview.png
 src/assets/home-typo-fixed.png
+
+# 브라우저 자동화 도구(Playwright MCP)가 남기는 로그·스냅샷
+.playwright-mcp/
