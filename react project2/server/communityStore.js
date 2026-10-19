@@ -49,8 +49,36 @@ function parseImages(raw) {
 const iso = (value) => (value instanceof Date ? value.toISOString() : value)
 
 /* ── 목록 ──────────────────────────────────────────────────────────── */
-export async function listPosts({ city = '', theme = '', sort = 'recent', viewerId = null, limit = 60 } = {}) {
-  const where = city || theme ? { ...(city ? { city } : null), ...(theme ? { journeyTheme: theme } : null) } : undefined
+// 검색 조건을 Prisma where 로 바꾼다. 모든 조건은 AND 로 묶인다.
+// 예산·교통편은 따로 컬럼이 없고 payload(JSON 문자열) 안의 meta 에만 있다. payload 는
+// 항상 JSON.stringify 로 저장돼 공백 없는 `"budget":"보통"` 꼴이므로 그 조각을 contains 로
+// 찾는다 — 컬럼을 새로 만들지 않고도 서버에서 걸러서 total(개수)까지 정확히 맞출 수 있다.
+function buildWhere({ city, theme, q, days, budget, transport, photos }) {
+  const and = []
+  if (city) and.push({ city })
+  if (theme) and.push({ journeyTheme: theme })
+  if (q) {
+    and.push({
+      OR: [
+        { title: { contains: q, mode: 'insensitive' } },
+        { summary: { contains: q, mode: 'insensitive' } },
+        { body: { contains: q, mode: 'insensitive' } },
+        { city: { contains: q, mode: 'insensitive' } },
+      ],
+    })
+  }
+  if (days) and.push({ dayCount: days >= 4 ? { gte: 4 } : days })
+  if (budget) and.push({ payload: { contains: `"budget":${JSON.stringify(budget)}` } })
+  if (transport) and.push({ payload: { contains: `"transport":${JSON.stringify(transport)}` } })
+  if (photos) and.push({ NOT: { images: '[]' } })
+  return and.length ? { AND: and } : undefined
+}
+
+export async function listPosts({
+  city = '', theme = '', q = '', days = 0, budget = '', transport = '', photos = false,
+  sort = 'recent', viewerId = null, limit = 60,
+} = {}) {
+  const where = buildWhere({ city, theme, q, days, budget, transport, photos })
   const [posts, total] = await Promise.all([
     prisma.coursePost.findMany({
       where,

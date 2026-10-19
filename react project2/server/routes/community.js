@@ -25,13 +25,23 @@ const upload = multer({
   limits: { fileSize: communityPhotoLimits.maxFileBytes, files: communityPhotoLimits.maxFiles },
 })
 
-// 공유된 코스 목록. ?city=제주 &theme=sns &sort=recent|likes|rating
+// 공유된 코스 목록.
+// ?city=제주 &theme=sns &q=야경 &days=2 &budget=보통 &transport=도보 &photos=1 &sort=recent|likes|rating
 router.get('/api/community', optionalAuth, async (req, res) => {
-  const { city = '', theme = '', sort = 'recent', limit = '60' } = req.query || {}
+  const {
+    city = '', theme = '', q = '', days = '', budget = '', transport = '', photos = '',
+    sort = 'recent', limit = '60',
+  } = req.query || {}
+  const dayCount = Number.parseInt(days, 10)
   try {
     const { posts, total } = await listPosts({
       city: String(city).trim(),
       theme: String(theme).trim(),
+      q: String(q).trim().slice(0, 40),
+      days: Number.isFinite(dayCount) && dayCount > 0 ? dayCount : 0,
+      budget: String(budget).trim(),
+      transport: String(transport).trim(),
+      photos: photos === '1' || photos === 'true',
       sort: String(sort),
       viewerId: req.userId,
       limit: Number(limit),

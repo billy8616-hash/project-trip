@@ -13,12 +13,20 @@
 // 모든 요청에 Supabase 액세스 토큰을 함께 보낸다(로그인 안 했으면 토큰 없이 그냥 보낸다).
 import { authedRequest as request } from './apiClient.js'
 
-// 목록. sort: 'recent' | 'likes' | 'rating', city·theme 는 빈 문자열이면 전체.
+// 목록. sort: 'recent' | 'likes' | 'rating'. 나머지 조건은 비어 있으면(빈 문자열·0·false) 전체.
 // limit 은 "더보기"를 누를 때마다 커지는 값 — total 이 posts.length 보다 크면 더 있다는 뜻.
-export async function listCommunityPosts({ city = '', theme = '', sort = 'recent', limit = 60 } = {}) {
+export async function listCommunityPosts({
+  city = '', theme = '', q = '', days = 0, budget = '', transport = '', photos = false,
+  sort = 'recent', limit = 60,
+} = {}) {
   const params = new URLSearchParams()
   if (city) params.set('city', city)
   if (theme) params.set('theme', theme)
+  if (q) params.set('q', q)
+  if (days) params.set('days', String(days))
+  if (budget) params.set('budget', budget)
+  if (transport) params.set('transport', transport)
+  if (photos) params.set('photos', '1')
   if (sort) params.set('sort', sort)
   params.set('limit', String(limit))
   const data = await request(`/api/community?${params.toString()}`)

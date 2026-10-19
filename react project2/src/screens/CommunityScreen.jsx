@@ -18,7 +18,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { allDestinations } from '../data/destinations.js'
-import { journeyThemes } from '../data/travelOptions.js'
+import { budgets, journeyThemes, transports } from '../data/travelOptions.js'
 import { listCommunityPosts, toggleLike } from '../lib/communityApi.js'
 import { ComposeView } from './community/ComposeView.jsx'
 import { CommunityMap } from './community/CommunityMap.jsx'
@@ -31,16 +31,36 @@ const SORTS = [
   { key: 'rating', label: '별점순' },
 ]
 
+// 기간 조건. value 는 dayCount — 4는 "3박 4일 이상"(서버에서 4일 이상으로 거른다).
+const DAY_OPTIONS = [
+  { value: 1, label: '당일' },
+  { value: 2, label: '1박 2일' },
+  { value: 3, label: '2박 3일' },
+  { value: 4, label: '3박 이상' },
+]
+
+const EMPTY_FILTERS = { city: '', theme: '', q: '', days: 0, budget: '', transport: '', photos: false }
+
 // 목록 첫 페이지 크기이자 "더보기"를 누를 때마다 늘어나는 단위.
 const PAGE_SIZE = 60
+
+const selectClass =
+  'tw-w-full tw-rounded-lg tw-border tw-border-cline tw-bg-surface tw-px-3 tw-py-2 tw-text-[13px] tw-text-cink focus:tw-border-caccent focus:tw-outline-none'
+
+function chipClass(active) {
+  return `tw-rounded-full tw-px-3 tw-py-1.5 tw-text-[13px] tw-font-semibold tw-transition-colors ${
+    active ? 'tw-bg-cink tw-text-white' : 'tw-border tw-border-cline tw-text-cink-muted hover:tw-text-cink'
+  }`
+}
 
 export default function CommunityScreen({ user, onRequireLogin, onBack, leaving, initialTripId, onConsumedInitialTrip }) {
   const [posts, setPosts] = useState([])
   const [total, setTotal] = useState(0)
   const [status, setStatus] = useState('loading')
   const [message, setMessage] = useState('')
-  const [city, setCity] = useState('')
-  const [theme, setTheme] = useState('')
+  const [filters, setFilters] = useState(EMPTY_FILTERS)
+  // 검색창에 치는 글자. 한 글자마다 서버를 부르지 않도록 잠깐 멈췄을 때만 filters.q 에 반영한다.
+  const [queryInput, setQueryInput] = useState('')
   const [sort, setSort] = useState('recent')
   const [limit, setLimit] = useState(PAGE_SIZE)
   const [openId, setOpenId] = useState(null)
@@ -56,31 +76,46 @@ export default function CommunityScreen({ user, onRequireLogin, onBack, leaving,
   // 글을 올리거나 추천/후기 뒤에 목록을 다시 불러올 때 쓴다 (핸들러에서 호출).
   const load = useCallback(
     () =>
-      listCommunityPosts({ city, theme, sort, limit })
+      listCommunityPosts({ ...filters, sort, limit })
         .then(({ posts: rows, total: count }) => { setPosts(rows); setTotal(count); setStatus('ready') })
         .catch((error) => { setMessage(error.message); setStatus('error') }),
-    [city, theme, sort, limit],
+    [filters, sort, limit],
   )
 
-  // 여행지·테마·정렬 필터를 바꿀 때 페이지 크기도 처음으로 되돌린다 — 안 그러면 필터를
+  // 조건·정렬을 바꿀 때 페이지 크기도 처음으로 되돌린다 — 안 그러면 조건을
   // 바꿔도 이전에 눌러 둔 "더보기" 만큼 계속 많이 불러오게 된다.
-  const changeCity = (value) => {
-    setCity(value)
+  const setFilter = (key, value) => {
+    setFilters((prev) => ({ ...prev, [key]: value }))
     setLimit(PAGE_SIZE)
   }
-  const changeTheme = (value) => {
-    setTheme((prev) => (prev === value ? '' : value)) // 같은 테마를 다시 누르면 필터 해제
-    setLimit(PAGE_SIZE)
-  }
+  const changeCity = (value) => setFilter('city', value)
+  const toggleTheme = (value) => setFilter('theme', filters.theme === value ? '' : value)
   const changeSort = (value) => {
     setSort(value)
     setLimit(PAGE_SIZE)
   }
+  const resetFilters = () => {
+    setFilters(EMPTY_FILTERS)
+    setQueryInput('')
+    setLimit(PAGE_SIZE)
+  }
+  const activeCount = Object.keys(EMPTY_FILTERS).filter((key) => filters[key] !== EMPTY_FILTERS[key]).length
+
+  // 검색어는 입력을 멈추고 0.3초 뒤에 반영한다.
+  useEffect(() => {
+    const next = queryInput.trim()
+    if (next === filters.q) return undefined
+    const timer = window.setTimeout(() => {
+      setFilters((prev) => ({ ...prev, q: next }))
+      setLimit(PAGE_SIZE)
+    }, 300)
+    return () => window.clearTimeout(timer)
+  }, [queryInput, filters.q])
 
   // 목록 로드: setState 는 promise 콜백에서만, 언마운트/필터 변경 시 이전 응답은 버린다.
   useEffect(() => {
     let alive = true
-    listCommunityPosts({ city, theme, sort, limit })
+    listCommunityPosts({ ...filters, sort, limit })
       .then(({ posts: rows, total: count }) => {
         if (!alive) return
         setPosts(rows)
@@ -89,7 +124,7 @@ export default function CommunityScreen({ user, onRequireLogin, onBack, leaving,
       })
       .catch((error) => { if (!alive) return; setMessage(error.message); setStatus('error') })
     return () => { alive = false }
-  }, [city, theme, sort, limit])
+  }, [filters, sort, limit])
 
   const like = async (postId) => {
     if (!user) {
@@ -152,23 +187,101 @@ export default function CommunityScreen({ user, onRequireLogin, onBack, leaving,
             </div>
           </header>
 
-          <CommunityMap city={city} onSelectCity={changeCity} onOpenPost={setOpenId} />
+          <CommunityMap city={filters.city} onSelectCity={changeCity} onOpenPost={setOpenId} />
 
-          {/* 필터: 여행지 + 정렬 */}
-          <div className="tw-mb-4 tw-flex tw-flex-wrap tw-items-center tw-gap-3">
-            <select
-              value={city}
-              onChange={(event) => changeCity(event.target.value)}
-              aria-label="여행지 필터"
-              className="tw-rounded-lg tw-border tw-border-cline tw-bg-surface tw-px-3 tw-py-2 tw-text-[13px] tw-text-cink focus:tw-border-caccent focus:tw-outline-none"
-            >
-              <option value="">전체 여행지</option>
-              {allDestinations.map((item) => (
-                <option key={item.name} value={item.name}>{item.name}</option>
+          {/* 조건 검색 패널: 검색어 + 여행지·기간·예산·교통편 + 테마 + 사진 유무. 모두 AND 로 걸린다. */}
+          <section
+            aria-label="코스 검색"
+            className="tw-mb-4 tw-space-y-3 tw-rounded-cxl tw-border tw-border-cline tw-bg-surface tw-p-4 tw-shadow-ccard"
+          >
+            <label className="tw-relative tw-block">
+              <span className="tw-sr-only">검색어</span>
+              <svg
+                viewBox="0 0 24 24" aria-hidden="true"
+                className="tw-pointer-events-none tw-absolute tw-left-3 tw-top-1/2 tw-h-4 tw-w-4 tw--translate-y-1/2 tw-text-cink-faint"
+                fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"
+              >
+                <circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" />
+              </svg>
+              <input
+                id="community-search"
+                type="search"
+                value={queryInput}
+                onChange={(event) => setQueryInput(event.target.value)}
+                maxLength={40}
+                placeholder="제목·소개·후기·여행지로 검색 (예: 야경, 카페, 속초)"
+                className="tw-w-full tw-rounded-lg tw-border tw-border-cline tw-bg-cbg tw-py-2.5 tw-pl-9 tw-pr-3 tw-text-[14px] tw-text-cink placeholder:tw-text-cink-faint focus:tw-border-caccent focus:tw-outline-none"
+              />
+            </label>
+
+            <div className="tw-grid tw-grid-cols-2 tw-gap-2 sm:tw-grid-cols-4">
+              <select
+                id="community-city" aria-label="여행지" value={filters.city}
+                onChange={(event) => changeCity(event.target.value)} className={selectClass}
+              >
+                <option value="">여행지 전체</option>
+                {allDestinations.map((item) => (
+                  <option key={item.name} value={item.name}>{item.name}</option>
+                ))}
+              </select>
+              <select
+                id="community-days" aria-label="기간" value={filters.days}
+                onChange={(event) => setFilter('days', Number(event.target.value))} className={selectClass}
+              >
+                <option value={0}>기간 전체</option>
+                {DAY_OPTIONS.map((item) => (
+                  <option key={item.value} value={item.value}>{item.label}</option>
+                ))}
+              </select>
+              <select
+                id="community-budget" aria-label="예산" value={filters.budget}
+                onChange={(event) => setFilter('budget', event.target.value)} className={selectClass}
+              >
+                <option value="">예산 전체</option>
+                {budgets.map((item) => <option key={item} value={item}>{item}</option>)}
+              </select>
+              <select
+                id="community-transport" aria-label="교통편" value={filters.transport}
+                onChange={(event) => setFilter('transport', event.target.value)} className={selectClass}
+              >
+                <option value="">교통편 전체</option>
+                {transports.map((item) => <option key={item} value={item}>{item}</option>)}
+              </select>
+            </div>
+
+            <div className="tw-flex tw-flex-wrap tw-items-center tw-gap-1.5">
+              <button type="button" onClick={() => setFilter('theme', '')} className={chipClass(filters.theme === '')}>
+                전체 테마
+              </button>
+              {journeyThemes.map((item) => (
+                <button key={item.id} type="button" onClick={() => toggleTheme(item.id)} className={chipClass(filters.theme === item.id)}>
+                  {item.label}
+                </button>
               ))}
-            </select>
+              <span className="tw-mx-1 tw-h-5 tw-w-px tw-bg-cline" aria-hidden="true" />
+              <button
+                type="button" aria-pressed={filters.photos}
+                onClick={() => setFilter('photos', !filters.photos)} className={chipClass(filters.photos)}
+              >
+                사진 있는 글만
+              </button>
+            </div>
+          </section>
 
-            <div className="tw-flex tw-gap-1">
+          {/* 결과 줄: 개수 + 초기화 + 정렬 */}
+          <div className="tw-mb-4 tw-flex tw-flex-wrap tw-items-center tw-gap-3">
+            <span className="tw-text-[13px] tw-text-cink-muted">
+              <b className="tw-tabular-nums tw-text-cink">{total}</b>개 코스
+            </span>
+            {activeCount > 0 && (
+              <button
+                type="button" onClick={resetFilters}
+                className="tw-text-[12.5px] tw-font-semibold tw-text-caccent hover:tw-underline"
+              >
+                조건 {activeCount}개 초기화
+              </button>
+            )}
+            <div className="tw-ml-auto tw-flex tw-gap-1">
               {SORTS.map((item) => (
                 <button
                   key={item.key} type="button" onClick={() => changeSort(item.key)}
@@ -182,44 +295,30 @@ export default function CommunityScreen({ user, onRequireLogin, onBack, leaving,
                 </button>
               ))}
             </div>
-
-            <span className="tw-ml-auto tw-text-[12px] tw-tabular-nums tw-text-cink-faint">{total}개</span>
-          </div>
-
-          {/* 필터: 테마. 같은 테마를 다시 누르면 해제된다. */}
-          <div className="tw-mb-4 tw-flex tw-flex-wrap tw-gap-1.5">
-            <button
-              type="button" onClick={() => changeTheme('')}
-              className={`tw-rounded-full tw-px-3 tw-py-1.5 tw-text-[13px] tw-font-semibold tw-transition-colors ${
-                theme === ''
-                  ? 'tw-bg-cink tw-text-white'
-                  : 'tw-border tw-border-cline tw-text-cink-muted hover:tw-text-cink'
-              }`}
-            >
-              전체 테마
-            </button>
-            {journeyThemes.map((item) => (
-              <button
-                key={item.id} type="button" onClick={() => changeTheme(item.id)}
-                className={`tw-rounded-full tw-px-3 tw-py-1.5 tw-text-[13px] tw-font-semibold tw-transition-colors ${
-                  theme === item.id
-                    ? 'tw-bg-cink tw-text-white'
-                    : 'tw-border tw-border-cline tw-text-cink-muted hover:tw-text-cink'
-                }`}
-              >
-                {item.label}
-              </button>
-            ))}
           </div>
 
           {status === 'loading' && <p className="tw-py-16 tw-text-center tw-text-sm tw-text-cink-faint">불러오는 중…</p>}
           {status === 'error' && <p className="tw-py-16 tw-text-center tw-text-sm tw-text-cink-muted">{message}</p>}
           {status === 'ready' && posts.length === 0 && (
             <div className="tw-rounded-cxl tw-border tw-border-dashed tw-border-cline tw-py-16 tw-text-center">
-              <p className="tw-text-sm tw-text-cink-muted">아직 공유된 코스가 없어요.</p>
-              <p className="tw-mt-1 tw-text-[13px] tw-text-cink-faint">
-                오른쪽 위 &lsquo;글쓰기&rsquo; 버튼으로 첫 코스를 공유해 보세요.
-              </p>
+              {activeCount > 0 ? (
+                <>
+                  <p className="tw-text-sm tw-text-cink-muted">조건에 맞는 코스가 없어요.</p>
+                  <button
+                    type="button" onClick={resetFilters}
+                    className="tw-mt-2 tw-text-[13px] tw-font-semibold tw-text-caccent hover:tw-underline"
+                  >
+                    조건 초기화하고 전체 보기
+                  </button>
+                </>
+              ) : (
+                <>
+                  <p className="tw-text-sm tw-text-cink-muted">아직 공유된 코스가 없어요.</p>
+                  <p className="tw-mt-1 tw-text-[13px] tw-text-cink-faint">
+                    오른쪽 위 &lsquo;글쓰기&rsquo; 버튼으로 첫 코스를 공유해 보세요.
+                  </p>
+                </>
+              )}
             </div>
           )}
 
