@@ -66,15 +66,16 @@
 - **예산**: 입장료·가격대를 등급화해 선택한 예산대에 맞춰 보정
 
 **편집과 지도**
-- 타임라인에서 장소를 드래그해 순서 변경, 슬롯별 장소 교체·추가·삭제
+- 타임라인에서 ↑↓ 버튼으로 장소 순서 변경, 검색해서 장소 추가, 코스에서 빼기
 - 직접 순서를 바꾼 날은 자동 최적화에서 제외해 편집 결과를 보호한다
 - 교통 모드별 실제 경로: 자차(카카오모빌리티), 대중교통(ODsay), 도보(OpenRouteService)
-- 장소 상세 모달, 주변 주차장 조회, 카카오맵·네이버지도 연결
+- 카카오맵·네이버지도 연결
 
 **계정과 공유**
 - Supabase Auth 기반 이메일 가입 + 카카오·구글 소셜 로그인
 - "내 여행"에 코스 저장 → 다시 열어보기 / 다시 계획하기
 - 커뮤니티에 코스 공유, 후기 작성, 좋아요
+- 커뮤니티 조건 검색: 검색어 · 여행지 · 기간 · 예산 · 교통편 · 테마 · 사진 유무를 AND 로 조합하고, 개수(total)까지 서버에서 걸러서 센다
 
 ## 기술적으로 공들인 지점
 
@@ -179,7 +180,7 @@ Google Places 사진도 키가 필요해서, 키를 내보내는 대신 `/api/pl
 | LLM | Gemini (`@google/genai`) | 구조화 출력(`responseSchema`) 지원 + 무료 티어 |
 | 린트 | ESLint 10 (flat config) | 현재 경고 0 |
 
-**Tailwind를 전면 도입하지 않은 이유** — 기존 화면은 전부 손으로 쓴 `src/index.css`로 스타일링돼 있었고,
+**Tailwind를 전면 도입하지 않은 이유** — 기존 화면은 전부 손으로 쓴 CSS(`src/styles/` 아래 화면별 파일)로 스타일링돼 있었고,
 Tailwind는 나중에 만든 "코스 상세" 화면 하나에만 필요했다. 전역 도입은 기존 화면을 깨뜨리므로
 [`tailwind.config.js`](tailwind.config.js)에서 **preflight(전역 리셋)를 끄고 모든 유틸에 `tw-` 접두사**를 붙여
 클래스 이름 충돌을 원천 차단했다. 새 화면에 필요한 최소 리셋만 `.course-detail-root` 스코프에 따로 넣었다.
@@ -250,10 +251,10 @@ http://localhost:5173 으로 접속한다. 포트는 5173으로 고정돼 있다
 ```
 react project2/
 ├─ src/
-│  ├─ App.jsx              화면 전환 · 여행 조건 전역 상태 · 코스 편집
+│  ├─ App.jsx              화면 전환 · 여행 조건 전역 상태
 │  ├─ screens/             조건 선택(출발지·날짜·테마·예산·필수방문) · 코스 · 내 여행 · 커뮤니티
-│  ├─ components/          지도 · 타임라인 · 장소 모달 · 홈 · 아이콘
-│  ├─ hooks/               useAuth · useTripPlan · useCityPool · useTripForecast · useCityHighlights
+│  ├─ components/          지도 · 홈 · 발자국 애니메이션 · 아이콘
+│  ├─ hooks/               useAuth · useTripPlan · useCourseBuilder · useCityPool · useTripForecast · useCityHighlights
 │  ├─ lib/
 │  │  ├─ course.js         조건·맥락 스코어링 + 슬롯 배치  ← 코스 생성의 핵심
 │  │  ├─ geo.js            동선 최적화 (최근접이웃 + 2-opt)
@@ -261,9 +262,12 @@ react project2/
 │  │  ├─ openingHours.js   휴무일·영업시간 판정
 │  │  ├─ cost.js           예산 등급 보정
 │  │  └─ api*.js           백엔드 · Supabase 통신
+│  ├─ styles/              화면별 CSS (index.css 는 순서대로 @import 만 한다)
 │  └─ data/                여행지 40곳 · 테마·예산·교통 옵션
 ├─ server/
-│  ├─ app.js               Express 라우트 24개 + 인증 미들웨어
+│  ├─ app.js               Express 앱 조립 + 미들웨어, routes/ 에 도메인별 라우트
+│  ├─ routes/              profile · trips · community · directions · coursePool · misc
+│  ├─ authMiddleware.js    Supabase 액세스 토큰 검증
 │  ├─ placeCache.js        stale-while-revalidate 캐시
 │  ├─ placeEnrich.js       Gemini 구조화 출력
 │  ├─ tourApi.js / kakaoLocal.js / googlePlaces.js / odsay.js / ors.js / weather.js / naverTrend.js
@@ -293,8 +297,6 @@ react project2/
 | 코스 편집 결과가 서버에 없다 | 브라우저 로컬 스냅샷으로 새로고침만 견딘다. 기기를 바꾸면 사라진다 | 서버 저장으로 승격 (ROADMAP 0단계) |
 | 공개 프록시 엔드포인트에 레이트 리밋이 없다 | 무인증 호출 가능 | IP당 상한 추가 |
 | 테스트가 없다 | 순수 함수는 테스트 가능하게 분리해 두었다 | `course.js` · `geo.js` · `schedule.js` 유닛 테스트 |
-| `index.css`가 한 파일에 쌓였다 | JS는 화면·컴포넌트 단위로 분리했지만 CSS는 미분리 | 화면별 분할 |
-| 타임라인 순서 변경이 마우스 전용 | `draggable` 기반, 키보드 대체 조작 없음 | ↑↓ 버튼 추가 |
 | 동선 최적화가 직선거리 기준 | 하루 4~8곳 규모에서는 충분 | 자차 모드는 이미 실측 경로로 보정 |
 
 ---
