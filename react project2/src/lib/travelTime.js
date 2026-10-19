@@ -16,7 +16,7 @@ import { haversineKm } from './geo.js'
 
 // 좌표가 없는(사용자가 새로 추가한) 장소용 이동시간 기본값(분)
 export const TRAVEL_FALLBACK = { 도보: 18, 대중교통: 22, 자차: 13 }
-export const MAX_WALK_LEG_MIN = 30
+export const MAX_WALK_LEG_MIN = 40
 
 // 거리 기준 예상 이동시간(분). 도보 구간이 지나치게 길어지지 않도록 계산값을 제한한다.
 function estimateRawTravelMin(from, to, transport) {

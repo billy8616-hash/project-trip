@@ -95,7 +95,7 @@ export function buildCourse(base, themeId, budgetTier, mustVisit = [], anchors =
   const usesTransit = transport === '대중교통' || transport === '도보'
   // '발길따라' 테마이거나 교통편을 도보로 골랐으면, 실제로 걸어갈 수 있는 거리인지
   // (isWithinWalkLimit) 확인해 가며 장소를 잇는다 — 안 그러면 섬·외곽처럼 걸어서는
-  // 갈 수 없는 곳이 같은 날 옆자리로 붙어서 "도보 30분"처럼 말도 안 되는 이동시간이 나온다.
+  // 갈 수 없는 곳이 같은 날 옆자리로 붙어서 "도보 40분"처럼 말도 안 되는 이동시간이 나온다.
   const walkAware = themeId === 'step' || transport === '도보'
 
   // 여행 날짜에 문을 닫는 곳은 먼저 걸러낸다. 단, 그 바람에 후보가 슬롯 수보다 적어지면
