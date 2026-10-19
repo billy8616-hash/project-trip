@@ -179,6 +179,7 @@ Google Places 사진도 키가 필요해서, 키를 내보내는 대신 `/api/pl
 | 인증 | Supabase Auth | 이메일 + 카카오·구글 OAuth를 직접 구현하지 않고 확보 |
 | LLM | Gemini (`@google/genai`) | 구조화 출력(`responseSchema`) 지원 + 무료 티어 |
 | 린트 | ESLint 10 (flat config) | 현재 경고 0 |
+| 테스트 | Vitest | 코스 생성·시간표·동선 계산의 순수 함수 72개. `vite.config.js` 의 Express 플러그인이 딸려 오지 않게 설정을 분리 |
 
 **Tailwind를 전면 도입하지 않은 이유** — 기존 화면은 전부 손으로 쓴 CSS(`src/styles/` 아래 화면별 파일)로 스타일링돼 있었고,
 Tailwind는 나중에 만든 "코스 상세" 화면 하나에만 필요했다. 전역 도입은 기존 화면을 깨뜨리므로
@@ -236,6 +237,7 @@ http://localhost:5173 으로 접속한다. 포트는 5173으로 고정돼 있다
 | `npm run preview` | 빌드 결과 미리보기 |
 | `npm run server` | 백엔드만 따로 4000 포트에 띄운다 |
 | `npm run lint` | ESLint (현재 경고 0) |
+| `npm test` | Vitest 유닛 테스트 (`src/lib/*.test.js`) |
 | `npm run db:studio` | Prisma Studio 로 DB 열기 |
 | `npm run db:prewarm` | 주요 도시의 장소 캐시를 미리 채운다 |
 | `npm run db:clear-places` | `PlaceCache` 비우기 |
@@ -296,7 +298,7 @@ react project2/
 |---|---|---|
 | 코스 편집 결과가 서버에 없다 | 브라우저 로컬 스냅샷으로 새로고침만 견딘다. 기기를 바꾸면 사라진다 | 서버 저장으로 승격 (ROADMAP 0단계) |
 | 공개 프록시 엔드포인트에 레이트 리밋이 없다 | 무인증 호출 가능 | IP당 상한 추가 |
-| 테스트가 없다 | 순수 함수는 테스트 가능하게 분리해 두었다 | `course.js` · `geo.js` · `schedule.js` 유닛 테스트 |
+| 테스트가 `src/lib` 순수 함수에만 있다 | 서버 라우트·React 화면·DB 조회(`communityStore` 의 검색 조건 등)는 테스트가 없다 | 서버 쪽 `buildWhere` 분리 후 테스트, 화면은 컴포넌트 테스트 |
 | 동선 최적화가 직선거리 기준 | 하루 4~8곳 규모에서는 충분 | 자차 모드는 이미 실측 경로로 보정 |
 
 ---
