@@ -54,6 +54,26 @@
 .cmap-live-item:hover,
 .cmap-live-item:focus-visible { background: #fbe3cf; outline: none; }
 
+.cmap-thumb {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  object-fit: cover;
+  background: linear-gradient(135deg, #f6e9d4, #eed7ae);
+  border: 1px solid rgba(154, 74, 22, 0.16);
+}
+
+.cmap-like {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #c0522e;
+}
+
 @keyframes cmap-pulse {
   0% { transform: scale(1); opacity: 0.5; }
   100% { transform: scale(3); opacity: 0; }

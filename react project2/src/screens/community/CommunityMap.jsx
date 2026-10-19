@@ -144,9 +144,19 @@ export function CommunityMap({ city, onSelectCity, onOpenPost }) {
                   onMouseLeave={() => setHover(null)}
                   className="cmap-live-item tw-flex tw-w-full tw-items-center tw-gap-2.5 tw-rounded-lg tw-px-2.5 tw-py-2 tw-text-left"
                 >
-                  <span className="cmap-tag">{getCity(post)}</span>
-                  <span className="tw-min-w-0 tw-flex-1 tw-truncate tw-text-[13px] tw-font-semibold tw-text-cink">{getTitle(post)}</span>
-                  <span className="tw-shrink-0 tw-text-[11px] tw-text-cink-faint">{timeAgo(getCreatedAt(post))}</span>
+                  {post.images?.[0] ? (
+                    <img src={post.images[0]} alt="" className="cmap-thumb" />
+                  ) : (
+                    <span className="cmap-thumb cmap-thumb-empty" aria-hidden="true" />
+                  )}
+                  <span className="tw-flex tw-min-w-0 tw-flex-1 tw-items-center tw-gap-1.5">
+                    <span className="cmap-tag">{getCity(post)}</span>
+                    <span className="tw-min-w-0 tw-flex-1 tw-truncate tw-text-[13px] tw-font-semibold tw-text-cink">{getTitle(post)}</span>
+                  </span>
+                  <span className="tw-flex tw-shrink-0 tw-flex-col tw-items-end tw-gap-1">
+                    <span className="tw-text-[11px] tw-text-cink-faint">{timeAgo(getCreatedAt(post))}</span>
+                    <span className="cmap-like">♥ {post.likeCount ?? 0}</span>
+                  </span>
                 </button>
               </li>
             ))}
