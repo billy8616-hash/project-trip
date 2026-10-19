@@ -28,16 +28,23 @@ export function formatShortDate(dateStr) {
   return `${date.getMonth() + 1}/${date.getDate()} (${WEEKDAYS[date.getDay()]})`
 }
 
+// Date → 로컬 기준 YYYY-MM-DD. toISOString() 은 UTC 로 바꿔서 한국(UTC+9)에서는
+// 로컬 자정이 전날로 찍히므로 쓰지 않는다.
+function toLocalISO(date) {
+  const pad = (n) => String(n).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+}
+
 // 날짜 선택 화면(출발일/귀가일)에서 여행 기간(duration 라벨)을 계산할 때 쓰는 헬퍼들.
 export function todayISO() {
-  return new Date().toISOString().slice(0, 10)
+  return toLocalISO(new Date())
 }
 
 // ISO 날짜(YYYY-MM-DD)에 n일을 더한 ISO 날짜. Day 2·Day 3 탭의 날짜 라벨에 쓴다.
 export function addDaysISO(dateStr, n) {
   const date = new Date(`${dateStr}T00:00:00`)
   date.setDate(date.getDate() + n)
-  return date.toISOString().slice(0, 10)
+  return toLocalISO(date)
 }
 
 // 출발일~귀가일 사이의 박수. 같은 날이면 0(당일치기)이다.

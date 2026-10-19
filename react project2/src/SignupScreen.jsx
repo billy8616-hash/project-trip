@@ -16,6 +16,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from './lib/supabaseClient.js'
 import { saveMyProfile } from './lib/profileApi.js'
+import { todayISO } from './lib/datetime.js'
 
 const genderOptions = [
   { value: '', label: '선택 안 함' },
@@ -143,7 +144,7 @@ export default function SignupScreen({ mode = 'signup', onBack, onSuccess }) {
       .finally(() => setLoading(false))
   }
 
-  const today = new Date().toISOString().slice(0, 10)
+  const today = todayISO()
 
   if (emailConfirmPending) {
     return (
