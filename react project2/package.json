@@ -13,6 +13,7 @@
     "db:prewarm": "node server/prewarm.js",
     "build": "vite build",
     "preview": "vite preview",
+    "test": "vitest run",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"
   },
@@ -41,6 +42,7 @@
     "postcss": "^8.5.28",
     "prisma": "6.19.0",
     "sharp": "^0.35.4",
-    "tailwindcss": "^3.4.16"
+    "tailwindcss": "^3.4.16",
+    "vitest": "^5.0.5"
   }
 }
