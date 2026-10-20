@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "server": "node server/server.js",
+    "start": "node server/server.js",
     "prisma": "node ./node_modules/prisma/build/index.js",
     "db:push": "node ./node_modules/prisma/build/index.js db push",
     "db:studio": "node ./node_modules/prisma/build/index.js studio",
