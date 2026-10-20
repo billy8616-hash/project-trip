@@ -22,6 +22,21 @@ export default defineConfig({
     port: 5173,
     strictPort: true,
   },
+  build: {
+    rolldownOptions: {
+      output: {
+        // 한 덩어리(666KB)로 나가던 번들을 라이브러리별로 나눈다. 앱 코드가 바뀌어도
+        // vendor 청크는 해시가 그대로라 브라우저 캐시를 재사용한다.
+        codeSplitting: {
+          groups: [
+            { name: 'react', test: /node_modules[\\/](react|react-dom|scheduler)[\\/]/ },
+            { name: 'map', test: /node_modules[\\/](react-simple-maps|d3-[^\\/]+|topojson-client|internmap|delaunator)[\\/]/ },
+            { name: 'supabase', test: /node_modules[\\/]@supabase[\\/]/ },
+          ],
+        },
+      },
+    },
+  },
   plugins: [
     react(),
     {
