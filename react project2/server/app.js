@@ -31,6 +31,7 @@
 import 'dotenv/config'
 import cors from 'cors'
 import express from 'express'
+import { rateLimit } from 'express-rate-limit'
 import { router as profileRoutes } from './routes/profile.js'
 import { router as tripsRoutes } from './routes/trips.js'
 import { router as communityRoutes } from './routes/community.js'
@@ -59,6 +60,14 @@ app.use(cors({
   origin: clientOrigins,
   credentials: true,
 }))
+
+// 외부 API(Gemini·카카오·TourAPI 등) 무료 한도를 남이 소진하지 못하게 IP 당 상한을 둔다.
+// 코스 한 건을 보면 사진·길찾기 호출이 수십 개 한꺼번에 나가므로 일반 한도는 넉넉하게 잡고,
+// 도시 풀 생성(Gemini)만 도시당 한 번이면 충분해 따로 낮게 둔다. 저장소는 메모리라 서버 하나 기준이다.
+const tooMany = { message: '요청이 너무 많아요. 잠시 후 다시 시도해 주세요.' }
+const limiter = (limit) => rateLimit({ windowMs: 60_000, limit, standardHeaders: 'draft-8', legacyHeaders: false, message: tooMany })
+app.use('/api', limiter(200))
+app.use('/api/course-pool', limiter(10))
 
 app.use(profileRoutes)
 app.use(tripsRoutes)
