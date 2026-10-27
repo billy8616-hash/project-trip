@@ -158,6 +158,7 @@ Google Places 사진도 키가 필요해서, 키를 내보내는 대신 `/api/pl
 │ Supabase Postgres        │  │ TourAPI · 카카오 로컬/모빌리티    │
 │  Profile                 │  │ Google Places · Gemini            │
 │  SavedCourse             │  │ ODsay · OpenRouteService · OpenWeather · 네이버│
+│  CourseDraft ← 작업본    │
 │  PlaceCache  ← 캐시       │  └───────────────────────────────────┘
 │  CoursePost/Review/Like  │
 └──────────────────────────┘
@@ -274,7 +275,7 @@ react project2/
 │  ├─ placeEnrich.js       Gemini 구조화 출력
 │  ├─ tourApi.js / kakaoLocal.js / googlePlaces.js / odsay.js / ors.js / weather.js / naverTrend.js
 │  └─ concurrency.js       동시 호출 제한 · fetch 타임아웃
-├─ prisma/schema.prisma    Profile · SavedCourse · PlaceCache · CoursePost/Review/Like
+├─ prisma/schema.prisma    Profile · SavedCourse · CourseDraft · PlaceCache · CoursePost/Review/Like
 ├─ ROADMAP.md              다음 마일스톤(함께 짜는 코스) 설계와 판단 근거
 └─ IMPROVEMENT_PLAN.md     기술 부채 진단과 우선순위
 ```

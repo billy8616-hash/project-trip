@@ -988,3 +988,61 @@
   .dest-region-list li button:hover { transform: none; transition: none; }
 }
 
+
+/* ── 홈 위쪽 "이어서 보기" 띠 (components/DraftResumeBanner.jsx) ─────────── */
+.draft-resume {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 800px;
+  margin: 20px auto 0;
+  padding: 12px 14px 12px 18px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--amber);
+  border-radius: 8px;
+  box-shadow: var(--soft-shadow);
+  color: var(--ink);
+}
+.draft-resume-text {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+  text-align: left;
+}
+.draft-resume-text span {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 14px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.draft-resume-go {
+  flex-shrink: 0;
+  padding: 8px 14px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--amber);
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+.draft-resume-go:hover { background: var(--amber-dark); }
+.draft-resume-close {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+@media (max-width: 640px) {
+  .draft-resume { margin: 12px 14px 0; }
+}

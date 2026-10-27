@@ -18,6 +18,7 @@
 //
 //   server/routes/profile.js      /api/profile              (requireAuth)
 //   server/routes/trips.js        /api/trips                (requireAuth)
+//   server/routes/courseDraft.js  /api/course-draft         (requireAuth, 작업 중인 코스)
 //   server/routes/community.js    /api/community             (읽기 optionalAuth · 쓰기 requireAuth)
 //   server/routes/directions.js   /api/directions/*          (인증 없음, 길찾기 프록시)
 //   server/routes/coursePool.js   /api/course-pool           (인증 없음, 장소 풀 생성·캐싱)
@@ -34,6 +35,7 @@ import express from 'express'
 import { rateLimit } from 'express-rate-limit'
 import { router as profileRoutes } from './routes/profile.js'
 import { router as tripsRoutes } from './routes/trips.js'
+import { router as courseDraftRoutes } from './routes/courseDraft.js'
 import { router as communityRoutes } from './routes/community.js'
 import { router as directionsRoutes } from './routes/directions.js'
 import { router as coursePoolRoutes } from './routes/coursePool.js'
@@ -71,6 +73,7 @@ app.use('/api/course-pool', limiter(10))
 
 app.use(profileRoutes)
 app.use(tripsRoutes)
+app.use(courseDraftRoutes)
 app.use(communityRoutes)
 app.use(directionsRoutes)
 app.use(coursePoolRoutes)

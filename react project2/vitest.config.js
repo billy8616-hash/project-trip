@@ -3,7 +3,8 @@
 //
 // vite.config.js 를 일부러 따로 뒀다. 거기엔 개발 서버에 Express(+Prisma)를 얹는
 // 플러그인이 있는데, Vitest 가 그 설정을 읽으면 테스트마다 서버 코드가 딸려 올라온다.
-// 지금 테스트 대상은 src/lib 의 순수 함수뿐이라 DB·네트워크가 필요 없다.
+// 지금 테스트 대상은 src/lib 와 server 의 순수 함수뿐이라 DB·네트워크가 필요 없다
+// (server 쪽은 DB 를 안 건드리는 파일만 테스트한다 — 예: courseDraftShape.js).
 // ─────────────────────────────────────────────────────────────
 
 import { defineConfig } from 'vitest/config'
@@ -15,6 +16,6 @@ process.env.TZ = 'Asia/Seoul'
 export default defineConfig({
   test: {
     environment: 'node',
-    include: ['src/**/*.test.js'],
+    include: ['src/**/*.test.js', 'server/**/*.test.js'],
   },
 })

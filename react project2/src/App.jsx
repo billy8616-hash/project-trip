@@ -38,13 +38,15 @@ import { allDestinations, destinationCatalog, destinationGroups } from './data/d
 import { buildCourse } from './lib/course.js'
 import { formatClock, scheduleDay } from './lib/schedule.js'
 import { fetchGeocode } from './lib/api.js'
-import { addDaysISO, durationLabelFromNights, formatShortDate, nightsBetween, todayISO } from './lib/datetime.js'
+import { addDaysISO, durationLabelFromNights, formatShortDate, nightsBetween, parseDayCount, todayISO } from './lib/datetime.js'
 import { useAuth } from './hooks/useAuth.js'
 import { useCityHighlights } from './hooks/useCityHighlights.js'
 import { useCityPool } from './hooks/useCityPool.js'
 import { useCourseBuilder } from './hooks/useCourseBuilder.js'
 import { useTripPlan } from './hooks/useTripPlan.js'
 import { clearTripSession, loadTripSession, saveTripSession } from './lib/tripSession.js'
+import { deleteCourseDraft, fetchCourseDraft, saveCourseDraft } from './lib/courseDraftApi.js'
+import DraftResumeBanner from './components/DraftResumeBanner.jsx'
 import CoursePoolNotice from './components/CoursePoolNotice.jsx'
 import FootprintTrail from './components/FootprintTrail.jsx'
 import Icon from './components/Icon.jsx'
@@ -90,8 +92,15 @@ const FOOTPRINT_TRAIL_SCREENS = new Set([
   'mytrips', 'community',
 ])
 
+// 코스 화면에서 편집이 멈춘 뒤 이만큼 지나면 서버에 작업 중인 코스를 올린다.
+// 위/아래 버튼을 연달아 누를 때마다 요청이 나가지 않게 모아서 보낸다.
+const DRAFT_SAVE_DELAY_MS = 1500
+
 // ─── 앱 본체 ─────────────────────────────────────────────────
-function App() {
+// onRestart: 앱 상태를 처음부터 다시 만든다(main.jsx 가 key 를 바꿔 재마운트).
+// 서버에서 불러온 작업 중인 코스로 갈아탈 때 쓴다 — 조건·편집 state 가 여러 훅에
+// 흩어져 있어서 하나씩 set 하는 것보다, 로컬 스냅샷을 써 두고 새로 띄우는 편이 확실하다.
+function App({ onRestart }) {
   // 새로고침 복원 — 첫 렌더에서 한 번만 읽는다. null 이면 평소대로 홈에서 시작.
   const [restored] = useState(loadTripSession)
   const restoredScreen = restored?.screen || 'home'
@@ -188,15 +197,10 @@ function App() {
   // 홈·목적지 화면으로 나가는 건 '새 여행을 시작한다'는 뜻이라 스냅샷을 지운다 — 안 그러면
   // 홈에서 새로고침했는데 지난 코스가 튀어나온다. 그 밖의 화면(내 여행·커뮤니티 등)에서는
   // 손대지 않아, 다녀와서 새로고침해도 편집이 살아 있게 한다.
-  useEffect(() => {
-    if (screen === 'home' || screen === 'destinations') {
-      clearTripSession()
-      return
-    }
-    if (screen !== 'course') return
-
-    saveTripSession({
-      screen,
+  //
+  // 같은 스냅샷을 로그인했을 때는 서버에도 올린다(아래 '작업 중인 코스 서버 저장').
+  const sessionSnapshot = useMemo(
+    () => ({
       meta: {
         destination,
         pickedDestination,
@@ -218,27 +222,35 @@ function App() {
         manualOrderDays: [...manualOrderDays],
       },
       view: { selectedDay, savedName },
-    })
-  }, [
-    screen,
-    destination,
-    pickedDestination,
-    journeyTheme,
-    budget,
-    transport,
-    style,
-    tripStartDate,
-    tripEndDate,
-    duration,
-    dayStartTime,
-    mustVisit,
-    tripOrigin,
-    tripLodging,
-    currentTimelineDays,
-    manualOrderDays,
-    selectedDay,
-    savedName,
-  ])
+    }),
+    [
+      destination,
+      pickedDestination,
+      journeyTheme,
+      budget,
+      transport,
+      style,
+      tripStartDate,
+      tripEndDate,
+      duration,
+      dayStartTime,
+      mustVisit,
+      tripOrigin,
+      tripLodging,
+      currentTimelineDays,
+      manualOrderDays,
+      selectedDay,
+      savedName,
+    ],
+  )
+  useEffect(() => {
+    if (screen === 'home' || screen === 'destinations') {
+      clearTripSession()
+      return
+    }
+    if (screen !== 'course') return
+    saveTripSession({ screen, ...sessionSnapshot })
+  }, [screen, sessionSnapshot])
 
   const {
     user,
@@ -259,6 +271,67 @@ function App() {
     signInWithKakao,
     closeAuthPanel,
   } = useAuth()
+
+  // ── 작업 중인 코스 서버 저장 ────────────────────────────────
+  // 로그인한 상태로 코스 화면에 있으면, 편집이 잠잠해질 때마다 서버의 작업본을 갱신한다.
+  // 다른 기기에서 로그인하면 홈 화면에 "이어서 보기"로 뜬다(아래 DraftResumeBanner).
+  // 직전에 보낸 내용과 같으면 다시 보내지 않는다 — 재마운트·화면 왕복마다 PUT 이 나가지 않게.
+  const lastSentDraft = useRef('')
+  // 디바운스 타이머가 아직 안 보낸 스냅샷, 그리고 진행 중인 저장 요청.
+  const pendingDraft = useRef(null)
+  const draftSaving = useRef(null)
+  const userId = user?.id || null
+  const sendDraft = useCallback((snapshot) => {
+    const body = JSON.stringify(snapshot)
+    lastSentDraft.current = body
+    draftSaving.current = saveCourseDraft({ dayCount: parseDayCount(snapshot.meta.duration), payload: snapshot })
+      .catch(() => {
+        // 서버 저장은 부가 기능이다. 실패해도 로컬 스냅샷은 남아 있으니 조용히 넘어가고,
+        // 다음 편집 때 다시 보내도록 기록만 지운다.
+        if (lastSentDraft.current === body) lastSentDraft.current = ''
+      })
+  }, [])
+  useEffect(() => {
+    if (screen !== 'course' || !userId) return undefined
+    if (JSON.stringify(sessionSnapshot) === lastSentDraft.current) return undefined
+    pendingDraft.current = sessionSnapshot
+    const timer = window.setTimeout(() => {
+      pendingDraft.current = null
+      sendDraft(sessionSnapshot)
+    }, DRAFT_SAVE_DELAY_MS)
+    return () => window.clearTimeout(timer)
+  }, [screen, userId, sessionSnapshot, sendDraft])
+  // 코스 화면을 벗어날 때 디바운스에 걸려 있던 마지막 편집은 기다리지 않고 바로 보낸다.
+  // 안 그러면 고치자마자 홈으로 나간 경우 그 편집이 서버에 안 남는다.
+  useEffect(() => {
+    if (screen === 'course' || !pendingDraft.current) return
+    const snapshot = pendingDraft.current
+    pendingDraft.current = null
+    if (userId) sendDraft(snapshot)
+  }, [screen, userId, sendDraft])
+
+  // 홈 화면에서 보여 줄 서버의 작업 중인 코스. 홈에 들어올 때마다 새로 묻는다
+  // (다른 기기에서 방금 고친 내용이 반영되도록). 방금 보낸 저장이 끝난 다음에 묻는다.
+  const [remoteDraft, setRemoteDraft] = useState(null)
+  useEffect(() => {
+    if (screen !== 'home' || !userId) return undefined
+    let cancelled = false
+    Promise.resolve(draftSaving.current)
+      .then(fetchCourseDraft)
+      .then((draft) => { if (!cancelled) setRemoteDraft(draft?.payload?.meta ? draft : null) })
+      .catch(() => { if (!cancelled) setRemoteDraft(null) })
+    return () => { cancelled = true }
+  }, [screen, userId])
+  const resumeRemoteDraft = () => {
+    if (!remoteDraft) return
+    // 로컬 스냅샷으로 써 두고 앱을 새로 띄우면, 새로고침 복원과 똑같은 길로 코스 화면이 열린다.
+    saveTripSession({ screen: 'course', ...remoteDraft.payload })
+    onRestart()
+  }
+  const dismissRemoteDraft = () => {
+    setRemoteDraft(null)
+    deleteCourseDraft().catch(() => {})
+  }
 
   // 목적지를 아직 하나도 고르지 않았으면(destination·pickedDestination 둘 다 빈 값) cityKey 를
   // null 로 둔다 — 예전엔 fallbackCity(경주)로 조용히 넘어가서, 아무것도 안 고른 채 상단 '여행
@@ -881,6 +954,14 @@ function App() {
           leaving={leaving}
         />
       ) : screen === 'home' ? (
+        <>
+        {user && remoteDraft && (
+          <DraftResumeBanner
+            draft={remoteDraft}
+            onResume={resumeRemoteDraft}
+            onDismiss={dismissRemoteDraft}
+          />
+        )}
         <TravelSketchHome
           cityPhotos={cityPhotos}
           destination={destination}
@@ -895,6 +976,7 @@ function App() {
           onStartCourse={startCourse}
           onStartToday={startTodayCourse}
         />
+        </>
       ) : screen === 'community' ? (
         <CommunityScreen
           user={user}

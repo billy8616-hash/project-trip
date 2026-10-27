@@ -37,6 +37,22 @@ model SavedCourse {
   @@index([userId])
 }
 
+// 지금 편집 중인 코스 (사용자당 1개). SavedCourse 가 사용자가 "저장" 버튼으로 남기는 결과물이라면,
+// 이쪽은 코스 화면에서 손대는 동안 자동으로 갱신되는 작업본이다 — 다른 기기에서 로그인해도
+// 이어서 볼 수 있게 서버에 둔다. 새 코스를 만들기 시작하면 같은 행을 덮어쓴다.
+// payload 는 lib/tripSession.js 의 로컬 스냅샷과 같은 모양의 JSON 문자열
+// ({ meta: {...여행 조건}, edits: { currentTimelineDays, manualOrderDays }, view: { selectedDay, savedName } }).
+// id 를 userId 와 따로 두는 건 다음 단계(읽기 전용 공유 링크, ROADMAP.md 6장)에서 이 행을 가리키기 위해서다.
+model CourseDraft {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  city      String
+  dayCount  Int      @default(1)
+  payload   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 // TourAPI/카카오 로컬에서 가져온 장소 원본 + Gemini가 생성한 추천이유/주의사항/테마 태그 캐시.
 // 같은 장소를 다시 조회할 때 외부 API/LLM을 재호출하지 않기 위한 캐시 테이블.
 model PlaceCache {
