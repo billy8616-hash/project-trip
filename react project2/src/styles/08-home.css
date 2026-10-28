@@ -354,14 +354,16 @@
 
 /* Reference-style scrapbook home */
 .app {
-  background:
-    linear-gradient(rgba(255, 251, 243, 0.7), rgba(255, 251, 243, 0.7)),
-    #f2e4ce;
+  /* 따뜻한 크림. 양옆 소품 이미지에 박힌 종이색(#fcf4e8)이 아래 .edge-bg 의 filter 를 거치면
+     이 색이 되므로(캔버스로 실측), 둘이 경계 없이 이어진다. 소품 색감을 바꾸면 이 값도 같이. */
+  background: #f9eddf;
 }
 
 .edge-bg {
   top: 0;
   opacity: 1;
+  /* 소품 이미지를 더 따뜻하게(채도↑, 노랑→주황쪽으로 살짝 회전). 이미지 파일은 그대로. */
+  filter: saturate(1.5) hue-rotate(-10deg) brightness(0.98);
   /* 가운데 흰 판(.app-stage: 폭 1140px, 화면 중앙 고정)의 바깥 여백을 소품으로 꽉 채운다.
      한쪽 여백 = (100vw - 1140px) / 2 = 50vw - 570px.  -535px 로 잡아 35px 은 흰 판
      밑으로 겹쳐, 소품이 흰 박스에 확실히 닿게 한다. 이미지는 안쪽 크림 여백을 잘라내
@@ -469,9 +471,8 @@
   padding: 21px clamp(18px, 28vw, 390px) 0;
 }
 
-/* 손으로 뜬 종이 한 장 — 실제 종이는 테두리 선이 아니라 '찢긴 가장자리 + 섬유 질감'으로 읽힌다.
-   본문(.diary-page)은 테두리·배경을 비우고, 뒤에 깔리는 ::before 한 겹이 종이 자체를 그린다.
-   질감·찢긴 결을 ::before 로 분리해야 displacement 필터가 본문 글자를 일그러뜨리지 않는다. */
+/* 종이 한 장 — 본문(.diary-page)은 테두리·배경을 비우고, 뒤에 깔리는 ::before 한 겹이
+   종이(옅은 결 + 테두리 + 그림자)를 그린다. 질감을 ::before 로 분리해야 본문 글자가 영향받지 않는다. */
 .diary-page {
   width: min(100%, 810px);
   max-width: 810px;
@@ -487,25 +488,18 @@
 .diary-page::before {
   content: "";
   position: absolute;
-  inset: -3px;
+  inset: 0;
   z-index: -1;
-  /* 얼룩(라디얼) + 굵은 섬유 결 + 미세 그레인을 따뜻한 종이색 위에 겹친다. */
+  /* 아주 옅은 섬유 결 + 미세 그레인을 종이색 위에 겹친다. 바탕색은 양옆 수채화 소품
+     이미지(left_bg/right_bg)의 종이 바탕(#fcf4e8)보다 살짝 밝게 — 같은 톤이되 구역이 읽히게.
+     결을 짙게 깔면 갈색이 얹혀 회색빛으로 탁해져서 양옆과 따로 놀았다. */
   background:
-    radial-gradient(ellipse 55% 40% at 12% 14%, rgba(146, 114, 72, 0.07), transparent 70%),
-    radial-gradient(ellipse 60% 45% at 88% 84%, rgba(146, 114, 72, 0.06), transparent 70%),
-    radial-gradient(ellipse 45% 35% at 74% 8%, rgba(146, 114, 72, 0.05), transparent 70%),
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='fiber'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.34' numOctaves='3' stitchTiles='stitch' result='t'/%3E%3CfeColorMatrix in='t' type='matrix' values='0 0 0 0 0.46 0 0 0 0 0.37 0 0 0 0 0.24 0 0 0 0.26 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23fiber)'/%3E%3C/svg%3E"),
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='grain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch' result='t'/%3E%3CfeColorMatrix in='t' type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23grain)' opacity='0.11'/%3E%3C/svg%3E"),
-    #f8f3e9;
-  /* 찢긴 가장자리: 난류로 흐트러뜨린 사각형을 마스크로 써서 네 변을 거칠게 깎아 낸다. */
-  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='840' height='1000' preserveAspectRatio='none'%3E%3Cfilter id='deckle' x='-8%25' y='-8%25' width='116%25' height='116%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.013 0.021' numOctaves='5' seed='11' result='t'/%3E%3CfeDisplacementMap in='SourceGraphic' in2='t' scale='26' xChannelSelector='R' yChannelSelector='G'/%3E%3C/filter%3E%3Crect x='16' y='16' width='808' height='968' fill='%23fff' filter='url(%23deckle)'/%3E%3C/svg%3E");
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='840' height='1000' preserveAspectRatio='none'%3E%3Cfilter id='deckle' x='-8%25' y='-8%25' width='116%25' height='116%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.013 0.021' numOctaves='5' seed='11' result='t'/%3E%3CfeDisplacementMap in='SourceGraphic' in2='t' scale='26' xChannelSelector='R' yChannelSelector='G'/%3E%3C/filter%3E%3Crect x='16' y='16' width='808' height='968' fill='%23fff' filter='url(%23deckle)'/%3E%3C/svg%3E");
-  -webkit-mask-size: 100% 100%;
-  mask-size: 100% 100%;
-  -webkit-mask-repeat: no-repeat;
-  mask-repeat: no-repeat;
-  /* box-shadow 는 사각형을 따라가므로, 찢긴 실루엣을 따르는 drop-shadow 로. */
-  filter: drop-shadow(2px 5px 9px rgba(71, 53, 36, 0.18));
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='fiber'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.34' numOctaves='3' stitchTiles='stitch' result='t'/%3E%3CfeColorMatrix in='t' type='matrix' values='0 0 0 0 0.46 0 0 0 0 0.37 0 0 0 0 0.24 0 0 0 0.07 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23fiber)'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='grain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch' result='t'/%3E%3CfeColorMatrix in='t' type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23grain)' opacity='0.05'/%3E%3C/svg%3E"),
+    #fff6ea;
+  /* 테두리·그림자 없이 배경보다 살짝 밝은 구역으로만 읽히게 한다(상자 느낌을 뺀 버전).
+     소품과 글자를 가르는 역할은 이 밝기 차이가 맡는다. */
+  border-radius: 18px;
   pointer-events: none;
 }
 
