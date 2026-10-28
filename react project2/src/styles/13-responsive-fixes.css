@@ -296,29 +296,40 @@
   box-shadow: 0 0 0 3px rgba(231, 154, 85, 0.2);
 }
 
-/* 주 버튼 — 흔들린 테두리·하드 그림자 대신 앰버 그라데이션 + 낮게 퍼지는 그림자. */
+/* 주 버튼 — 홈의 주요 버튼(.diary-start 묶음, 08-home.css)과 같은 외형: 알약 + 진한 주황 윤곽 +
+   종이 그림자. 광택 그라데이션과 주황 번짐 그림자는 쓰지 않는다. */
 .auth-card form > button {
   min-height: 48px;
   margin-top: 3px;
-  border: 0;
-  border-radius: 12px;
-  background: linear-gradient(180deg, #f0a862, #e18f46);
+  border: 1.5px solid #bd6d22;
+  border-radius: 999px;
+  background: #f1b26f;
   color: #3a2410;
-  box-shadow: 0 3px 10px rgba(193, 115, 46, 0.28);
+  box-shadow: var(--shadow-paper);
   font-family: GriunJeong, Pretendard, sans-serif;
   font-size: 17px;
   font-weight: 400;
-  transition: filter 0.15s ease, box-shadow 0.15s ease, transform 0.12s ease;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    background-color 0.15s ease;
 }
 
 .auth-card form > button:hover:not(:disabled) {
-  filter: brightness(1.04);
-  box-shadow: 0 5px 14px rgba(193, 115, 46, 0.32);
+  background: #f4b97a;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-paper-raised);
 }
 
 .auth-card form > button:active:not(:disabled) {
+  background: #eea95f;
   transform: translateY(1px);
-  box-shadow: 0 2px 6px rgba(193, 115, 46, 0.26);
+  box-shadow: var(--shadow-paper);
+}
+
+.auth-card form > button:focus-visible {
+  outline: 2px solid #3a2410;
+  outline-offset: 3px;
 }
 
 .auth-card form > button:disabled {

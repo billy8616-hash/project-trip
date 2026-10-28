@@ -299,27 +299,48 @@
   gap: 8px;
   margin-top: 10px;
 }
+/* 입력창과 "추가" 버튼: 홈 검색줄과 같은 알약 + 종이 그림자(입력 = 얇은 갈색 윤곽, 버튼 = 주요 버튼 외형). */
 .diary-must-input input {
   flex: 1;
   min-width: 0;
-  padding: 0 12px;
+  padding: 0 16px;
   min-height: 42px;
-  border: 1.5px solid var(--ink-line);
-  border-radius: 10px;
+  border: 1px solid rgba(107, 88, 66, 0.42);
+  border-radius: 999px;
   background: var(--paper-strong);
   color: var(--ink);
   font-size: 14px;
+  box-shadow: var(--shadow-paper);
 }
 .diary-must-input button {
-  padding: 0 16px;
+  padding: 0 20px;
   min-height: 42px;
-  border: 1.5px solid var(--amber-dark);
-  border-radius: 10px;
-  background: var(--amber);
-  color: #4a2f14;
+  border: 1.5px solid #bd6d22;
+  border-radius: 999px;
+  background: #f1b26f;
+  color: #3a2410;
+  box-shadow: var(--shadow-paper);
   font-family: GriunJeong, sans-serif;
   font-weight: 700;
   cursor: pointer;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    background-color 0.15s ease;
+}
+.diary-must-input button:hover {
+  background: #f4b97a;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-paper-raised);
+}
+.diary-must-input button:active {
+  background: #eea95f;
+  transform: translateY(1px);
+  box-shadow: var(--shadow-paper);
+}
+.diary-must-input button:focus-visible {
+  outline: 2px solid #3a2410;
+  outline-offset: 3px;
 }
 .diary-must-tags {
   list-style: none;

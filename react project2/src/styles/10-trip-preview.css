@@ -322,19 +322,36 @@
   gap: 7px;
   margin-left: auto;
   padding: 9px 20px;
-  border: 2px solid var(--line);
+  /* 주요 버튼 외형(08-home.css 의 .diary-start 묶음)과 같은 값 — 이 파일이 08 보다 뒤라 여기서 직접 맞춘다.
+     컨트롤 바 안이라 높이는 작게 둔다. */
+  border: 1.5px solid #bd6d22;
   border-radius: 999px;
-  background: var(--amber);
-  color: #3a2a1a;
-  box-shadow: 3px 4px 0 rgba(58, 42, 26, 0.16);
+  background: #f1b26f;
+  color: #3a2410;
+  box-shadow: var(--shadow-paper);
   font-family: GriunJeong, sans-serif;
   font-weight: 700;
   font-size: 16.5px;
   white-space: nowrap;
   cursor: pointer;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    background-color 0.15s ease;
 }
 .course-save-button:hover {
-  background: #efa869;
+  background: #f4b97a;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-paper-raised);
+}
+.course-save-button:active {
+  background: #eea95f;
+  transform: translateY(1px);
+  box-shadow: var(--shadow-paper);
+}
+.course-save-button:focus-visible {
+  outline: 2px solid #3a2410;
+  outline-offset: 3px;
 }
 @media (max-width: 480px) {
   .course-save-button {
