@@ -189,6 +189,10 @@ button {
   --outline-w: 1.5px;
   --radius: 14px;
   --soft-shadow: 0 10px 26px -14px rgba(75, 55, 34, 0.35);
+  /* 종이 그림자 — 종이 위에 종이를 얹은 느낌이라 갈색으로 짧고 옅게(주황 번짐·딱딱한 오프셋 X).
+     기본은 바닥에 닿은 상태, raised 는 호버·선택처럼 살짝 들린 상태. */
+  --shadow-paper: 0 1px 2px rgba(90, 65, 38, 0.18), 0 3px 7px -3px rgba(90, 65, 38, 0.16);
+  --shadow-paper-raised: 0 2px 4px rgba(90, 65, 38, 0.14), 0 9px 16px -8px rgba(90, 65, 38, 0.3);
   min-height: 100vh;
   overflow-x: hidden;
   color: var(--ink);

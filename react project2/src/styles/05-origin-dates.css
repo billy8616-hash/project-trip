@@ -116,10 +116,10 @@
   display: grid;
   gap: 8px;
   padding: 14px 18px;
-  border: 2px solid var(--line);
+  border: 1px solid rgba(107, 88, 66, 0.3);
   border-radius: 16px;
   background: var(--paper-strong);
-  box-shadow: 3px 4px 0 rgba(58, 42, 26, 0.1);
+  box-shadow: var(--shadow-paper);
 }
 .date-form span {
   color: var(--amber-dark);
@@ -148,10 +148,10 @@
   gap: 14px;
   width: 100%;
   padding: 12px 18px;
-  border: 2px solid var(--line);
+  border: 1px solid rgba(107, 88, 66, 0.3);
   border-radius: 16px;
   background: var(--paper-strong);
-  box-shadow: 3px 4px 0 rgba(58, 42, 26, 0.1);
+  box-shadow: var(--shadow-paper);
   cursor: pointer;
   text-align: left;
   transition: border-color 0.15s ease;
@@ -385,22 +385,12 @@
   font-size: 16px;
   text-align: center;
 }
+/* 주요 버튼 외형(윤곽·색·종이 그림자)은 08-home.css 의 .diary-start 묶음이 맡는다. 여기선 배치만. */
 .date-next-button {
   display: block;
   margin: 20px auto 0;
   padding: 12px 40px;
-  border: 2px solid var(--line);
-  border-radius: 30px;
-  background: var(--amber);
-  color: #3a2a1a;
-  box-shadow: 3px 4px 0 rgba(58, 42, 26, 0.16);
-  font-family: GriunJeong, sans-serif;
-  font-weight: 700;
-  font-size: 20px;
   cursor: pointer;
-}
-.date-next-button:hover:not(:disabled) {
-  background: #efa869;
 }
 .date-next-button:disabled {
   opacity: 0.5;
@@ -411,10 +401,10 @@
   max-width: 720px;
   margin: 28px auto 0;
   padding: 22px 26px 26px;
-  border: 2px solid var(--line);
+  border: 1px solid rgba(107, 88, 66, 0.3);
   border-radius: 18px;
   background: var(--paper-strong);
-  box-shadow: 4px 6px 0 rgba(58, 42, 26, 0.12);
+  box-shadow: var(--shadow-paper);
   text-align: center;
   animation: weatherPanelSlideIn 0.45s cubic-bezier(0.22, 0.61, 0.36, 1) both;
 }

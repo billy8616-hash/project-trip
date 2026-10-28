@@ -617,9 +617,7 @@
   border: 1px solid rgba(58, 42, 26, 0.22);
   border-radius: 3px;
   background: #fffdf7;
-  box-shadow:
-    3px 5px 0 rgba(58, 42, 26, 0.12),
-    0 12px 22px rgba(48, 35, 21, 0.14);
+  box-shadow: var(--shadow-paper);
   cursor: pointer;
   text-align: left;
   transition: transform 0.15s ease;
@@ -632,6 +630,7 @@
 }
 .dest-card:hover {
   transform: rotate(0) translateY(-3px);
+  box-shadow: var(--shadow-paper-raised);
 }
 .dest-card .photo {
   height: 122px;
@@ -670,10 +669,10 @@
   display: grid;
   gap: 8px;
   padding: 14px 18px;
-  border: 2px solid var(--line);
+  border: 1px solid rgba(107, 88, 66, 0.3);
   border-radius: 16px;
   background: var(--paper-strong);
-  box-shadow: 3px 4px 0 rgba(58, 42, 26, 0.1);
+  box-shadow: var(--shadow-paper);
 }
 .origin-form span {
   display: flex;
