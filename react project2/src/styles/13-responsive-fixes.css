@@ -102,8 +102,8 @@
 .auth-panel {
   position: fixed;
   top: 76px;
-  /* 상단바 좌우 여백(clamp(18px, 8vw, 118px))과 같은 값 — 카드 오른쪽 끝이 로그인 버튼과 맞는다. */
-  right: clamp(18px, 8vw, 118px);
+  /* 상단바 좌우 여백(--gutter)과 같은 값 — 카드 오른쪽 끝이 로그인 버튼과 맞는다. */
+  right: var(--gutter);
   z-index: 21;
   width: min(356px, calc(100vw - 32px));
   animation: authPopIn 0.22s cubic-bezier(0.22, 0.61, 0.36, 1) both;

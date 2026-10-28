@@ -483,9 +483,16 @@
   letter-spacing: -1px;
 }
 .theme-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 20px;
-  max-width: 900px;
+  max-width: 1100px;
   margin: 0 auto;
+}
+/* 테마 5장은 제목 열(1100px)에 한 줄로 들어가고, 예산 3장은 290px 로 가운데 모인다.
+   좁아서 줄이 꺾여도 남는 카드는 가운데 정렬. */
+.theme-grid > .theme-card {
+  flex: 1 1 180px;
+  max-width: 290px;
 }
