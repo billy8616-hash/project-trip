@@ -376,23 +376,25 @@
   align-items: center;
   gap: 7px;
   padding: 9px 17px;
-  border: 2px solid var(--ink-line);
+  border: 1.5px solid rgba(107, 88, 66, 0.42);
   border-radius: 999px;
   background: var(--paper-strong);
   color: var(--ink);
+  box-shadow: var(--shadow-paper);
   font-family: GriunJeong, sans-serif;
   font-weight: 700;
   font-size: 16.5px;
   cursor: pointer;
   transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
+/* 선택 칩: 코랄 레드 대신 앱 전체의 주황 선택 색(주요 버튼과 같은 채움 + 윤곽, 글자는 짙은 갈색). */
 .course-theme-chip:hover {
-  border-color: var(--coral);
+  border-color: #bd6d22;
 }
 .course-theme-chip.is-active {
-  border-color: var(--coral);
-  background: var(--coral);
-  color: #fff6ef;
+  border-color: #bd6d22;
+  background: #f1b26f;
+  color: #3a2410;
 }
 .course-theme-chip-ic {
   display: inline-flex;
