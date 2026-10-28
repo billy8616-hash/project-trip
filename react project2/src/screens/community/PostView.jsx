@@ -187,7 +187,7 @@ export function PostView({ postId, user, onRequireLogin, onClose, onChanged }) {
           {/* 헤더 */}
           <header className="tw-rounded-cxl tw-border tw-border-cline tw-bg-surface tw-p-5 tw-shadow-ccard">
             <div className="tw-flex tw-items-center tw-gap-1.5">
-              <span className="tw-rounded-md tw-bg-caccent-soft tw-px-1.5 tw-py-0.5 tw-text-[11px] tw-font-semibold tw-text-caccent">
+              <span className="tw-rounded-md tw-bg-caccent-soft tw-px-1.5 tw-py-0.5 tw-text-[11px] tw-font-semibold tw-text-caccent-ink">
                 {post.city}
               </span>
               <span className="tw-text-[11px] tw-text-cink-faint">{post.dayCount}일 코스</span>
@@ -214,15 +214,15 @@ export function PostView({ postId, user, onRequireLogin, onClose, onChanged }) {
                 type="button" onClick={like}
                 className={`tw-inline-flex tw-items-center tw-gap-1.5 tw-rounded-full tw-border tw-px-3 tw-py-1.5 tw-text-[13px] tw-font-semibold tw-tabular-nums tw-transition-colors ${
                   post.liked
-                    ? 'tw-border-caccent tw-bg-caccent tw-text-white'
-                    : 'tw-border-cline tw-text-cink-muted hover:tw-border-caccent/50 hover:tw-text-caccent'
+                    ? 'tw-border-caccent-edge tw-bg-caccent tw-text-cink'
+                    : 'tw-border-cline tw-text-cink-muted hover:tw-border-caccent/50 hover:tw-text-caccent-ink'
                 }`}
               >
                 ♥ 추천 {post.likeCount}
               </button>
               <button
                 type="button" onClick={saveToMyTrips}
-                className="tw-inline-flex tw-items-center tw-gap-1.5 tw-rounded-full tw-border tw-border-cline tw-bg-surface tw-px-3 tw-py-1.5 tw-text-[13px] tw-font-semibold tw-text-cink tw-transition-colors hover:tw-border-caccent hover:tw-text-caccent"
+                className="tw-inline-flex tw-items-center tw-gap-1.5 tw-rounded-full tw-border tw-border-cline tw-bg-surface tw-px-3 tw-py-1.5 tw-text-[13px] tw-font-semibold tw-text-cink tw-transition-colors hover:tw-border-caccent-edge hover:tw-text-caccent-ink"
               >
                 ⤓ {saveState}
               </button>
@@ -289,12 +289,12 @@ export function PostView({ postId, user, onRequireLogin, onClose, onChanged }) {
                   rows={3}
                   maxLength={1000}
                   placeholder="이 동선 어땠나요? 좋았던 점이나 팁을 남겨 주세요."
-                  className="tw-w-full tw-rounded-lg tw-border tw-border-cline tw-bg-cbg tw-p-3 tw-text-[13.5px] tw-leading-relaxed tw-text-cink placeholder:tw-text-cink-faint focus:tw-border-caccent focus:tw-outline-none"
+                  className="tw-w-full tw-rounded-lg tw-border tw-border-cline tw-bg-cbg tw-p-3 tw-text-[13.5px] tw-leading-relaxed tw-text-cink placeholder:tw-text-cink-faint focus:tw-border-caccent-ink focus:tw-outline-none"
                 />
                 <div className="tw-flex tw-flex-wrap tw-items-center tw-gap-2">
                   <button
                     type="submit" disabled={busy}
-                    className="tw-rounded-full tw-bg-caccent tw-px-4 tw-py-2 tw-text-[13px] tw-font-semibold tw-text-white disabled:tw-opacity-50"
+                    className="tw-rounded-full tw-border tw-border-caccent-edge tw-bg-caccent tw-px-4 tw-py-2 tw-text-[13px] tw-font-semibold tw-text-cink disabled:tw-opacity-50 tw-shadow-cpaper hover:tw-shadow-cpaper-raised"
                   >
                     {post.myReviewId ? '후기 수정' : '후기 등록'}
                   </button>
@@ -324,7 +324,7 @@ export function PostView({ postId, user, onRequireLogin, onClose, onChanged }) {
                     <div className="tw-flex tw-items-center tw-gap-2">
                       <b className="tw-text-[13px] tw-text-cink">{review.authorName}</b>
                       {review.isMine && (
-                        <span className="tw-rounded tw-bg-caccent-soft tw-px-1.5 tw-py-0.5 tw-text-[10px] tw-font-semibold tw-text-caccent">
+                        <span className="tw-rounded tw-bg-caccent-soft tw-px-1.5 tw-py-0.5 tw-text-[10px] tw-font-semibold tw-text-caccent-ink">
                           내 후기
                         </span>
                       )}

@@ -16,7 +16,7 @@ export function RouteBadge({ route }) {
     <div className="tw-grid tw-grid-cols-[32px_minmax(0,1fr)] tw-items-center tw-gap-3">
       <div className="tw-flex tw-justify-center">
         <span className={`tw-grid tw-h-7 tw-w-7 tw-place-items-center tw-rounded-full tw-border ${
-          walk ? 'tw-border-cwalk/30 tw-bg-cwalk-soft tw-text-cwalk' : 'tw-border-caccent/25 tw-bg-caccent-soft tw-text-caccent'
+          walk ? 'tw-border-cwalk/30 tw-bg-cwalk-soft tw-text-cwalk' : 'tw-border-croute/25 tw-bg-croute-soft tw-text-croute'
         }`}>
           <Icon name={icon} size={14} stroke={2.2} />
         </span>

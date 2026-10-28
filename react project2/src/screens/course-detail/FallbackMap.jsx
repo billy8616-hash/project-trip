@@ -25,7 +25,7 @@ export function FallbackMap({ places, routes, onPick }) {
         const walk = r.mode === 'walk'
         return (
           <line key={i} x1={a.coord.x} y1={a.coord.y} x2={b.coord.x} y2={b.coord.y}
-            stroke={walk ? '#2F9E6E' : '#2563C9'} strokeWidth={walk ? 2.5 : 3.5}
+            stroke={walk ? '#2F9E6E' : '#3B6EA5'} strokeWidth={walk ? 2.5 : 3.5}
             strokeLinecap="round" strokeDasharray={walk ? '1 7' : 'none'} />
         )
       })}
@@ -36,8 +36,8 @@ export function FallbackMap({ places, routes, onPick }) {
           <g key={p.id} role="button" tabIndex={0} aria-label={`${p.order}번 ${p.name}`} style={{ cursor: 'pointer' }}
             onClick={() => onPick && onPick(i, p)}
             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onPick && onPick(i, p) } }}>
-            <circle cx={p.coord.x} cy={p.coord.y} r="13" fill="#2563C9" stroke="#fff" strokeWidth="3" />
-            <text x={p.coord.x} y={p.coord.y + 4.5} textAnchor="middle" fontSize="13" fontWeight="700" fill="#fff">{p.order}</text>
+            <circle cx={p.coord.x} cy={p.coord.y} r="13" fill="#F1B26F" stroke="#fff" strokeWidth="3" />
+            <text x={p.coord.x} y={p.coord.y + 4.5} textAnchor="middle" fontSize="13" fontWeight="700" fill="#2B2A27">{p.order}</text>
             <g transform={`translate(${left ? p.coord.x - 18 : p.coord.x + 18}, ${p.coord.y})`}>
               <rect x={left ? -w : 0} y="-11" width={w} height="22" rx="6" fill="#fff" stroke="#E7E2D8" />
               <path d={left ? 'M0 -4 L6 0 L0 4 Z' : 'M0 -4 L-6 0 L0 4 Z'} fill="#fff" stroke="#E7E2D8" />

@@ -26,7 +26,7 @@ export function PostCard({ post, onOpen, onLike }) {
           )}
           <div className="tw-min-w-0">
             <div className="tw-flex tw-items-center tw-gap-1.5">
-              <span className="tw-rounded-md tw-bg-caccent-soft tw-px-1.5 tw-py-0.5 tw-text-[11px] tw-font-semibold tw-text-caccent">
+              <span className="tw-rounded-md tw-bg-caccent-soft tw-px-1.5 tw-py-0.5 tw-text-[11px] tw-font-semibold tw-text-caccent-ink">
                 {post.city}
               </span>
               <span className="tw-text-[11px] tw-text-cink-faint">{post.dayCount}일 코스</span>
@@ -64,8 +64,8 @@ export function PostCard({ post, onOpen, onLike }) {
             onClick={(event) => { event.stopPropagation(); onLike(post.id) }}
             className={`tw-inline-flex tw-items-center tw-gap-1 tw-rounded-full tw-border tw-px-2.5 tw-py-1 tw-text-[12px] tw-font-semibold tw-tabular-nums tw-transition-colors ${
               post.liked
-                ? 'tw-border-caccent tw-bg-caccent tw-text-white'
-                : 'tw-border-cline tw-text-cink-muted hover:tw-border-caccent/50 hover:tw-text-caccent'
+                ? 'tw-border-caccent-edge tw-bg-caccent tw-text-cink'
+                : 'tw-border-cline tw-text-cink-muted hover:tw-border-caccent/50 hover:tw-text-caccent-ink'
             }`}
           >
             ♥ {post.likeCount}

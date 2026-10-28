@@ -65,13 +65,13 @@ export function PlaceCard({ place, isFirst, isLast, isActive, onPick, onMoveUp, 
             type="button"
             onClick={onMoveUp}
             aria-label="이전 장소와 순서 바꾸기"
-            className="tw-mb-1.5 tw-mt-2 tw-grid tw-h-6 tw-w-6 tw-place-items-center tw-rounded-full tw-text-cink-faint tw-transition-colors hover:tw-bg-surface-2 hover:tw-text-caccent"
+            className="tw-mb-1.5 tw-mt-2 tw-grid tw-h-6 tw-w-6 tw-place-items-center tw-rounded-full tw-text-cink-faint tw-transition-colors hover:tw-bg-surface-2 hover:tw-text-caccent-ink"
           >
             <Icon name="chevron" size={13} className="tw--rotate-90" />
           </button>
         )}
         <div className={`tw-grid tw-h-7 tw-w-7 tw-place-items-center tw-rounded-full tw-text-[13px] tw-font-bold tw-tabular-nums ${
-          isActive ? 'tw-bg-caccent tw-text-white tw-ring-2 tw-ring-caccent/30' : 'tw-bg-caccent tw-text-white'
+          isActive ? 'tw-bg-caccent tw-text-cink tw-ring-2 tw-ring-caccent/30' : 'tw-bg-caccent tw-text-cink'
         }`}>
           {place.order}
         </div>
@@ -80,7 +80,7 @@ export function PlaceCard({ place, isFirst, isLast, isActive, onPick, onMoveUp, 
             type="button"
             onClick={onMoveDown}
             aria-label="다음 장소와 순서 바꾸기"
-            className="tw-mt-1.5 tw-grid tw-h-6 tw-w-6 tw-place-items-center tw-rounded-full tw-text-cink-faint tw-transition-colors hover:tw-bg-surface-2 hover:tw-text-caccent"
+            className="tw-mt-1.5 tw-grid tw-h-6 tw-w-6 tw-place-items-center tw-rounded-full tw-text-cink-faint tw-transition-colors hover:tw-bg-surface-2 hover:tw-text-caccent-ink"
           >
             <Icon name="chevron" size={13} className="tw-rotate-90" />
           </button>
@@ -101,7 +101,7 @@ export function PlaceCard({ place, isFirst, isLast, isActive, onPick, onMoveUp, 
           }
         }}
         className={`tw-mb-4 tw-cursor-pointer tw-rounded-cxl tw-border tw-bg-surface tw-p-4 tw-shadow-ccard tw-transition-colors ${
-          isActive ? 'tw-border-caccent' : 'tw-border-cline hover:tw-border-caccent/40'
+          isActive ? 'tw-border-caccent-edge' : 'tw-border-cline hover:tw-border-caccent/40'
         }`}
       >
         <div className="tw-flex tw-gap-3.5">
@@ -250,7 +250,7 @@ export function PlaceCard({ place, isFirst, isLast, isActive, onPick, onMoveUp, 
                         target="_blank"
                         rel="noreferrer"
                         onClick={(e) => e.stopPropagation()}
-                        className="tw-inline-flex tw-items-center tw-gap-1.5 tw-rounded-full tw-border tw-border-cline tw-px-3 tw-py-1.5 tw-text-[12px] tw-font-semibold tw-text-cink-muted tw-transition-colors hover:tw-border-caccent/40 hover:tw-text-caccent"
+                        className="tw-inline-flex tw-items-center tw-gap-1.5 tw-rounded-full tw-border tw-border-cline tw-px-3 tw-py-1.5 tw-text-[12px] tw-font-semibold tw-text-cink-muted tw-transition-colors hover:tw-border-caccent/40 hover:tw-text-caccent-ink"
                       >
                         <Icon name={meta.icon} size={13} />{meta.label}
                         <Icon name="externalLink" size={11} className="tw-text-cink-faint" />

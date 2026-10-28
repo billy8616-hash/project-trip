@@ -16,7 +16,7 @@ import { Icon } from './icons.jsx'
 export function MapLegend({ moveLabel = '버스' }) {
   return (
     <div className="tw-absolute tw-left-4 tw-top-4 tw-z-20 tw-flex tw-gap-4 tw-rounded-lg tw-border tw-border-cline tw-bg-surface/95 tw-px-3 tw-py-2 tw-text-[11px] tw-font-medium tw-text-cink-muted tw-shadow-ccard">
-      <span className="tw-flex tw-items-center tw-gap-1.5"><span className="tw-h-[3px] tw-w-5 tw-rounded tw-bg-caccent" />{moveLabel}</span>
+      <span className="tw-flex tw-items-center tw-gap-1.5"><span className="tw-h-[3px] tw-w-5 tw-rounded tw-bg-croute" />{moveLabel}</span>
       <span className="tw-flex tw-items-center tw-gap-1.5"><span className="tw-w-5 tw-border-t-2 tw-border-dashed tw-border-cwalk" />도보</span>
     </div>
   )
@@ -55,7 +55,7 @@ export function TransportToggle({ value, onChange }) {
           aria-pressed={value === opt.key}
           onClick={() => onChange(opt.key)}
           className={`tw-flex tw-items-center tw-gap-1.5 tw-px-3 tw-py-2 max-[480px]:tw-px-2.5 tw-text-[13px] tw-font-semibold tw-transition-colors ${
-            value === opt.key ? 'tw-bg-caccent tw-text-white' : 'tw-text-cink-muted hover:tw-bg-surface-2 hover:tw-text-cink'
+            value === opt.key ? 'tw-bg-caccent tw-text-cink' : 'tw-text-cink-muted hover:tw-bg-surface-2 hover:tw-text-cink'
           }`}
         >
           <Icon name={opt.icon} size={14} />
@@ -80,7 +80,7 @@ export function FloatingActions({ actions = {} }) {
       {items.map((it) => (
         <button key={it.key} type="button" onClick={it.on}
           className={`tw-inline-flex tw-items-center tw-gap-1.5 tw-rounded-full tw-px-3 tw-py-2 max-[480px]:tw-px-2.5 tw-text-[13px] tw-font-semibold tw-shadow-cfloat tw-transition-transform hover:tw--translate-y-0.5 ${
-            it.primary ? 'tw-bg-caccent tw-text-white' : 'tw-border tw-border-cline tw-bg-surface tw-text-cink'
+            it.primary ? 'tw-border tw-border-caccent-edge tw-bg-caccent tw-text-cink tw-shadow-cpaper' : 'tw-border tw-border-cline tw-bg-surface tw-text-cink'
           }`}>
           <Icon name={it.icon} size={15} />
           {/* 좁은 화면에선 아이콘만 — 왼쪽 이동수단 토글과 한 줄에 같이 놓여도 안 겹치도록 */}

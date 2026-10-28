@@ -11,7 +11,7 @@ export function DaySummaryHeader({ day, days, activeDay, onSelectDay, count }) {
   return (
     <header className="tw-shrink-0 tw-border-b tw-border-cline tw-bg-surface tw-px-5 tw-py-4">
       <div className="tw-flex tw-items-center tw-gap-2">
-        <span className="tw-rounded-md tw-bg-caccent tw-px-2 tw-py-0.5 tw-text-sm tw-font-bold tw-text-white">Day {day.no}</span>
+        <span className="tw-rounded-md tw-bg-caccent tw-px-2 tw-py-0.5 tw-text-sm tw-font-bold tw-text-cink">Day {day.no}</span>
         <span className="tw-text-sm tw-font-medium tw-text-cink-muted">{day.region}</span>
       </div>
       <div className="tw-mt-2 tw-flex tw-items-center tw-gap-3 tw-text-xs tw-text-cink-faint">
@@ -25,7 +25,7 @@ export function DaySummaryHeader({ day, days, activeDay, onSelectDay, count }) {
             <button key={i} role="tab" aria-selected={i === activeDay} type="button"
               onClick={() => onSelectDay && onSelectDay(i)}
               className={`tw-rounded-full tw-px-3 tw-py-1 tw-text-xs tw-font-semibold tw-transition-colors ${
-                i === activeDay ? 'tw-bg-caccent tw-text-white' : 'tw-border tw-border-cline tw-text-cink-muted hover:tw-text-cink'
+                i === activeDay ? 'tw-bg-caccent tw-text-cink' : 'tw-border tw-border-cline tw-text-cink-muted hover:tw-text-cink'
               }`}>
               Day {i + 1}
               {d.label && <span className="tw-ml-1 tw-font-normal tw-opacity-80">{d.label}</span>}
