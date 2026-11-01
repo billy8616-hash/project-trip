@@ -8,6 +8,7 @@
 //   1) 여행 날짜에 휴무인 장소를 후보에서 제외          (openingHours.js)
 //   2) 조건·맥락으로 장소마다 점수를 매김               (이 파일의 scoreOf)
 //        테마 +4 / 예산 +2 / 필수방문 +20 / 교통편 ± / 비·눈 ±
+//        (테마는 Gemini 태그, 없으면 장소 종류별 기본 테마 — placeKind.themesOf)
 //   3) 오전·점심·오후·저녁 슬롯마다 최고점 한 곳씩 선택 (pickOneDay)
 //   4) 이동거리가 짧아지도록 순서 재배열                (geo.js)
 //   5) 체류·이동시간을 누적해 도착 시각 계산            (schedule.js)
@@ -30,6 +31,7 @@ import {
   RAIN_EXPOSED_KINDS,
   RAIN_PARTLY_EXPOSED_KINDS,
   RAIN_SHELTERED_KINDS,
+  themesOf,
 } from './placeKind.js'
 import { arrivesAfterClose, DEFAULT_DAY_START_MIN, isOpenAround, scheduleDay } from './schedule.js'
 
@@ -120,7 +122,7 @@ export function buildCourse(base, themeId, budgetTier, mustVisit = [], anchors =
 
   const scoreOf = (place, { wet = false } = {}) => {
     let score = 0
-    if (themeId && place.themes.includes(themeId)) score += 4
+    if (themeId && themesOf(place).includes(themeId)) score += 4
     // 예산: LLM 이 붙인 예산대 태그는 약하게(+2), 실제 비용대(입장료·priceLevel) 대조가 주 신호.
     if (budgetTier && place.budgetTiers.includes(budgetTier)) score += 2
     score += budgetAdjust(budgetTier, place)

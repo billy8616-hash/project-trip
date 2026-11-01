@@ -6,7 +6,7 @@
 // 그래서 이 파일에서 cafe·museum·nature·history 같은 우리 앱의 종류로 한 번
 // 통일하고, 체류시간·비용 추정·날씨 보정은 전부 이 종류만 본다.
 //
-// 쓰는 곳: cost.js · stayTime.js · course.js (비 오는 날 보정)
+// 쓰는 곳: cost.js · stayTime.js · course.js (비 오는 날 보정 · 테마 점수)
 // ─────────────────────────────────────────────────────────────
 
 // 장소를 큰 종류로 분류한다. 체류시간 추정과 시간대 판단에 쓴다.
@@ -36,6 +36,28 @@ export function placeKindOf(place) {
   if (place?.source === 'kakao') return 'restaurant' // 카카오 풀은 음식점/카페뿐
   if (cat.startsWith('A05')) return 'restaurant'
   return 'sight'
+}
+
+// 종류별 기본 테마. Gemini 가 붙인 테마가 없는 장소(무료 티어 한도·한 번에 80곳 상한에 밀린 곳)도
+// 테마 선택에 반응하게 하려는 대체값이다. 값은 journeyThemes 의 id (step·mood·sns·view·food).
+const KIND_THEMES = {
+  cafe: ['mood', 'sns'],
+  bar: ['mood', 'food'],
+  restaurant: ['food'],
+  market: ['food', 'step'],
+  museum: ['mood'],
+  viewpoint: ['view', 'sns'],
+  nature: ['view', 'step'],
+  history: ['step', 'sns'],
+  themepark: ['sns'],
+  spa: ['mood'],
+}
+
+// 장소의 테마. Gemini 테마가 있으면 그것을, 없으면 종류별 기본 테마를 쓴다.
+// DB 에는 저장하지 않는다 — 저장하면 서버가 "이미 보강된 곳"으로 보고 Gemini 를 다시 시도하지 않는다.
+export function themesOf(place) {
+  if (place?.themes?.length > 0) return place.themes
+  return KIND_THEMES[placeKindOf(place)] || []
 }
 
 // 비/눈 오는 날 야외 활동이 크게 불리한 종류. (둘레길·해변·오름·전망대 등)

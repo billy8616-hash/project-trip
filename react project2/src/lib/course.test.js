@@ -117,6 +117,14 @@ describe('buildCourse', () => {
     expect(namesOf(course)[0]).not.toContain('오전A')
   })
 
+  it('Gemini 테마가 없는 장소도 종류별 기본 테마로 테마 선택에 반응한다', () => {
+    const pool = fullPool()
+    pool[1].category = '관광명소 > 전망대' // 오전B: 테마 태그 없음, 전망대 → 풍경
+    const course = buildCourse(base(pool), 'view', null)
+    expect(namesOf(course)[0]).toContain('오전B')
+    expect(namesOf(course)[0]).not.toContain('오전A')
+  })
+
   it('비 오는 날은 야외 대신 실내 장소를 고른다', () => {
     const pool = fullPool()
     pool[0] = makePlace('중앙공원', ['오전']) // 야외 (풀의 앞쪽)
