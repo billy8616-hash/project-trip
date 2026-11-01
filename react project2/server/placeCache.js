@@ -10,7 +10,7 @@
 //   · 캐시가 아예 없을 때(그 도시 첫 조회)만 외부 API 를 기다린다
 //
 // 신선함보다 응답 속도를 택한 것이다 — 관광지 정보는 일주일 사이에 크게 달라지지 않는다.
-// 결과적으로 같은 도시의 두 번째 조회부터는 외부 호출이 0회다.
+// 결과적으로 같은 도시를 다시 모은 뒤 7일 동안은 조회해도 외부 호출이 0회다.
 //
 // 쓰는 곳: server/app.js 의 /api/course-pool
 // ─────────────────────────────────────────────────────────────
@@ -27,9 +27,16 @@ export async function findCityPool(cityKey) {
     orderBy: { createdAt: 'asc' },
   })
   if (rows.length === 0) return { rows: null, stale: false }
+  return { rows, stale: isPoolStale(rows) }
+}
 
-  const oldest = rows.reduce((min, row) => Math.min(min, row.createdAt.getTime()), Date.now())
-  return { rows, stale: Date.now() - oldest > STALE_AFTER_MS }
+// 도시 풀을 마지막으로 다시 모은 시각(행들의 refreshedAt 중 가장 최근)이 7일을 넘었는지.
+// createdAt 은 upsert 로 바뀌지 않아 기준으로 쓰면 7일 뒤부터 영원히 "오래됨"이 되고,
+// 가장 오래된 행을 보면 이번 갱신 결과에서 빠진 장소 때문에 역시 영원히 오래됨이 된다.
+// refreshedAt 이 하나도 없으면(칼럼 도입 전 캐시) 오래된 것으로 보고 한 번 다시 모은다.
+export function isPoolStale(rows, now = Date.now()) {
+  const lastRefreshed = rows.reduce((max, row) => Math.max(max, row.refreshedAt ? row.refreshedAt.getTime() : 0), 0)
+  return now - lastRefreshed > STALE_AFTER_MS
 }
 
 // 이미 캐시에 있는 장소를 id 로 한 번에 조회한다.

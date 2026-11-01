@@ -269,6 +269,8 @@ export async function buildCityPoolRows(cityKey) {
           // 이번에 Google 을 실제로 부른 장소만 시각을 새로 찍는다. 건너뛴 장소는 기존 시각을 유지해야
           // 다음 갱신 때 "오래된 순"에서 제 차례가 온다. (관광지는 Google 을 안 쓰므로 계속 null)
           hoursFetchedAt: googleHours ? new Date() : (cachedRow?.hoursFetchedAt ?? null),
+          // 도시 풀을 다시 모은 시각. 이 값으로 7일 갱신 여부를 판단한다 (placeCache.isPoolStale).
+          refreshedAt: new Date(),
         }
       })
 

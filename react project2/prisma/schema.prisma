@@ -91,6 +91,9 @@ model PlaceCache {
   // createdAt 은 upsert 로 갱신되지 않아(최초 생성 시각 고정) 이 판단에 쓸 수 없어서 따로 둔다.
   // null 이면 아직 조회한 적 없음 — 관광지(TourAPI 출처)는 Google 을 안 쓰므로 계속 null 이다.
   hoursFetchedAt DateTime?
+  // 이 도시의 풀을 마지막으로 다시 모은 시각. 도시 행들 중 가장 최근 값이 7일을 넘으면 백그라운드로 다시 모은다.
+  // 위와 같은 이유로 createdAt 을 쓸 수 없다. null 이면 칼럼 도입 전 행이다.
+  refreshedAt DateTime?
 
   @@index([cityKey])
 }

@@ -105,7 +105,9 @@ Google Places(영업시간·사진) + Gemini(추천 이유·주의사항)를 모
 - 캐시가 전혀 없는 첫 조회만 외부 API를 기다린다
 - 사진이 비어 있는 과거 행은 응답과 별개로 조용히 채운다
 
-결과적으로 같은 도시 두 번째 조회부터는 외부 호출이 0회다.
+결과적으로 같은 도시를 다시 모은 뒤 7일 동안은 외부 호출이 0회다. 오래됐는지는 행이 처음 생긴 시각이
+아니라 도시 풀을 마지막으로 다시 모은 시각(`refreshedAt`)으로 판단한다 — 처음 생긴 시각을 쓰면
+7일이 지난 뒤부터 조회할 때마다 다시 모으게 된다.
 
 ### 3. LLM 응답을 신뢰할 수 있게 받는 방법
 
@@ -238,6 +240,7 @@ erDiagram
     float rating
     json themes "Gemini 생성"
     datetime hoursFetchedAt "Google 갱신 시각"
+    datetime refreshedAt "도시 풀 갱신 시각"
   }
 ```
 
