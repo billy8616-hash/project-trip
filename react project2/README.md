@@ -15,6 +15,7 @@
 - [핵심 기능](#핵심-기능)
 - [기술적으로 공들인 지점](#기술적으로-공들인-지점)
 - [아키텍처](#아키텍처)
+- [데이터 모델](#데이터-모델)
 - [기술 스택](#기술-스택)
 - [외부 API](#외부-api)
 - [실행 방법](#실행-방법)
@@ -168,6 +169,83 @@ Google Places 사진도 키가 필요해서, 키를 내보내는 대신 `/api/pl
 `configureServer`는 `vite dev`에서만 실행되므로 **프로덕션 빌드에는 서버 코드가 섞이지 않는다.**
 백엔드를 따로 띄우고 싶으면 `npm run server`(4000 포트)를 쓴다.
 
+## 데이터 모델
+
+[`prisma/schema.prisma`](prisma/schema.prisma)
+
+```mermaid
+erDiagram
+  Profile ||..o{ SavedCourse : "저장"
+  Profile ||..o{ CoursePost : "작성"
+  Profile ||..o{ CourseReview : "후기"
+  Profile ||..o{ CourseLike : "추천"
+  CoursePost ||..o{ CourseReview : "받음"
+  CoursePost ||..o{ CourseLike : "받음"
+  Profile {
+    string id PK "Supabase uuid"
+    string name
+    string birthdate
+    string gender
+    string phone
+    datetime createdAt
+  }
+  SavedCourse {
+    uuid id PK
+    string userId FK
+    string title
+    string city
+    int dayCount
+    json payload "동선 스냅샷"
+    datetime updatedAt
+  }
+  CoursePost {
+    uuid id PK
+    string userId FK
+    string authorName
+    string title
+    string city "index"
+    string journeyTheme "index"
+    int rating
+    json payload "동선 스냅샷"
+    json images
+    datetime createdAt "index"
+  }
+  CourseReview {
+    uuid id PK
+    string postId FK "userId 와 함께 unique"
+    string userId FK
+    int rating
+    string body
+  }
+  CourseLike {
+    uuid id PK
+    string postId FK "userId 와 함께 unique"
+    string userId FK
+    datetime createdAt
+  }
+  PlaceCache {
+    string id PK "tour- / kakao-"
+    string source "tourapi 또는 kakao"
+    string cityKey "index"
+    string name
+    float lat
+    float lng
+    json slots "오전 점심 카페 저녁"
+    int opensAt
+    int closesAt
+    string costTier
+    string transitScore
+    float rating
+    json themes "Gemini 생성"
+    datetime hoursFetchedAt "Google 갱신 시각"
+  }
+```
+
+- **로그인 정보는 이 DB에 없다.** 이메일·비밀번호·소셜 계정은 Supabase `auth.users`가 관리하고, `Profile`은 앱에만 필요한 필드를 담는다. `Profile.id`는 그 유저의 uuid를 그대로 쓴다.
+- **점선 관계는 DB 외래키가 아니다.** `userId`·`postId`는 문자열 칼럼이고 Prisma `@relation`을 걸지 않았다. 그래서 글을 지워도 후기·추천이 DB 차원에서 함께 지워지지는 않는다.
+- **`PlaceCache`는 사용자 데이터와 연결되지 않는다.** 저장 코스와 커뮤니티 글은 장소를 참조하는 대신 `payload`에 동선 스냅샷 JSON을 통째로 담는다. 캐시를 비우거나 다시 만들어도 이미 저장된 코스는 그대로다.
+- 그림에서 `json`으로 적은 칼럼은 실제로는 JSON 문자열을 담는 `String`이다. `PlaceCache`는 영업시간·비용·교통·사진 칼럼이 더 있지만 코스 생성에 쓰는 핵심만 추렸다.
+
 ## 기술 스택
 
 | 영역 | 사용 기술 | 선택 이유 |
@@ -179,7 +257,7 @@ Google Places 사진도 키가 필요해서, 키를 내보내는 대신 `/api/pl
 | 인증 | Supabase Auth | 이메일 + 카카오·구글 OAuth를 직접 구현하지 않고 확보 |
 | LLM | Gemini (`@google/genai`) | 구조화 출력(`responseSchema`) 지원 + 무료 티어 |
 | 린트 | ESLint 10 (flat config) | 현재 경고 0 |
-| 테스트 | Vitest | 코스 생성·시간표·동선 계산의 순수 함수 72개. `vite.config.js` 의 Express 플러그인이 딸려 오지 않게 설정을 분리 |
+| 테스트 | Vitest | 코스 생성·시간표·동선 계산·지역 필터의 순수 함수 76개. `vite.config.js` 의 Express 플러그인이 딸려 오지 않게 설정을 분리 |
 
 **Tailwind를 전면 도입하지 않은 이유** — 기존 화면은 전부 손으로 쓴 CSS(`src/styles/` 아래 화면별 파일)로 스타일링돼 있었고,
 Tailwind는 나중에 만든 "코스 상세" 화면 하나에만 필요했다. 전역 도입은 기존 화면을 깨뜨리므로
@@ -237,7 +315,7 @@ http://localhost:5173 으로 접속한다. 포트는 5173으로 고정돼 있다
 | `npm run preview` | 빌드 결과 미리보기 |
 | `npm run server` | 백엔드만 따로 4000 포트에 띄운다 |
 | `npm run lint` | ESLint (현재 경고 0) |
-| `npm test` | Vitest 유닛 테스트 (`src/lib/*.test.js`) |
+| `npm test` | Vitest 유닛 테스트 (`src/lib/*.test.js`, `server/*.test.js`) |
 | `npm run db:studio` | Prisma Studio 로 DB 열기 |
 | `npm run db:prewarm` | 주요 도시의 장소 캐시를 미리 채운다 |
 | `npm run db:clear-places` | `PlaceCache` 비우기 |
@@ -298,7 +376,7 @@ react project2/
 |---|---|---|
 | 코스 편집 결과가 서버에 없다 | 브라우저 로컬 스냅샷으로 새로고침만 견딘다. 기기를 바꾸면 사라진다 | 서버 저장으로 승격 (ROADMAP 0단계) |
 | 레이트 리밋이 서버 한 대 기준이다 | `/api` 전체 IP당 분당 200회, Gemini 를 쓰는 `/api/course-pool` 은 분당 10회. 카운터가 메모리라 서버를 여러 대로 늘리면 각자 센다 | 서버를 늘리게 되면 Redis 저장소로 교체 |
-| 테스트가 `src/lib` 순수 함수에만 있다 | 서버 라우트·React 화면·DB 조회(`communityStore` 의 검색 조건 등)는 테스트가 없다 | 서버 쪽 `buildWhere` 분리 후 테스트, 화면은 컴포넌트 테스트 |
+| 테스트가 순수 함수에만 있다 | `src/lib` 와 서버 지역 필터 외에 서버 라우트·React 화면·DB 조회(`communityStore` 의 검색 조건 등)는 테스트가 없다 | 서버 쪽 `buildWhere` 분리 후 테스트, 화면은 컴포넌트 테스트 |
 | 동선 최적화가 직선거리 기준 | 하루 4~8곳 규모에서는 충분 | 자차 모드는 이미 실측 경로로 보정 |
 
 ---
