@@ -7,7 +7,7 @@
 // 흐름 한눈에 보기
 //   1) 여행 날짜에 휴무인 장소를 후보에서 제외          (openingHours.js)
 //   2) 조건·맥락으로 장소마다 점수를 매김               (이 파일의 scoreOf)
-//        테마 +4 / 예산 +2 / 필수방문 +20 / 교통편 ± / 비·눈 ±
+//        테마 +8 / 예산 +2 / 필수방문 +20 / 교통편 ± / 비·눈 ±
 //        (테마는 Gemini 태그, 없으면 장소 종류별 기본 테마 — placeKind.themesOf)
 //   3) 오전·점심·오후·저녁 슬롯마다 최고점 한 곳씩 선택 (pickOneDay)
 //   4) 이동거리가 짧아지도록 순서 재배열                (geo.js)
@@ -16,6 +16,9 @@
 //
 // 점수 크기를 일부러 이렇게 잡았다: 필수방문(+20)은 다른 어떤 가감점으로도
 // 뒤집히지 않고, 나머지(테마·예산·날씨·교통)는 서로 경쟁할 수 있는 크기다.
+// 테마는 +4 였을 때 교통·예산 보정에 자주 밀려 테마를 바꿔도 코스가 잘 안 바뀌었다(실제 캐시로
+// 비교해 보니 고른 테마와 맞는 장소가 60%대). +8 이면 80%대로 오르면서도, 비 오는 날의
+// 야외(-7) 대 실내(+4) 차이와 저예산의 비싼 곳(-8) 대 저가(+4) 차이는 뒤집지 못한다.
 //
 // 쓰는 곳: App.jsx (코스 생성·다시 짜기)
 // ─────────────────────────────────────────────────────────────
@@ -36,7 +39,7 @@ import {
 import { arrivesAfterClose, DEFAULT_DAY_START_MIN, isOpenAround, scheduleDay } from './schedule.js'
 
 // 비/눈 예보인 날의 장소 점수 보정. 야외 노출이 큰 곳은 감점, 실내 위주는 가점.
-// (테마 가점 +4 와 비슷한 크기라, 필수 방문(+20)은 여전히 이긴다.)
+// (야외와 실내의 차이 11점이 테마 가점 +8 보다 커서 테마가 맞는 야외도 실내에 밀린다. 필수 방문(+20)은 여전히 이긴다.)
 export function rainScoreAdjust(place, wet) {
   if (!wet) return 0
   const kind = placeKindOf(place)
@@ -122,7 +125,7 @@ export function buildCourse(base, themeId, budgetTier, mustVisit = [], anchors =
 
   const scoreOf = (place, { wet = false } = {}) => {
     let score = 0
-    if (themeId && themesOf(place).includes(themeId)) score += 4
+    if (themeId && themesOf(place).includes(themeId)) score += 8
     // 예산: LLM 이 붙인 예산대 태그는 약하게(+2), 실제 비용대(입장료·priceLevel) 대조가 주 신호.
     if (budgetTier && place.budgetTiers.includes(budgetTier)) score += 2
     score += budgetAdjust(budgetTier, place)

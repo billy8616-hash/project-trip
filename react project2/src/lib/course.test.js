@@ -136,6 +136,22 @@ describe('buildCourse', () => {
     expect(wet.notices.some((n) => n.includes('비·눈'))).toBe(true)
   })
 
+  it('비 오는 날은 테마가 맞는 야외보다 테마가 안 맞는 실내를 고른다', () => {
+    const pool = fullPool()
+    pool[0] = makePlace('바다전망 해변', ['오전'], { themes: ['view'] }) // 야외, 테마 일치
+    pool[1] = makePlace('국립박물관', ['오전']) // 실내, 테마 불일치
+    const wet = buildCourse(base(pool), 'view', null, [], {}, '대중교통', { wetDays: [true] })
+    expect(namesOf(wet)[0]).toContain('국립박물관')
+  })
+
+  it('저예산이면 테마가 맞는 비싼 곳보다 테마가 안 맞는 무료인 곳을 고른다', () => {
+    const pool = fullPool()
+    pool[0] = makePlace('고급 전망대', ['오전'], { themes: ['view'], costTier: 'high' })
+    pool[1] = makePlace('동네 산책로', ['오전'], { costTier: 'free' })
+    const course = buildCourse(base(pool), 'view', '저예산')
+    expect(namesOf(course)[0]).toContain('동네 산책로')
+  })
+
   it('여행 날짜에 쉬는 곳은 후보에서 빼고 안내한다', () => {
     const pool = fullPool()
     pool[0].closedWeekdays = [1] // 오전A: 월요일 휴무
