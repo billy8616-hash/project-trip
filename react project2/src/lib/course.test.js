@@ -198,6 +198,37 @@ describe('buildCourse', () => {
     expect(course.notices.some((n) => n.includes('다 채우지 못했어요'))).toBe(true)
   })
 
+  it('오후 카페 칸은 오후 태그가 붙은 관광지보다 카페를 먼저 고른다', () => {
+    const pool = fullPool()
+    pool[4] = makePlace('시립미술관', ['오후 카페', '오전'], { themes: ['mood'] }) // 풀 앞쪽 + 테마 일치
+    const course = buildCourse(base(pool), 'mood', null)
+    const afternoon = course.days[0].places.find((p) => p.assignedSlot === '오후 카페')
+    expect(afternoon.name).toBe('카페B')
+  })
+
+  it('카페가 없으면 오후 태그가 붙은 관광지로 오후 칸을 채운다', () => {
+    const pool = fullPool().filter((p) => !p.name.startsWith('카페'))
+    pool.push(makePlace('시립미술관', ['오후 카페', '오전']))
+    const course = buildCourse(base(pool), null, null)
+    expect(course.days[0].places.find((p) => p.assignedSlot === '오후 카페')?.name).toBe('시립미술관')
+  })
+
+  it.each(['대중교통', '도보'])('점심 후보가 없으면 공원으로 채우지 않고 비운 뒤 안내한다 (%s)', (transport) => {
+    const pool = fullPool().filter((p) => !p.name.startsWith('점심'))
+    pool.push(makePlace('중앙공원', ['오전']))
+    const course = buildCourse(base(pool), null, null, [], {}, transport)
+    const [day] = course.days
+    expect(day.places.some((p) => p.assignedSlot === '점심 맛집')).toBe(false)
+    expect(course.notices.some((n) => n.includes('점심 칸을 비워'))).toBe(true)
+  })
+
+  it('점심 태그가 없어도 시장이 있으면 점심 칸에 넣는다', () => {
+    const pool = fullPool().filter((p) => !p.name.startsWith('점심'))
+    pool.push(makePlace('중앙시장', ['오전']))
+    const course = buildCourse(base(pool), null, null)
+    expect(course.days[0].places.find((p) => p.assignedSlot === '점심 맛집')?.name).toBe('중앙시장')
+  })
+
   it('늦게 출발해 도착 시각에 닫혀 있는 곳은 여는 다른 곳으로 바꾼다', () => {
     const pool = fullPool()
     pool[0] = makePlace('일찍닫는곳', ['오전'], { opensAt: 9 * 60, closesAt: 11 * 60 })

@@ -70,6 +70,21 @@ export function transportAdjust(place, transport, cityHasTransit) {
   }
 }
 
+const FOOD_KINDS = new Set(['restaurant', 'market'])
+
+// 시간대 칸마다 후보를 고르는 기준. preferred 는 앞 조건부터 차례로 보고, 그래도 없을 때만 fallback 으로 채운다.
+// 서버의 시간대 태그만 보면 '오후 카페' 칸에 박물관·공원이 카페와 섞여 경쟁하고, 후보가 없는 '점심 맛집' 칸은
+// 아무 장소(산책로 등)로 채워져 칸 이름과 다른 곳이 나왔다. 그래서 오후 카페는 카페를 먼저 고르고,
+// 점심은 음식점·시장이 아니면 넣지 않는다 — 칸이 비면 안내 문구로 알린다.
+export function slotRule(slot) {
+  const tagged = (place) => place.slots.includes(slot)
+  if (slot === '점심 맛집') return { preferred: [tagged], fallback: (place) => FOOD_KINDS.has(placeKindOf(place)) }
+  if (slot === '오후 카페') {
+    return { preferred: [(place) => tagged(place) && placeKindOf(place) === 'cafe', tagged], fallback: () => true }
+  }
+  return { preferred: [tagged], fallback: () => true }
+}
+
 // optimizeRouteOrderBySlot 으로 거리 최적화를 끝낸 추천 코스 순서(ordered)에, 직접 추가한
 // 장소(manual)를 각자의 assignedSlot(오전/점심/오후/저녁) 자리에 끼워 넣는다.
 // (좌표가 없는 manual 장소는 애초에 거리 최적화 대상이 아니라서 별도로 삽입해야 한다.)
@@ -184,6 +199,14 @@ export function buildCourse(base, themeId, budgetTier, mustVisit = [], anchors =
         .sort((a, b) => scoreOf(b.place, { wet }) - scoreOf(a.place, { wet }) || a.index - b.index)
       return sorted[0]?.place || null
     }
+    // 조건 목록을 앞에서부터 보며, 후보가 있는 첫 조건에서 최고점 장소를 고른다.
+    const pickFirst = (filters, extra = () => true) => {
+      for (const filter of filters) {
+        const pick = rankAndPick(pool.filter((place) => !used.has(place.name) && extra(place) && filter(place)))
+        if (pick) return pick
+      }
+      return null
+    }
 
     const slots = SLOT_LABELS.filter((slot) => !skipSlots.has(slot))
 
@@ -201,22 +224,14 @@ export function buildCourse(base, themeId, budgetTier, mustVisit = [], anchors =
         }
 
         const canReachFromCursor = (place) => !routeCursor || isWithinWalkLimit(routeCursor, place)
-        const matching = pool.filter((place) => !used.has(place.name) && place.slots.includes(slot) && canReachFromCursor(place))
-        let pick = rankAndPick(matching)
+        const { preferred, fallback } = slotRule(slot)
+        let pick = pickFirst(preferred, canReachFromCursor)
 
         if (!pick) {
           // 다음 시간대에 어울리는 장소를 먼저 남겨 두고, 가까운 일반 후보로 빈 슬롯을 채운다.
           const laterSlots = remainingSlots.slice(1)
-          const fallback = pool.filter(
-            (place) =>
-              !used.has(place.name) &&
-              !place.slots.some((candidateSlot) => laterSlots.includes(candidateSlot)) &&
-              canReachFromCursor(place),
-          )
-          pick = rankAndPick(fallback)
-          if (!pick) {
-            pick = rankAndPick(pool.filter((place) => !used.has(place.name) && canReachFromCursor(place)))
-          }
+          const notNeededLater = (place) => !place.slots.some((candidateSlot) => laterSlots.includes(candidateSlot))
+          pick = pickFirst([(place) => fallback(place) && notNeededLater(place), fallback], canReachFromCursor)
         }
 
         if (pick) {
@@ -231,16 +246,16 @@ export function buildCourse(base, themeId, budgetTier, mustVisit = [], anchors =
     }
 
     const picks = slots.map((slot) => {
-      const pick = rankAndPick(pool.filter((place) => !used.has(place.name) && place.slots.includes(slot)))
+      const pick = pickFirst(slotRule(slot).preferred)
       if (pick) used.add(pick.name)
       return { slot, place: pick }
     })
 
     // 슬롯을 그냥 비워두면 뒤 시간대(특히 저녁 앵커, schedule.js)와의 사이에 몇 시간짜리
-    // 빈 시간이 생겨버리므로, 태그 후보가 없는 슬롯은 남은 곳 중 최고점으로 채운다.
+    // 빈 시간이 생겨버리므로, 태그 후보가 없는 슬롯은 남은 곳 중 최고점으로 채운다. (점심 칸만은 음식점일 때만)
     return picks
       .map(({ slot, place }) => {
-        const pick = place || rankAndPick(pool.filter((p) => !used.has(p.name)))
+        const pick = place || pickFirst([slotRule(slot).fallback])
         if (!pick) return null
         if (!place) used.add(pick.name)
         // 한 장소가 여러 슬롯에 어울릴 수 있으므로, 실제로 배정된 슬롯을 따로 기록해 둔다.
@@ -262,7 +277,8 @@ export function buildCourse(base, themeId, budgetTier, mustVisit = [], anchors =
       const filler = pool
         .filter((place) => !used.has(place.name))
         .slice(0, SLOT_LABELS.length - dayPicks.length)
-        .map((place, index) => ({ ...place, assignedSlot: SLOT_LABELS[dayPicks.length + index] || SLOT_LABELS[SLOT_LABELS.length - 1] }))
+        // 빈 칸 순서대로 넣으면 공원이 '점심 맛집'에 들어갈 수 있어, 장소 자신의 대표 시간대에 둔다.
+        .map((place) => ({ ...place, assignedSlot: place.slots?.[0] || SLOT_LABELS[0] }))
       filler.forEach((place) => used.add(place.name))
       dayPicks = [...dayPicks, ...filler]
     }
@@ -310,15 +326,15 @@ export function buildCourse(base, themeId, budgetTier, mustVisit = [], anchors =
       droppedForLateArrival += 1
       let remaining = scheduled.filter((_, index) => index !== closedIndex)
 
-      const replacement = pool.find(
-        (place) =>
-          !used.has(place.name) &&
-          place.slots.includes(dropped.assignedSlot) &&
-          isOpenAround(place, dropped.arriveMin) &&
-          (!walkAware ||
-            ((!scheduled[closedIndex - 1] || isWithinWalkLimit(scheduled[closedIndex - 1], place)) &&
-              (!scheduled[closedIndex + 1] || isWithinWalkLimit(place, scheduled[closedIndex + 1])))),
-      )
+      const replaceable = (place) =>
+        !used.has(place.name) &&
+        isOpenAround(place, dropped.arriveMin) &&
+        (!walkAware ||
+          ((!scheduled[closedIndex - 1] || isWithinWalkLimit(scheduled[closedIndex - 1], place)) &&
+            (!scheduled[closedIndex + 1] || isWithinWalkLimit(place, scheduled[closedIndex + 1]))))
+      const replacement = slotRule(dropped.assignedSlot)
+        .preferred.map((filter) => pool.find((place) => replaceable(place) && filter(place)))
+        .find(Boolean)
       if (replacement) {
         used.add(replacement.name)
         remaining = [...remaining, { ...replacement, assignedSlot: dropped.assignedSlot }]
@@ -355,6 +371,9 @@ export function buildCourse(base, themeId, budgetTier, mustVisit = [], anchors =
   }
   if (forcedClosed.length > 0) {
     notices.push(`${forcedClosed.join('·')}은(는) 여행 날짜에 쉬는 날일 수 있지만, 꼭 가고 싶다고 하셔서 그대로 넣었어요.`)
+  }
+  if (days.some((day) => day.places.length >= 2 && !day.places.some((place) => place.assignedSlot === '점심 맛집'))) {
+    notices.push('점심에 갈 만한 음식점을 찾지 못해 점심 칸을 비워 뒀어요. 타임라인에서 직접 추가해보세요.')
   }
   if (days.some((day) => day.places.length < 2)) {
     notices.push('여행지 정보가 넉넉지 않아 일부 날은 코스를 다 채우지 못했어요. 타임라인에서 직접 추가해보세요.')

@@ -260,7 +260,7 @@ erDiagram
 | 인증 | Supabase Auth | 이메일 + 카카오·구글 OAuth를 직접 구현하지 않고 확보 |
 | LLM | Gemini (`@google/genai`) | 구조화 출력(`responseSchema`) 지원 + 무료 티어 |
 | 린트 | ESLint 10 (flat config) | 현재 경고 0 |
-| 테스트 | Vitest | 코스 생성·시간표·동선 계산·지역 필터의 순수 함수 76개. `vite.config.js` 의 Express 플러그인이 딸려 오지 않게 설정을 분리 |
+| 테스트 | Vitest | 코스 생성·시간표·동선 계산·지역 필터의 순수 함수 102개. `vite.config.js` 의 Express 플러그인이 딸려 오지 않게 설정을 분리 |
 
 **Tailwind를 전면 도입하지 않은 이유** — 기존 화면은 전부 손으로 쓴 CSS(`src/styles/` 아래 화면별 파일)로 스타일링돼 있었고,
 Tailwind는 나중에 만든 "코스 상세" 화면 하나에만 필요했다. 전역 도입은 기존 화면을 깨뜨리므로
