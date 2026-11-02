@@ -100,6 +100,10 @@ export async function searchTransitPath(from, to) {
   const best = data?.result?.path?.[0]
   const route = best ? normalizePath(best, from, to) : null
 
+  // 경로 없음은 { code, msg } 객체로, 키 인증·한도·서버 오류는 [{ code: '500', ... }] 배열로 온다.
+  // 일시적인 오류까지 캐시하면 복구된 뒤에도 24시간 동안 그 구간이 직선으로 남으므로 캐시하지 않는다.
+  if (!response.ok || !data || Array.isArray(data.error)) return route
+
   if (routeCache.size >= CACHE_MAX_ENTRIES) routeCache.clear()
   routeCache.set(key, { route, cachedAt: Date.now() })
   return route

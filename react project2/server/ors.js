@@ -64,6 +64,10 @@ export async function searchWalkPath(from, to) {
   // 출발/도착이 너무 가깝거나 보행자 경로가 없는 지역이면 에러 응답을 준다 — 전부 "경로 없음"으로 본다.
   const route = response.ok && data?.features?.[0] ? normalizeFeature(data.features[0]) : null
 
+  // 키 거부·한도 초과(401/403)·분당 제한(429)·서버 오류는 일시적이라 캐시하지 않는다.
+  // 캐시하면 복구된 뒤에도 24시간 동안 그 구간이 직선으로 남는다.
+  if ([401, 403, 429].includes(response.status) || response.status >= 500 || !data) return route
+
   if (routeCache.size >= CACHE_MAX_ENTRIES) routeCache.clear()
   routeCache.set(key, { route, cachedAt: Date.now() })
   return route
