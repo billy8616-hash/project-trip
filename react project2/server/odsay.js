@@ -32,7 +32,9 @@ function laneLabel(subPath) {
   const lane = subPath.lane?.[0]
   if (!lane) return null
   if (subPath.trafficType === TRAFFIC_TYPE.BUS) {
-    return lane.busNo ? `${lane.busNo}번` : '버스'
+    // 지방 버스는 "610(안동터미널-교보생명-...-송사)"처럼 경유지가 붙어 와서 괄호 부분을 뗀다.
+    const busNo = String(lane.busNo || '').replace(/\(.*\)\s*$/, '').trim()
+    return busNo ? `${busNo}번` : '버스'
   }
   return String(lane.name || '지하철').replace(/^수도권\s+/, '')
 }
