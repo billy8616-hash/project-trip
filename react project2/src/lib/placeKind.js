@@ -9,6 +9,9 @@
 // 쓰는 곳: cost.js · stayTime.js · course.js (비 오는 날 보정 · 테마 점수)
 // ─────────────────────────────────────────────────────────────
 
+const CAFE_RE = /카페|커피|디저트|베이커리|찻집|브런치/
+const BAR_RE = /술집|주점|호프|포차|포장마차|이자카야|와인바|칵테일|펍|맥주|막걸리/
+
 // 장소를 큰 종류로 분류한다. 체류시간 추정과 시간대 판단에 쓴다.
 // 근거: category (TourAPI 분류코드 "A05020900" 또는 카카오 category_name "카페 > 커피전문점")
 //       + assignedSlot(코스에서 배정된 시간대) + source.
@@ -18,10 +21,18 @@ export function placeKindOf(place) {
   const slot = place?.assignedSlot || ''
   const name = String(place?.name || '')
 
+  // 카카오 장소는 음식점·카페뿐이고 category_name("음식점 > 한식 > 국수")이 정확하다. 이름은 보지 않는다 —
+  // "금강산옹심이"가 '산' 때문에 자연, "황생가칼국수"가 '생가' 때문에 유적이 되던 오분류를 막는다.
+  if (place?.source === 'kakao') {
+    if (CAFE_RE.test(cat)) return 'cafe'
+    if (BAR_RE.test(cat)) return 'bar'
+    return 'restaurant'
+  }
+
   const has = (re) => re.test(cat) || re.test(name)
 
-  if (has(/카페|커피|디저트|베이커리|찻집|브런치/) || cat.startsWith('A05020900')) return 'cafe'
-  if (has(/술집|주점|호프|포차|포장마차|이자카야|와인바|칵테일|펍|맥주|막걸리/)) return 'bar'
+  if (has(CAFE_RE) || cat.startsWith('A05020900')) return 'cafe'
+  if (has(BAR_RE)) return 'bar'
   if (has(/박물관|미술관|전시관|갤러리|과학관|기념관|아트/) || cat.startsWith('A0206')) return 'museum'
   if (has(/전망대|타워|스카이|전망 좋은/) || cat.startsWith('A02050200')) return 'viewpoint'
   if (has(/재래시장|전통시장|시장|상점가/) || cat.startsWith('A040101') || cat.startsWith('A040102')) return 'market'
@@ -33,7 +44,6 @@ export function placeKindOf(place) {
   // 코드/이름 신호가 없으면 배정된 시간대·출처로 추정.
   if (slot === '점심 맛집' || slot === '저녁') return 'restaurant'
   if (slot === '오후 카페') return 'cafe'
-  if (place?.source === 'kakao') return 'restaurant' // 카카오 풀은 음식점/카페뿐
   if (cat.startsWith('A05')) return 'restaurant'
   return 'sight'
 }
