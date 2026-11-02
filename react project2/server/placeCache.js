@@ -16,6 +16,7 @@
 // ─────────────────────────────────────────────────────────────
 
 import { prisma } from './db.js'
+import { parseClosedDays } from './openingHours.js'
 
 const STALE_AFTER_MS = 7 * 24 * 60 * 60 * 1000 // 7일 지나면 백그라운드로 다시 조회한다(응답은 안 기다림).
 
@@ -108,7 +109,9 @@ export function toPoolPlace(row) {
     opensAt: row.opensAt,
     closesAt: row.closesAt,
     alwaysOpen: row.alwaysOpen ?? false,
-    closedWeekdays: parseWeekdays(row.closedWeekdays),
+    // TourAPI 관광지는 휴무 문구 원문에서 다시 읽는다 — 해석 규칙을 고쳐도 이미 저장된 요일이 갱신 전까지 남지 않게.
+    closedWeekdays:
+      row.source === 'tourapi' ? parseClosedDays(row.closedDayText).closedWeekdays : parseWeekdays(row.closedWeekdays),
     feeText: row.feeText || null,
     costTier: row.costTier || '',
     transitStation: row.transitStation,
