@@ -322,6 +322,7 @@ http://localhost:5173 으로 접속한다. 포트는 5173으로 고정돼 있다
 | `npm run db:studio` | Prisma Studio 로 DB 열기 |
 | `npm run db:prewarm` | 주요 도시의 장소 캐시를 미리 채운다 |
 | `npm run db:clear-places` | `PlaceCache` 비우기 |
+| `npm run db:reclassify-tours` | 캐시된 관광지의 시간대·종류만 TourAPI 새 분류로 다시 매긴다 (Gemini·Google 호출 없음) |
 
 ### 소셜 로그인을 쓰려면
 
