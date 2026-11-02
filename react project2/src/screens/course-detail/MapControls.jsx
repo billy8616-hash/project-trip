@@ -12,12 +12,13 @@
 
 import { Icon } from './icons.jsx'
 
-// 지도 위 범례. 이동수단에 따라 라벨이 바뀐다(버스·도보·자차).
+// 지도 위 범례. 실선은 고른 이동수단의 실제 경로, 점선은 길찾기가 경로를 못 찾아
+// 직선으로 이은 구간이다 (KakaoRouteMap 의 drawFallbackRoute·section 없는 구간).
 export function MapLegend({ moveLabel = '버스' }) {
   return (
     <div className="tw-absolute tw-left-4 tw-top-4 tw-z-20 tw-flex tw-gap-4 tw-rounded-lg tw-border tw-border-cline tw-bg-surface/95 tw-px-3 tw-py-2 tw-text-[11px] tw-font-medium tw-text-cink-muted tw-shadow-ccard">
-      <span className="tw-flex tw-items-center tw-gap-1.5"><span className="tw-h-[3px] tw-w-5 tw-rounded tw-bg-croute" />{moveLabel}</span>
-      <span className="tw-flex tw-items-center tw-gap-1.5"><span className="tw-w-5 tw-border-t-2 tw-border-dashed tw-border-cwalk" />도보</span>
+      <span className="tw-flex tw-items-center tw-gap-1.5"><span aria-hidden="true" className="tw-h-[3px] tw-w-5 tw-rounded tw-bg-croute" />{moveLabel} 경로</span>
+      <span className="tw-flex tw-items-center tw-gap-1.5"><span aria-hidden="true" className="tw-w-5 tw-border-t-2 tw-border-dashed tw-border-cink-muted" />예상 직선(길 못 찾음)</span>
     </div>
   )
 }
