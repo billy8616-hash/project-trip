@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { matchesCityRegion } from './cityRegion.js'
+import { isCatalogCity, matchesCityRegion } from './cityRegion.js'
 
 describe('matchesCityRegion', () => {
   it('카카오 로컬의 줄인 시·도 이름("서울 강남구")도 그 도시로 본다', () => {
@@ -25,5 +25,14 @@ describe('matchesCityRegion', () => {
   it('일반 시·군은 "OO시"·"OO군" 단위로 맞춘다', () => {
     expect(matchesCityRegion('강원특별자치도 속초시 중앙로 1', '속초')).toBe(true)
     expect(matchesCityRegion('경기 가평군 가평읍 1', '가평')).toBe(true)
+  })
+})
+
+describe('isCatalogCity', () => {
+  it('서비스하는 도시만 통과시킨다', () => {
+    expect(isCatalogCity('서울')).toBe(true)
+    expect(isCatalogCity('남원')).toBe(true)
+    expect(isCatalogCity('기장')).toBe(false) // 부산 기장군 — 따로 풀을 만들면 부산 장소를 빼앗는다
+    expect(isCatalogCity('')).toBe(false)
   })
 })

@@ -246,9 +246,14 @@ export async function getCityThumbnails(cityNames) {
       const cached = thumbnailCache.get(name)
       if (cached && now - cached.cachedAt < THUMBNAIL_TTL_MS) return [name, cached.imageUrl]
 
-      const imageUrl = await fetchCityThumbnail(name).catch(() => null)
-      thumbnailCache.set(name, { imageUrl, cachedAt: now })
-      return [name, imageUrl]
+      // 일시적인 실패는 캐시하지 않는다 — 저장하면 하루 동안 "사진 없음"으로 굳는다.
+      try {
+        const imageUrl = await fetchCityThumbnail(name)
+        thumbnailCache.set(name, { imageUrl, cachedAt: now })
+        return [name, imageUrl]
+      } catch {
+        return [name, null]
+      }
     }),
   )
 

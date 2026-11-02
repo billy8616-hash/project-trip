@@ -12,7 +12,9 @@ import { searchWalkPath } from '../ors.js'
 const kakaoRestApiKey = process.env.KAKAO_REST_API_KEY
 
 const COORD_PATTERN = /^-?\d+(\.\d+)?,-?\d+(\.\d+)?$/
-const WAYPOINTS_PATTERN = /^-?\d+(\.\d+)?,-?\d+(\.\d+)?(\|-?\d+(\.\d+)?,-?\d+(\.\d+)?)*$/
+// 경유지는 최대 28개(출발·도착 포함 30곳). 구간마다 외부 API 를 한 번씩 부르므로, 상한이 없으면 요청 하나로
+// ORS(하루 2,000회)·ODsay 한도를 다 쓸 수 있다. 하루 코스는 많아야 10곳 남짓이라 넉넉하다.
+const WAYPOINTS_PATTERN = /^-?\d+(\.\d+)?,-?\d+(\.\d+)?(\|-?\d+(\.\d+)?,-?\d+(\.\d+)?){0,27}$/
 
 export const router = express.Router()
 
