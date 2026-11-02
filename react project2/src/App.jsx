@@ -283,6 +283,10 @@ function App() {
   // ── 코스 생성 ───────────────────────────────────────────────
   // 조건 → 장소 풀 → 날씨 → buildCourse → 화면용 모양(coursePlaces 등) 순의 계산 파이프라인.
   // hooks/useCourseBuilder.js 로 옮겨 뒀다 (App.jsx 가 너무 길어져서).
+  // 지도가 길찾기로 받은 구간(실제 시간·노선명)은 어떤 이동수단으로 그린 건지 함께 들고 있어야,
+  // 이동수단을 바꾼 직후 새 경로가 오기 전까지 이전 수단의 값이 배지에 섞이지 않는다.
+  const [routeLegs, setRouteLegs] = useState({ transport: null, legs: [] })
+  const handleRouteReady = useCallback((legs) => setRouteLegs({ transport, legs }), [transport])
   const {
     cityData,
     cityPoolStatus,
@@ -312,6 +316,7 @@ function App() {
     setCurrentTimelineDays,
     manualOrderDays,
     setManualOrderDays,
+    routeLegs,
   })
   const journeyThemeLabel = (journeyThemes.find((item) => item.id === journeyTheme) || {}).label || ''
 
@@ -1038,6 +1043,7 @@ function App() {
                 selectedPlace={safeSelectedPlace}
                 selectPulse={selectPulse}
                 onSelectPlace={selectPlace}
+                onRouteReady={handleRouteReady}
                 onMapReady={(map) => {
                   mapInstRef.current = map
                 }}
