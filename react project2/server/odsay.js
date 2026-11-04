@@ -32,7 +32,9 @@ function laneLabel(subPath) {
   const lane = subPath.lane?.[0]
   if (!lane) return null
   if (subPath.trafficType === TRAFFIC_TYPE.BUS) {
-    return lane.busNo ? `${lane.busNo}번` : '버스'
+    // 지방 버스는 "610(안동터미널-교보생명-...-송사)"처럼 경유지가 붙어 와서 괄호 부분을 뗀다.
+    const busNo = String(lane.busNo || '').replace(/\(.*\)\s*$/, '').trim()
+    return busNo ? `${busNo}번` : '버스'
   }
   return String(lane.name || '지하철').replace(/^수도권\s+/, '')
 }
@@ -99,6 +101,10 @@ export async function searchTransitPath(from, to) {
   // ODsay 는 "출발지와 도착지가 너무 가까움", "주변에 정류장 없음" 등도 error 로 준다. 전부 경로 없음으로 본다.
   const best = data?.result?.path?.[0]
   const route = best ? normalizePath(best, from, to) : null
+
+  // 경로 없음은 { code, msg } 객체로, 키 인증·한도·서버 오류는 [{ code: '500', ... }] 배열로 온다.
+  // 일시적인 오류까지 캐시하면 복구된 뒤에도 24시간 동안 그 구간이 직선으로 남으므로 캐시하지 않는다.
+  if (!response.ok || !data || Array.isArray(data.error)) return route
 
   if (routeCache.size >= CACHE_MAX_ENTRIES) routeCache.clear()
   routeCache.set(key, { route, cachedAt: Date.now() })

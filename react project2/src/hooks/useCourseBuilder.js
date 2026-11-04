@@ -46,6 +46,7 @@ export function useCourseBuilder({
   setCurrentTimelineDays,
   manualOrderDays,
   setManualOrderDays,
+  routeLegs,
 }) {
   const { data: cityData, status: cityPoolStatus, retry: retryCityPool } = useCityPool(cityKey)
 
@@ -176,17 +177,24 @@ export function useCourseBuilder({
       })),
     [displayPlaces],
   )
-  // 이동 구간: scheduleDay 가 붙여 준 travelToNextMin 을 그대로 쓴다(장소 인덱스와 1:1로 맞음).
+  // 이동 구간: 기본은 scheduleDay 가 붙여 준 travelToNextMin(직선거리 추정)이다.
+  // 지도가 길찾기로 같은 두 장소 사이를 실제로 계산했으면 그 시간과 노선명(2호선 → 402번)으로 바꾼다.
+  // 장소 이름 쌍으로 맞추므로, 순서를 바꿔 아직 다시 그리지 않은 구간은 자연히 추정치로 남는다.
   const courseRoutes = useMemo(() => {
     const mode = transport === '도보' ? 'walk' : transport === '자차' ? 'car' : 'bus'
-    return displayPlaces.slice(0, -1).map((place, index) => ({
-      from: place.name,
-      to: displayPlaces[index + 1].name,
-      mode,
-      line: transport,
-      duration: Number.isFinite(place.travelToNextMin) ? `${place.travelToNextMin}분` : null,
-    }))
-  }, [displayPlaces, transport])
+    const measured = routeLegs?.transport === transport ? routeLegs.legs.filter((leg) => leg.measured) : []
+    return displayPlaces.slice(0, -1).map((place, index) => {
+      const to = displayPlaces[index + 1].name
+      const leg = measured.find((item) => item.from === place.name && item.to === to)
+      return {
+        from: place.name,
+        to,
+        mode,
+        line: leg?.summary || transport,
+        duration: leg?.duration || (Number.isFinite(place.travelToNextMin) ? `${place.travelToNextMin}분` : null),
+      }
+    })
+  }, [displayPlaces, transport, routeLegs])
 
   return {
     cityData,

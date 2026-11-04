@@ -12,9 +12,44 @@ import { searchWalkPath } from '../ors.js'
 const kakaoRestApiKey = process.env.KAKAO_REST_API_KEY
 
 const COORD_PATTERN = /^-?\d+(\.\d+)?,-?\d+(\.\d+)?$/
-const WAYPOINTS_PATTERN = /^-?\d+(\.\d+)?,-?\d+(\.\d+)?(\|-?\d+(\.\d+)?,-?\d+(\.\d+)?)*$/
+// 경유지는 최대 28개(출발·도착 포함 30곳). 구간마다 외부 API 를 한 번씩 부르므로, 상한이 없으면 요청 하나로
+// ORS(하루 2,000회)·ODsay 한도를 다 쓸 수 있다. 하루 코스는 많아야 10곳 남짓이라 넉넉하다.
+const WAYPOINTS_PATTERN = /^-?\d+(\.\d+)?,-?\d+(\.\d+)?(\|-?\d+(\.\d+)?,-?\d+(\.\d+)?){0,27}$/
 
 export const router = express.Router()
+
+// 카카오모빌리티 길찾기는 경유지를 5개까지만 받는다(초과하면 "waypoints must be between 0 and 5").
+// 그래서 정류장이 7개를 넘으면 앞 묶음의 끝점을 다음 묶음의 시작점으로 겹쳐 7개씩 나눠 요청한다.
+const CAR_MAX_POINTS = 7
+
+function chunkRoutePoints(points) {
+  const chunks = []
+  for (let start = 0; start < points.length - 1; start += CAR_MAX_POINTS - 1) {
+    chunks.push(points.slice(start, start + CAR_MAX_POINTS))
+  }
+  return chunks
+}
+
+async function fetchCarRoute(points) {
+  const params = new URLSearchParams({ origin: points[0], destination: points.at(-1), priority: 'RECOMMEND' })
+  if (points.length > 2) params.set('waypoints', points.slice(1, -1).join('|'))
+
+  let response
+  try {
+    response = await fetch(`https://apis-navi.kakaomobility.com/v1/directions?${params}`, {
+      headers: { Authorization: `KakaoAK ${kakaoRestApiKey}` },
+    })
+  } catch {
+    throw new Error('카카오 길찾기 서버에 연결하지 못했어요.')
+  }
+
+  const data = await response.json().catch(() => null)
+  const route = data?.routes?.[0]
+  if (!response.ok || !route || route.result_code !== 0) {
+    throw new Error(route?.result_msg || data?.msg || '경로를 찾지 못했어요.')
+  }
+  return route
+}
 
 // 자동차 모드 지도 경로용: 카카오모빌리티 길찾기(REST API)를 서버에서 대신 호출한다.
 // REST 키를 브라우저에 노출하지 않기 위해 프런트는 이 엔드포인트로만 요청한다.
@@ -33,25 +68,15 @@ router.get('/api/directions/car', async (req, res) => {
     return res.status(400).json({ message: 'waypoints 형식이 올바르지 않아요.' })
   }
 
-  const params = new URLSearchParams({ origin, destination, priority: 'RECOMMEND' })
-  if (waypoints) params.set('waypoints', waypoints)
-
-  let response
+  const points = [origin, ...(waypoints ? waypoints.split('|') : []), destination]
+  let routes
   try {
-    response = await fetch(`https://apis-navi.kakaomobility.com/v1/directions?${params}`, {
-      headers: { Authorization: `KakaoAK ${kakaoRestApiKey}` },
-    })
-  } catch {
-    return res.status(502).json({ message: '카카오 길찾기 서버에 연결하지 못했어요.' })
+    routes = await Promise.all(chunkRoutePoints(points).map(fetchCarRoute))
+  } catch (error) {
+    return res.status(502).json({ message: error.message })
   }
 
-  const data = await response.json().catch(() => null)
-  const route = data?.routes?.[0]
-  if (!response.ok || !route || route.result_code !== 0) {
-    return res.status(502).json({ message: route?.result_msg || data?.msg || '경로를 찾지 못했어요.' })
-  }
-
-  const sections = route.sections.map((section) => ({
+  const sections = routes.flatMap((route) => route.sections).map((section) => ({
     duration: section.duration,
     distance: section.distance,
     path: section.roads.flatMap((road) => {
@@ -63,7 +88,8 @@ router.get('/api/directions/car', async (req, res) => {
     }),
   }))
 
-  return res.json({ sections, duration: route.summary.duration, distance: route.summary.distance })
+  const total = (key) => routes.reduce((sum, route) => sum + route.summary[key], 0)
+  return res.json({ sections, duration: total('duration'), distance: total('distance') })
 })
 
 // 대중교통 모드 지도 경로용: ODsay 대중교통 길찾기를 서버에서 대신 호출한다.

@@ -67,6 +67,9 @@ export default function CommunityScreen({ user, onRequireLogin, onBack, leaving,
   // '내 여행'에서 "커뮤니티에 공유" 버튼으로 넘어온 경우, 그 코스를 미리 골라 둔 채로
   // 글쓰기 화면부터 바로 연다. initialTripId 는 한 번만 쓰고, 다시 이 화면에 들어와도
   // 글쓰기가 계속 자동으로 열리지 않도록 상위(App)에 소비했다고 바로 알린다.
+  // 상위에 알리면 initialTripId 가 곧바로 null 로 바뀌므로, 글쓰기 화면에는 처음 받은 값을 붙잡아 넘긴다.
+  // (그대로 넘기면 ComposeView 가 null 로 다시 불러와 첫 번째 여행을 골라 버린다.)
+  const [sharedTripId] = useState(initialTripId)
   const [composing, setComposing] = useState(() => Boolean(initialTripId))
   useEffect(() => {
     if (initialTripId) onConsumedInitialTrip?.()
@@ -143,7 +146,7 @@ export default function CommunityScreen({ user, onRequireLogin, onBack, leaving,
     <section className={leaving ? 'course-detail-root community-screen is-leaving' : 'course-detail-root community-screen'}>
       {composing ? (
         <ComposeView
-          initialTripId={initialTripId}
+          initialTripId={sharedTripId}
           onClose={() => setComposing(false)}
           onDone={(post) => {
             setComposing(false)

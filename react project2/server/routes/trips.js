@@ -6,6 +6,7 @@
 
 import express from 'express'
 import { requireAuth } from '../authMiddleware.js'
+import { parseCoursePayload } from '../coursePayload.js'
 import {
   createSavedCourse,
   deleteSavedCourse,
@@ -34,12 +35,13 @@ router.post('/api/trips', requireAuth, async (req, res) => {
   if (typeof city !== 'string' || !city.trim()) {
     return res.status(400).json({ message: '여행지 정보가 필요해요.' })
   }
-  if (!payload || typeof payload !== 'object' || !Array.isArray(payload.days)) {
+  const coursePayload = parseCoursePayload(payload)
+  if (!coursePayload) {
     return res.status(400).json({ message: '저장할 일정 정보가 올바르지 않아요.' })
   }
 
   try {
-    const trip = await createSavedCourse(req.userId, { title: title.trim(), city: city.trim(), dayCount, payload })
+    const trip = await createSavedCourse(req.userId, { title: title.trim(), city: city.trim(), dayCount, payload: coursePayload })
     return res.status(201).json({ trip })
   } catch (error) {
     return res.status(error.status || 500).json({ message: error.message || '여행을 저장하지 못했어요.' })

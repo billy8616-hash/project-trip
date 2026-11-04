@@ -10,7 +10,7 @@
 //
 //  2) 외부 API 호출 결과를 캐시해 비용·시간을 줄이기
 //     도시 하나의 장소 풀을 만들려면 API 대여섯 개를 거친다. 그 결과를 DB 에 모아 두고
-//     stale-while-revalidate 로 응답한다 → 두 번째 조회부터는 외부 호출이 0회.
+//     stale-while-revalidate 로 응답한다 → 다시 모은 뒤 7일 동안은 외부 호출이 0회.
 //
 // 실제 라우트는 여기 없다 — server/routes/*.js 로 도메인별로 나눠 두고, 이 파일은
 // 그걸 순서대로 app.use() 로 붙이기만 한다. 인증(requireAuth/optionalAuth)은

@@ -283,6 +283,10 @@ function App() {
   // ── 코스 생성 ───────────────────────────────────────────────
   // 조건 → 장소 풀 → 날씨 → buildCourse → 화면용 모양(coursePlaces 등) 순의 계산 파이프라인.
   // hooks/useCourseBuilder.js 로 옮겨 뒀다 (App.jsx 가 너무 길어져서).
+  // 지도가 길찾기로 받은 구간(실제 시간·노선명)은 어떤 이동수단으로 그린 건지 함께 들고 있어야,
+  // 이동수단을 바꾼 직후 새 경로가 오기 전까지 이전 수단의 값이 배지에 섞이지 않는다.
+  const [routeLegs, setRouteLegs] = useState({ transport: null, legs: [] })
+  const handleRouteReady = useCallback((legs) => setRouteLegs({ transport, legs }), [transport])
   const {
     cityData,
     cityPoolStatus,
@@ -312,6 +316,7 @@ function App() {
     setCurrentTimelineDays,
     manualOrderDays,
     setManualOrderDays,
+    routeLegs,
   })
   const journeyThemeLabel = (journeyThemes.find((item) => item.id === journeyTheme) || {}).label || ''
 
@@ -517,7 +522,7 @@ function App() {
         // 출발지·숙소도 함께 저장한다. days 에는 들르는 장소만 들어 있어서, 이게 없으면
         // 다시 열었을 때 동선의 시작점·끝점이 사라진다(숙소를 적은 것이 없던 일이 된다).
         // "내 여행"은 본인만 보는 기록이라 주소를 담아도 된다 — 커뮤니티 공유 쪽은
-        // 집 주소가 공개될 수 있어 일부러 빼 두었다.
+        // 집 주소가 공개될 수 있어 서버가 공유 글을 저장·응답할 때 뺀다(communityStore.withoutAddresses).
         tripOrigin,
         tripLodging,
       },
@@ -1038,6 +1043,7 @@ function App() {
                 selectedPlace={safeSelectedPlace}
                 selectPulse={selectPulse}
                 onSelectPlace={selectPlace}
+                onRouteReady={handleRouteReady}
                 onMapReady={(map) => {
                   mapInstRef.current = map
                 }}

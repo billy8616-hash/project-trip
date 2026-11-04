@@ -15,6 +15,7 @@
 // ─────────────────────────────────────────────────────────────
 
 import express from 'express'
+import { isCatalogCity } from '../cityRegion.js'
 import { searchCafes, searchRestaurants } from '../kakaoLocal.js'
 import { enrichPlaces } from '../placeEnrich.js'
 import { fetchGoogleHoursMany, googlePhotoPath } from '../googlePlaces.js'
@@ -269,6 +270,8 @@ export async function buildCityPoolRows(cityKey) {
           // 이번에 Google 을 실제로 부른 장소만 시각을 새로 찍는다. 건너뛴 장소는 기존 시각을 유지해야
           // 다음 갱신 때 "오래된 순"에서 제 차례가 온다. (관광지는 Google 을 안 쓰므로 계속 null)
           hoursFetchedAt: googleHours ? new Date() : (cachedRow?.hoursFetchedAt ?? null),
+          // 도시 풀을 다시 모은 시각. 이 값으로 7일 갱신 여부를 판단한다 (placeCache.isPoolStale).
+          refreshedAt: new Date(),
         }
       })
 
@@ -307,24 +310,32 @@ async function backfillCityImages(cityKey, rows) {
   console.log(`[course-pool images] ${cityKey}: ${updates.length}/${missing.length}곳 사진 보강`)
 }
 
-// 같은 도시를 동시에 두 번 사진 보강하지 않도록.
-const backfillingCities = new Set()
+// 사진 보강은 도시마다 서버가 켜져 있는 동안 한 번만 한다. 끝까지 사진을 못 찾는 장소(Google 에 없는
+// 식당, 사진 없는 관광지)가 하나라도 있으면 조회할 때마다 Google·TourAPI 를 다시 부르게 되기 때문이다.
+// 실패했을 때만 다음 조회에서 다시 시도한다.
+const backfilledCities = new Set()
 function backfillCityImagesInBackground(cityKey, rows) {
-  if (backfillingCities.has(cityKey)) return
-  backfillingCities.add(cityKey)
-  backfillCityImages(cityKey, rows)
-    .catch((error) => console.warn(`[course-pool images] ${cityKey}: ${error.message}`))
-    .finally(() => backfillingCities.delete(cityKey))
+  if (backfilledCities.has(cityKey)) return
+  backfilledCities.add(cityKey)
+  backfillCityImages(cityKey, rows).catch((error) => {
+    backfilledCities.delete(cityKey)
+    console.warn(`[course-pool images] ${cityKey}: ${error.message}`)
+  })
 }
 
-// 같은 도시를 동시에 두 번 백그라운드 갱신하지 않도록.
-const refreshingCities = new Set()
+// 같은 도시의 풀을 동시에 두 번 만들지 않는다. 첫 조회(캐시 없음)는 30초 넘게 걸려서, 그사이 새로고침하거나
+// 두 사람이 같은 도시를 열면 Gemini·Google 호출이 그대로 두 배가 된다. 백그라운드 갱신도 같은 자리를 쓴다.
+const buildingCities = new Map() // cityKey -> Promise<rows>
+function buildCityPoolOnce(cityKey) {
+  if (!buildingCities.has(cityKey)) {
+    buildingCities.set(cityKey, buildCityPoolRows(cityKey).finally(() => buildingCities.delete(cityKey)))
+  }
+  return buildingCities.get(cityKey)
+}
+
 function refreshCityPoolInBackground(cityKey) {
-  if (refreshingCities.has(cityKey)) return
-  refreshingCities.add(cityKey)
-  buildCityPoolRows(cityKey)
-    .catch((error) => console.warn(`[course-pool refresh] ${cityKey}: ${error.message}`))
-    .finally(() => refreshingCities.delete(cityKey))
+  if (buildingCities.has(cityKey)) return
+  buildCityPoolOnce(cityKey).catch((error) => console.warn(`[course-pool refresh] ${cityKey}: ${error.message}`))
 }
 
 function cityPoolResponse(cityKey, rows) {
@@ -341,6 +352,7 @@ function cityPoolResponse(cityKey, rows) {
 router.get('/api/course-pool', async (req, res) => {
   const cityKey = String(req.query.city || '').trim()
   if (!cityKey) return res.status(400).json({ message: 'city 파라미터가 필요해요.' })
+  if (!isCatalogCity(cityKey)) return res.status(400).json({ message: '아직 지원하지 않는 여행지예요.' })
 
   try {
     const { rows: cached, stale } = await findCityPool(cityKey)
@@ -352,7 +364,7 @@ router.get('/api/course-pool', async (req, res) => {
       return
     }
 
-    const rows = await buildCityPoolRows(cityKey)
+    const rows = await buildCityPoolOnce(cityKey)
     return res.json(cityPoolResponse(cityKey, rows))
   } catch (error) {
     console.error('[course-pool]', error)
