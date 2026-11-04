@@ -22,7 +22,11 @@ export function placeKindOf(place) {
 
   if (has(/카페|커피|디저트|베이커리|찻집|브런치/) || cat.startsWith('A05020900')) return 'cafe'
   if (has(/술집|주점|호프|포차|포장마차|이자카야|와인바|칵테일|펍|맥주|막걸리/)) return 'bar'
+  // 카카오 풀은 음식점/카페뿐이다. 아래 이름 규칙보다 먼저 봐야 "산죽한정식"·"부산집"이 '산' 때문에 자연 명소가 되지 않는다.
+  if (place?.source === 'kakao') return 'restaurant'
   if (has(/박물관|미술관|전시관|갤러리|과학관|기념관|아트/) || cat.startsWith('A0206')) return 'museum'
+  // A02050200 은 "전망대/기념탑" 한 코드라 석탑·기념비도 섞여 있다. 그런 곳은 저녁에 갈 전망 명소가 아니라 유적이다.
+  if (cat.startsWith('A02050200') && /탑|비$/.test(name) && !/전망|타워|스카이/.test(name)) return 'history'
   if (has(/전망대|타워|스카이|전망 좋은/) || cat.startsWith('A02050200')) return 'viewpoint'
   if (has(/재래시장|전통시장|시장|상점가/) || cat.startsWith('A040101') || cat.startsWith('A040102')) return 'market'
   if (has(/테마파크|놀이공원|워터파크|아쿠아리움|체험관|랜드/) || cat.startsWith('A0202060') || cat.startsWith('A0203')) return 'themepark'
@@ -33,7 +37,6 @@ export function placeKindOf(place) {
   // 코드/이름 신호가 없으면 배정된 시간대·출처로 추정.
   if (slot === '점심 맛집' || slot === '저녁') return 'restaurant'
   if (slot === '오후 카페') return 'cafe'
-  if (place?.source === 'kakao') return 'restaurant' // 카카오 풀은 음식점/카페뿐
   if (cat.startsWith('A05')) return 'restaurant'
   return 'sight'
 }

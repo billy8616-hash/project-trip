@@ -44,6 +44,15 @@ describe('rainScoreAdjust', () => {
     expect(rainScoreAdjust({ name: '국립박물관' }, true)).toBe(4)
     expect(rainScoreAdjust({ name: '아무 곳' }, true)).toBe(0)
   })
+
+  it('카카오 음식점은 이름에 "산"이 있어도 야외로 보지 않는다', () => {
+    expect(rainScoreAdjust({ name: '산죽한정식', source: 'kakao', category: '음식점 > 한식' }, true)).toBe(0)
+  })
+
+  it('전망대/기념탑 코드라도 석탑은 전망 명소가 아니라 유적으로 본다', () => {
+    expect(rainScoreAdjust({ name: '경주 장항리 서 오층석탑', category: 'A02050200' }, true)).toBe(-3)
+    expect(rainScoreAdjust({ name: '해맞이 전망탑', category: 'A02050200' }, true)).toBe(-7)
+  })
 })
 
 describe('transportAdjust', () => {
@@ -115,6 +124,32 @@ describe('buildCourse', () => {
     const course = buildCourse(base(pool), 'sns', null)
     expect(namesOf(course)[0]).toContain('오전B')
     expect(namesOf(course)[0]).not.toContain('오전A')
+  })
+
+  it('테마별 뼈대: 테마가 그 칸에 원하는 종류의 장소로 채운다', () => {
+    const pool = fullPool()
+    pool.push(makePlace('바닷가 산책로', ['오전', '오후 카페'])) // nature, 풀 맨 뒤
+    pool.push(makePlace('수목원', ['오전', '오후 카페'])) // nature
+    pool.push(makePlace('중앙시장', ['오전'])) // market
+    const plain = namesOf(buildCourse(base(pool), null, null))[0]
+    expect(plain).toEqual(['오전A', '점심A', '카페A', '저녁A'])
+    // 풍경따라: 오전·오후 칸이 자연 / 맛집따라: 오전 칸이 시장
+    const view = namesOf(buildCourse(base(pool), 'view', null))[0]
+    expect(view).toEqual(expect.arrayContaining(['바닷가 산책로', '수목원']))
+    expect(view).not.toContain('카페A')
+    expect(namesOf(buildCourse(base(pool), 'food', null))[0][0]).toBe('중앙시장')
+  })
+
+  it('테마가 원하는 종류가 풀에 없으면 원래 시간대 태그로 채운다', () => {
+    const course = buildCourse(base(fullPool()), 'view', null)
+    expect(course.days[0].places.map((p) => p.assignedSlot)).toEqual(['오전', '점심 맛집', '오후 카페', '저녁'])
+  })
+
+  it('비 오는 날은 테마의 야외 선호를 접는다', () => {
+    const pool = fullPool()
+    pool.push(makePlace('바닷가 산책로', ['오전', '오후 카페']))
+    const wet = buildCourse(base(pool), 'view', null, [], {}, '대중교통', { wetDays: [true] })
+    expect(namesOf(wet)[0]).not.toContain('바닷가 산책로')
   })
 
   it('비 오는 날은 야외 대신 실내 장소를 고른다', () => {

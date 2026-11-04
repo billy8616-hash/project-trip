@@ -9,6 +9,7 @@
 //   2) 조건·맥락으로 장소마다 점수를 매김               (이 파일의 scoreOf)
 //        테마 +4 / 예산 +2 / 필수방문 +20 / 교통편 ± / 비·눈 ±
 //   3) 오전·점심·오후·저녁 슬롯마다 최고점 한 곳씩 선택 (pickOneDay)
+//        테마가 그 칸에 원하는 장소 종류(THEME_SLOT_KINDS)가 있으면 그중에서 먼저 고른다
 //   4) 이동거리가 짧아지도록 순서 재배열                (geo.js)
 //   5) 체류·이동시간을 누적해 도착 시각 계산            (schedule.js)
 //   6) 도착 시각에 이미 닫는 곳은 빼고 다른 곳으로 교체 → 다시 4~5 반복
@@ -81,6 +82,19 @@ export function insertManualBySlot(ordered, manualPlaces) {
   return result
 }
 
+// 테마별 하루 뼈대: 시간대마다 먼저 채울 장소 종류(placeKindOf).
+// 테마 태그(+4)만으로는 코스가 거의 안 바뀐다 — 점심 칸 후보는 전부 food, 오전 칸 후보는
+// 대부분 step 태그라 모두가 같은 가점을 받기 때문이다. 그래서 "그 칸에 무엇을 넣을지" 자체를 바꾼다.
+// 시간대 라벨은 그대로 둔다(일정 계산·비용·동선 정렬이 라벨에 기대고 있다). 적힌 칸만 바뀌고,
+// 해당 종류가 풀에 없으면 원래대로 시간대 태그로 고른다.
+const THEME_SLOT_KINDS = {
+  step: { 오전: ['nature', 'history'], '오후 카페': ['nature', 'history', 'market'] },
+  mood: { 오전: ['history', 'market', 'museum'], '오후 카페': ['cafe'] },
+  sns: { 오전: ['viewpoint', 'themepark', 'museum'], 저녁: ['viewpoint'] },
+  view: { 오전: ['nature', 'viewpoint'], '오후 카페': ['nature', 'viewpoint'], 저녁: ['viewpoint'] },
+  food: { 오전: ['market'], '오후 카페': ['cafe'], 저녁: ['restaurant'] },
+}
+
 // 여행지 + 테마 + 예산 + 교통편 조건에 맞춰 시간대별로 한 곳씩 골라 코스를 만든다.
 // options:
 // - tripDate(YYYY-MM-DD): 그날 정기 휴무인 장소는 후보에서 뺀다.
@@ -128,6 +142,19 @@ export function buildCourse(base, themeId, budgetTier, mustVisit = [], anchors =
     score += transportAdjust(place, transport, cityHasTransit)
     score += rainScoreAdjust(place, wet)
     return score
+  }
+
+  // 종류는 장소 자신의 대표 시간대로 판단한다 — 배정될 칸을 넘기면 분류 신호가 없는 곳이
+  // '저녁' 칸이라는 이유만으로 restaurant 로 분류돼 버린다.
+  const kindOf = (place) => placeKindOf({ ...place, assignedSlot: place.slots?.[0] })
+
+  // 이 칸의 후보: 테마가 원하는 종류가 있으면 그것만, 없으면 시간대 태그가 맞는 곳.
+  // 비·눈 오는 날은 야외 종류를 테마 선호에서 빼서 실내 우선 보정(rainScoreAdjust)이 살아 있게 한다.
+  const slotCandidates = (slot, wet, isAllowed = () => true) => {
+    const free = pool.filter((place) => !used.has(place.name) && isAllowed(place))
+    const kinds = (THEME_SLOT_KINDS[themeId]?.[slot] || []).filter((kind) => !wet || !RAIN_EXPOSED_KINDS.has(kind))
+    const themed = kinds.length > 0 ? free.filter((place) => kinds.includes(kindOf(place))) : []
+    return themed.length > 0 ? themed : free.filter((place) => place.slots.includes(slot))
   }
 
   // ── 꼭 가고 싶은 곳 확정 ────────────────────────────────────────────────
@@ -196,8 +223,15 @@ export function buildCourse(base, themeId, budgetTier, mustVisit = [], anchors =
         }
 
         const canReachFromCursor = (place) => !routeCursor || isWithinWalkLimit(routeCursor, place)
-        const matching = pool.filter((place) => !used.has(place.name) && place.slots.includes(slot) && canReachFromCursor(place))
-        let pick = rankAndPick(matching)
+        // 외딴 곳(산속 서원·둘레길 입구 등)을 고르면 다음 칸(보통 점심)에 걸어갈 곳이 없어 하루가 끊긴다.
+        // 테마가 자연·유적을 앞세우면 그런 곳이 자주 뽑히므로, 다음 칸 후보가 걸어갈 거리에 있는 곳부터 본다.
+        const nextSlot = remainingSlots[1]
+        const hasNextNearby = (place) =>
+          !nextSlot ||
+          pool.some((other) => other !== place && !used.has(other.name) && other.slots.includes(nextSlot) && isWithinWalkLimit(place, other))
+        const candidates = slotCandidates(slot, wet, canReachFromCursor)
+        const connected = candidates.filter(hasNextNearby)
+        let pick = rankAndPick(connected.length > 0 ? connected : candidates)
 
         if (!pick) {
           // 다음 시간대에 어울리는 장소를 먼저 남겨 두고, 가까운 일반 후보로 빈 슬롯을 채운다.
@@ -226,7 +260,7 @@ export function buildCourse(base, themeId, budgetTier, mustVisit = [], anchors =
     }
 
     const picks = slots.map((slot) => {
-      const pick = rankAndPick(pool.filter((place) => !used.has(place.name) && place.slots.includes(slot)))
+      const pick = rankAndPick(slotCandidates(slot, wet))
       if (pick) used.add(pick.name)
       return { slot, place: pick }
     })
