@@ -45,11 +45,11 @@ const EMPTY_FILTERS = { city: '', theme: '', q: '', days: 0, budget: '', transpo
 const PAGE_SIZE = 60
 
 const selectClass =
-  'tw-w-full tw-rounded-lg tw-border tw-border-cline tw-bg-surface tw-px-3 tw-py-2 tw-text-[13px] tw-text-cink focus:tw-border-caccent focus:tw-outline-none'
+  'tw-w-full tw-rounded-lg tw-border tw-border-cline tw-bg-surface tw-px-3 tw-py-2 tw-text-[13px] tw-text-cink focus:tw-border-caccent-ink focus:tw-outline-none'
 
 function chipClass(active) {
   return `tw-rounded-full tw-px-3 tw-py-1.5 tw-text-[13px] tw-font-semibold tw-transition-colors ${
-    active ? 'tw-bg-cink tw-text-white' : 'tw-border tw-border-cline tw-text-cink-muted hover:tw-text-cink'
+    active ? 'tw-border tw-border-caccent-edge tw-bg-caccent tw-text-cink' : 'tw-border tw-border-cline tw-text-cink-muted hover:tw-text-cink'
   }`
 }
 
@@ -67,6 +67,9 @@ export default function CommunityScreen({ user, onRequireLogin, onBack, leaving,
   // '내 여행'에서 "커뮤니티에 공유" 버튼으로 넘어온 경우, 그 코스를 미리 골라 둔 채로
   // 글쓰기 화면부터 바로 연다. initialTripId 는 한 번만 쓰고, 다시 이 화면에 들어와도
   // 글쓰기가 계속 자동으로 열리지 않도록 상위(App)에 소비했다고 바로 알린다.
+  // 상위에 알리면 initialTripId 가 곧바로 null 로 바뀌므로, 글쓰기 화면에는 처음 받은 값을 붙잡아 넘긴다.
+  // (그대로 넘기면 ComposeView 가 null 로 다시 불러와 첫 번째 여행을 골라 버린다.)
+  const [sharedTripId] = useState(initialTripId)
   const [composing, setComposing] = useState(() => Boolean(initialTripId))
   useEffect(() => {
     if (initialTripId) onConsumedInitialTrip?.()
@@ -143,7 +146,7 @@ export default function CommunityScreen({ user, onRequireLogin, onBack, leaving,
     <section className={leaving ? 'course-detail-root community-screen is-leaving' : 'course-detail-root community-screen'}>
       {composing ? (
         <ComposeView
-          initialTripId={initialTripId}
+          initialTripId={sharedTripId}
           onClose={() => setComposing(false)}
           onDone={(post) => {
             setComposing(false)
@@ -179,7 +182,7 @@ export default function CommunityScreen({ user, onRequireLogin, onBack, leaving,
               <button
                 type="button"
                 onClick={() => (user ? setComposing(true) : onRequireLogin())}
-                className="tw-inline-flex tw-shrink-0 tw-items-center tw-gap-1.5 tw-rounded-full tw-bg-caccent tw-px-4 tw-py-2.5 tw-text-[13px] tw-font-semibold tw-text-white tw-transition-transform hover:tw--translate-y-0.5"
+                className="tw-inline-flex tw-shrink-0 tw-items-center tw-gap-1.5 tw-rounded-full tw-border tw-border-caccent-edge tw-bg-caccent tw-px-4 tw-py-2.5 tw-text-[13px] tw-font-semibold tw-text-cink tw-shadow-cpaper tw-transition-transform hover:tw--translate-y-0.5 hover:tw-shadow-cpaper-raised"
               >
                 <span aria-hidden="true" className="tw-text-[15px] tw-leading-none">＋</span>
                 글쓰기
@@ -210,7 +213,7 @@ export default function CommunityScreen({ user, onRequireLogin, onBack, leaving,
                 onChange={(event) => setQueryInput(event.target.value)}
                 maxLength={40}
                 placeholder="제목·소개·후기·여행지로 검색 (예: 야경, 카페, 속초)"
-                className="tw-w-full tw-rounded-lg tw-border tw-border-cline tw-bg-cbg tw-py-2.5 tw-pl-9 tw-pr-3 tw-text-[14px] tw-text-cink placeholder:tw-text-cink-faint focus:tw-border-caccent focus:tw-outline-none"
+                className="tw-w-full tw-rounded-lg tw-border tw-border-cline tw-bg-cbg tw-py-2.5 tw-pl-9 tw-pr-3 tw-text-[14px] tw-text-cink placeholder:tw-text-cink-faint focus:tw-border-caccent-ink focus:tw-outline-none"
               />
             </label>
 
@@ -276,7 +279,7 @@ export default function CommunityScreen({ user, onRequireLogin, onBack, leaving,
             {activeCount > 0 && (
               <button
                 type="button" onClick={resetFilters}
-                className="tw-text-[12.5px] tw-font-semibold tw-text-caccent hover:tw-underline"
+                className="tw-text-[12.5px] tw-font-semibold tw-text-caccent-ink hover:tw-underline"
               >
                 조건 {activeCount}개 초기화
               </button>
@@ -287,7 +290,7 @@ export default function CommunityScreen({ user, onRequireLogin, onBack, leaving,
                   key={item.key} type="button" onClick={() => changeSort(item.key)}
                   className={`tw-rounded-full tw-px-3 tw-py-1.5 tw-text-[13px] tw-font-semibold tw-transition-colors ${
                     sort === item.key
-                      ? 'tw-bg-caccent tw-text-white'
+                      ? 'tw-border tw-border-caccent-edge tw-bg-caccent tw-text-cink'
                       : 'tw-border tw-border-cline tw-text-cink-muted hover:tw-text-cink'
                   }`}
                 >
@@ -306,7 +309,7 @@ export default function CommunityScreen({ user, onRequireLogin, onBack, leaving,
                   <p className="tw-text-sm tw-text-cink-muted">조건에 맞는 코스가 없어요.</p>
                   <button
                     type="button" onClick={resetFilters}
-                    className="tw-mt-2 tw-text-[13px] tw-font-semibold tw-text-caccent hover:tw-underline"
+                    className="tw-mt-2 tw-text-[13px] tw-font-semibold tw-text-caccent-ink hover:tw-underline"
                   >
                     조건 초기화하고 전체 보기
                   </button>
@@ -335,7 +338,7 @@ export default function CommunityScreen({ user, onRequireLogin, onBack, leaving,
               <button
                 type="button"
                 onClick={() => setLimit((prev) => prev + PAGE_SIZE)}
-                className="tw-rounded-full tw-border tw-border-cline tw-px-5 tw-py-2 tw-text-[13px] tw-font-semibold tw-text-cink-muted tw-transition-colors hover:tw-border-caccent hover:tw-text-caccent"
+                className="tw-rounded-full tw-border tw-border-cline tw-px-5 tw-py-2 tw-text-[13px] tw-font-semibold tw-text-cink-muted tw-transition-colors hover:tw-border-caccent-edge hover:tw-text-caccent-ink"
               >
                 더보기 ({posts.length}/{total})
               </button>

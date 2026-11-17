@@ -58,22 +58,17 @@
   display: block;
 }
 
-/* 상단바: 왼쪽 고정 이미지에 로고가 겹치지 않도록 왼쪽 여백 확보 */
+/* 상단바 좌우 여백(--gutter): 화면 폭이 달라도 본문 제목(1100px 중앙 열)과 같은 선에 서고,
+   좌우가 대칭이다. 양옆 소품(.edge-bg)이 있는 홈에서만 소품 폭(50vw - 450px)만큼 안쪽에 둔다.
+   퍼센트는 쓰는 자리(상단바·fixed 팝오버)의 폭 기준으로 풀리므로 스크롤바 폭에도 어긋나지 않는다. */
+.app {
+  --gutter: max(18px, calc(50% - 550px));
+}
+.app:has(.edge-bg) {
+  --gutter: max(18px, calc(50% - 450px));
+}
 .topbar {
-  padding-left: clamp(18px, 22vw, 300px);
-  padding-right: clamp(18px, 8vw, 120px);
-}
-@media (max-width: 1180px) {
-  .topbar {
-    padding-left: clamp(16px, 6vw, 90px);
-    padding-right: clamp(16px, 4vw, 40px);
-  }
-}
-@media (max-width: 760px) {
-  .topbar {
-    padding-left: 18px;
-    padding-right: 18px;
-  }
+  padding-inline: var(--gutter);
 }
 
 /* 브랜드 로고 이미지 — 사용자 제공 "발길따라" 원형 로고 */

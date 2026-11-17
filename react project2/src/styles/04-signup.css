@@ -42,12 +42,21 @@
   gap: 16px;
 }
 
+/* 라벨 글자와 필수(*)·선택 표시는 한 줄에 놓고, 입력창만 다음 줄로 내린다.
+   예전엔 grid 라서 "이름" 아래에 "*" 가 따로 한 줄을 차지해 필드 높이가 어긋났다. */
 .signup-form label {
-  display: grid;
-  gap: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  align-content: flex-start;
+  gap: 8px 4px;
   color: var(--muted);
   font-size: 13px;
   font-weight: 900;
+}
+.signup-form label > input,
+.signup-form label > select {
+  flex: 0 0 100%;
 }
 
 .signup-form label.full,
@@ -55,14 +64,16 @@
   grid-column: 1 / -1;
 }
 
+/* 입력창 공통 외형(07-shared-overrides.css)과 같은 값. type 속성이 없는 text 입력과 select 는
+   그쪽 규칙(input[type="…"])에 안 걸려서 여기서 맞춰야 필드마다 모양이 같다. */
 .signup-form input,
 .signup-form select {
   min-height: 46px;
   padding: 0 12px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
+  border: 1px solid rgba(107, 88, 66, 0.42);
+  border-radius: 12px;
   color: var(--ink);
-  background: var(--paper);
+  background: var(--paper-strong);
   outline: 0;
 }
 
@@ -492,14 +503,33 @@
   box-shadow: 4px 6px 0 rgba(58, 42, 26, 0.1);
 }
 .course-actions button,
-.signup-submit,
-.auth-card form > button {
-  border: 2px solid var(--line);
-  border-radius: 24px;
-  background: var(--amber);
-  color: #3a2a1a;
-  box-shadow: 3px 4px 0 rgba(58, 42, 26, 0.16);
+/* 회원가입 제출 버튼: 주요 버튼 외형(08-home.css 의 .diary-start 묶음)과 같은 값. 로그인 팝오버 버튼은
+   13-responsive-fixes.css 가 따로 정한다. */
+.signup-submit {
+  border: 1.5px solid #bd6d22;
+  border-radius: 999px;
+  background: #f1b26f;
+  color: #3a2410;
+  box-shadow: var(--shadow-paper);
   font-family: GriunJeong, sans-serif;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    background-color 0.15s ease;
+}
+.signup-submit:hover:not(:disabled) {
+  background: #f4b97a;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-paper-raised);
+}
+.signup-submit:active:not(:disabled) {
+  background: #eea95f;
+  transform: translateY(1px);
+  box-shadow: var(--shadow-paper);
+}
+.signup-submit:focus-visible {
+  outline: 2px solid #3a2410;
+  outline-offset: 3px;
 }
 
 /* 화면 전환: 현재 본문 슬라이드 아웃 / 다음 화면 슬라이드 인 */
@@ -617,9 +647,7 @@
   border: 1px solid rgba(58, 42, 26, 0.22);
   border-radius: 3px;
   background: #fffdf7;
-  box-shadow:
-    3px 5px 0 rgba(58, 42, 26, 0.12),
-    0 12px 22px rgba(48, 35, 21, 0.14);
+  box-shadow: var(--shadow-paper);
   cursor: pointer;
   text-align: left;
   transition: transform 0.15s ease;
@@ -632,6 +660,7 @@
 }
 .dest-card:hover {
   transform: rotate(0) translateY(-3px);
+  box-shadow: var(--shadow-paper-raised);
 }
 .dest-card .photo {
   height: 122px;
@@ -670,10 +699,10 @@
   display: grid;
   gap: 8px;
   padding: 14px 18px;
-  border: 2px solid var(--line);
+  border: 1px solid rgba(107, 88, 66, 0.3);
   border-radius: 16px;
   background: var(--paper-strong);
-  box-shadow: 3px 4px 0 rgba(58, 42, 26, 0.1);
+  box-shadow: var(--shadow-paper);
 }
 .origin-form span {
   display: flex;

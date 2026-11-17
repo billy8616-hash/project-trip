@@ -25,16 +25,36 @@
   color: var(--muted);
   line-height: 1.55;
 }
+/* 주요 버튼 외형은 08-home.css 의 .diary-start 묶음과 같은 값(이 파일이 더 뒤라 여기서 직접 맞춘다). */
 .mytrips-login {
   margin-top: 4px;
   padding: 9px 20px;
-  border: 1.5px solid var(--amber-dark);
+  border: 1.5px solid #bd6d22;
   border-radius: 999px;
-  background: linear-gradient(180deg, #f4c78d, #e7a765);
-  color: #3a2a17;
+  background: #f1b26f;
+  color: #3a2410;
+  box-shadow: var(--shadow-paper);
   font-family: GriunJeong, sans-serif;
   font-weight: 700;
   font-size: 15px;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    background-color 0.15s ease;
+}
+.mytrips-login:hover {
+  background: #f4b97a;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-paper-raised);
+}
+.mytrips-login:active {
+  background: #eea95f;
+  transform: translateY(1px);
+  box-shadow: var(--shadow-paper);
+}
+.mytrips-login:focus-visible {
+  outline: 2px solid #3a2410;
+  outline-offset: 3px;
 }
 
 .mytrips-status {

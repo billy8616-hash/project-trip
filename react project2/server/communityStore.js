@@ -28,9 +28,19 @@ const clampRating = (value) => {
 }
 const cut = (text, max) => String(text ?? '').trim().slice(0, max)
 
+// 공유 글은 로그인 없이도 읽으므로, "내 여행"에서 넘어온 출발지·숙소(집 주소일 수 있음)는 저장·응답 모두에서 뺀다.
+// 응답에서도 빼는 이유: 이 처리 전에 저장된 글에 주소가 남아 있다.
+export function withoutAddresses(payload) {
+  if (!payload?.meta) return payload
+  const meta = { ...payload.meta }
+  delete meta.tripOrigin
+  delete meta.tripLodging
+  return { ...payload, meta }
+}
+
 function parsePayload(raw) {
   try {
-    return JSON.parse(raw)
+    return withoutAddresses(JSON.parse(raw))
   } catch {
     return null // 저장된 JSON 이 깨졌으면 null (상세 화면에서 "일정 정보 없음" 처리)
   }
@@ -193,7 +203,7 @@ export async function createPost(userId, authorName, { title, city, dayCount, su
       summary: cut(summary, LIMITS.summary),
       body: cut(body, LIMITS.body),
       rating: clampRating(rating),
-      payload: JSON.stringify(payload),
+      payload: JSON.stringify(withoutAddresses(payload)),
       images: JSON.stringify(safeImages),
     },
   })

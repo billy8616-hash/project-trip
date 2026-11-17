@@ -86,18 +86,12 @@ const TRANSIT_WON_PER_LEG = { 도보: 0, 대중교통: 1500, 자차: 3000 }
 const USUALLY_FREE_KINDS = new Set(['nature', 'market', 'history', 'viewpoint', 'sight'])
 
 function isCafePlace(place) {
-  return placeKindOf(place) === 'cafe' || (place?.source === 'kakao' && /카페|커피/.test(place?.category || ''))
+  return placeKindOf(place) === 'cafe'
 }
-// 식사/음료로 돈을 쓰는 곳인지 (이름에 "시장"이 들어간 식당 등 placeKindOf 오분류를 보완).
+// 식사/음료로 돈을 쓰는 곳인지. 점심 칸에 직접 넣은 장소(종류를 알 수 없음)도 식사로 본다.
 function isMealPlace(place) {
   const kind = placeKindOf(place)
-  return (
-    kind === 'cafe' ||
-    kind === 'restaurant' ||
-    kind === 'bar' ||
-    place?.source === 'kakao' ||
-    place?.assignedSlot === '점심 맛집'
-  )
+  return kind === 'cafe' || kind === 'restaurant' || kind === 'bar' || place?.assignedSlot === '점심 맛집'
 }
 
 // 한 장소에서 쓸 예상 비용(1인, 원). 못 추정하면 0.

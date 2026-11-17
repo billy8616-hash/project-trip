@@ -17,6 +17,7 @@ import {
   upsertReview,
 } from '../communityStore.js'
 import { communityPhotoLimits, uploadCommunityPhotos } from '../communityStorage.js'
+import { parseCoursePayload } from '../coursePayload.js'
 
 export const router = express.Router()
 
@@ -100,12 +101,13 @@ router.post('/api/community', requireAuth, async (req, res) => {
   if (typeof city !== 'string' || !city.trim()) {
     return res.status(400).json({ message: '여행지 정보가 필요해요.' })
   }
-  if (!payload || typeof payload !== 'object' || !Array.isArray(payload.days)) {
+  const coursePayload = parseCoursePayload(payload)
+  if (!coursePayload) {
     return res.status(400).json({ message: '공유할 일정 정보가 올바르지 않아요.' })
   }
   try {
     const post = await createPost(req.userId, req.userName, {
-      title: title.trim(), city: city.trim(), dayCount, summary, body, rating, payload, images,
+      title: title.trim(), city: city.trim(), dayCount, summary, body, rating, payload: coursePayload, images,
     })
     return res.status(201).json({ post })
   } catch (error) {

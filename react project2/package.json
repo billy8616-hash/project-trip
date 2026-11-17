@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "postinstall": "node ./node_modules/prisma/build/index.js generate",
     "server": "node server/server.js",
     "start": "node server/server.js",
     "prisma": "node ./node_modules/prisma/build/index.js",
@@ -12,6 +13,7 @@
     "db:studio": "node ./node_modules/prisma/build/index.js studio",
     "db:clear-places": "node server/clearPlaceCache.js",
     "db:prewarm": "node server/prewarm.js",
+    "db:reclassify-tours": "node server/reclassifyTourPlaces.js",
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",

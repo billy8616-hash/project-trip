@@ -14,7 +14,7 @@ export function RoutePreview({ payload }) {
     <div className="tw-space-y-3">
       {days.map((places, d) => (
         <div key={d}>
-          <p className="tw-mb-1.5 tw-text-[12px] tw-font-bold tw-text-caccent">Day {d + 1}</p>
+          <p className="tw-mb-1.5 tw-text-[12px] tw-font-bold tw-text-caccent-ink">Day {d + 1}</p>
           <ol className="tw-flex tw-flex-wrap tw-items-center tw-gap-1.5">
             {(places || []).map((place, i) => (
               <li key={`${place?.name}-${i}`} className="tw-flex tw-items-center tw-gap-1.5">

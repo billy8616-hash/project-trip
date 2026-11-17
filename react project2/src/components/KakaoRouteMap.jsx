@@ -257,7 +257,8 @@ export default function KakaoRouteMap({ course, places, origin, endPoint, transp
         }
 
         // 구간(정류장 i -> i+1)의 라벨과, 클릭 시 선택할 장소 인덱스.
-        // 지도 위에는 구간 시간을 더 이상 얹지 않는다 — 그 정보는 지도 아래 레일(route-rail)이 담당한다.
+        // 지도 위에는 구간 시간을 얹지 않는다 — 그 정보는 onRouteReady 로 넘겨 타임라인 이동 배지가 보여 준다.
+        // 각 구간의 measured 는 길찾기 API 가 실제로 계산한 값인지(false 면 직선거리 추정치).
         const legMeta = (index) => {
           const a = stops[index]
           const b = stops[index + 1]
@@ -350,7 +351,7 @@ export default function KakaoRouteMap({ course, places, origin, endPoint, transp
             const meta = legMeta(index)
             const estMinutes = stops[index].kind === 'place' && stops[index].time ? stops[index].time : `${estimateTravelMin(stops[index], stops[index + 1], transport)}분`
             placeStopMarker(stops[index])
-            return { ...meta, duration: estMinutes, summary: null }
+            return { ...meta, duration: estMinutes, summary: null, measured: false }
           })
 
           placeStopMarker(stops[stops.length - 1])
@@ -397,7 +398,7 @@ export default function KakaoRouteMap({ course, places, origin, endPoint, transp
                 const minutes = formatMinutes(section.duration)
                 const meta = legMeta(index)
                 placeStopMarker(stops[index])
-                return { ...meta, duration: minutes, summary: null }
+                return { ...meta, duration: minutes, summary: null, measured: true }
               })
 
               placeStopMarker(stops[stops.length - 1])
@@ -460,7 +461,7 @@ export default function KakaoRouteMap({ course, places, origin, endPoint, transp
                   ? `${section.totalMinutes}분`
                   : `${estimateTravelMin(stops[index], stops[index + 1], transport)}분`
                 placeStopMarker(stops[index])
-                return { ...meta, duration, summary: section?.summary || null }
+                return { ...meta, duration, summary: section?.summary || null, measured: Boolean(section) }
               })
 
               placeStopMarker(stops[stops.length - 1])
@@ -524,7 +525,7 @@ export default function KakaoRouteMap({ course, places, origin, endPoint, transp
                   ? walkDurationLabel(section.totalMinutes)
                   : walkDurationLabel(estimateTravelMin(stops[index], stops[index + 1], transport))
                 placeStopMarker(stops[index])
-                return { ...meta, duration, summary: null }
+                return { ...meta, duration, summary: null, measured: Boolean(section) }
               })
 
               placeStopMarker(stops[stops.length - 1])

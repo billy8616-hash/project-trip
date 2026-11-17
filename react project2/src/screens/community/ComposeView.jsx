@@ -164,7 +164,7 @@ export function ComposeView({ onClose, onDone, initialTripId }) {
                   key={t.id}
                   className={`tw-flex tw-cursor-pointer tw-items-center tw-gap-3 tw-rounded-2xl tw-border tw-p-3 tw-transition-colors ${
                     t.id === tripId
-                      ? 'tw-border-caccent tw-bg-caccent-soft'
+                      ? 'tw-border-caccent-edge tw-bg-caccent-soft'
                       : 'tw-border-cline tw-bg-surface hover:tw-border-caccent/40'
                   }`}
                 >
@@ -174,7 +174,7 @@ export function ComposeView({ onClose, onDone, initialTripId }) {
                     value={t.id}
                     checked={t.id === tripId}
                     onChange={() => setTripId(t.id)}
-                    className="tw-accent-caccent"
+                    className="tw-accent-caccent-ink"
                   />
                   <span className="tw-min-w-0 tw-flex-1">
                     <span className="tw-block tw-truncate tw-text-[14px] tw-font-semibold tw-text-cink">{t.title}</span>
@@ -201,7 +201,7 @@ export function ComposeView({ onClose, onDone, initialTripId }) {
               onChange={(e) => setTitle(e.target.value)}
               maxLength={80}
               placeholder="예: 제주 감성 사진 코스 2박 3일"
-              className="tw-w-full tw-rounded-2xl tw-border tw-border-cline tw-bg-cbg tw-px-3 tw-py-2.5 tw-text-[14px] tw-text-cink placeholder:tw-text-cink-faint focus:tw-border-caccent focus:tw-outline-none"
+              className="tw-w-full tw-rounded-2xl tw-border tw-border-cline tw-bg-cbg tw-px-3 tw-py-2.5 tw-text-[14px] tw-text-cink placeholder:tw-text-cink-faint focus:tw-border-caccent-ink focus:tw-outline-none"
             />
           </label>
 
@@ -214,7 +214,7 @@ export function ComposeView({ onClose, onDone, initialTripId }) {
               onChange={(e) => setSummary(e.target.value)}
               maxLength={120}
               placeholder="예: 뚜벅이 기준 · 사진 스팟 위주"
-              className="tw-w-full tw-rounded-2xl tw-border tw-border-cline tw-bg-cbg tw-px-3 tw-py-2.5 tw-text-[14px] tw-text-cink placeholder:tw-text-cink-faint focus:tw-border-caccent focus:tw-outline-none"
+              className="tw-w-full tw-rounded-2xl tw-border tw-border-cline tw-bg-cbg tw-px-3 tw-py-2.5 tw-text-[14px] tw-text-cink placeholder:tw-text-cink-faint focus:tw-border-caccent-ink focus:tw-outline-none"
             />
           </label>
 
@@ -228,7 +228,7 @@ export function ComposeView({ onClose, onDone, initialTripId }) {
               rows={4}
               maxLength={2000}
               placeholder="이 동선의 좋았던 점, 팁, 주의할 점을 적어 주세요."
-              className="tw-w-full tw-rounded-2xl tw-border tw-border-cline tw-bg-cbg tw-p-3 tw-text-[13.5px] tw-leading-relaxed tw-text-cink placeholder:tw-text-cink-faint focus:tw-border-caccent focus:tw-outline-none"
+              className="tw-w-full tw-rounded-2xl tw-border tw-border-cline tw-bg-cbg tw-p-3 tw-text-[13.5px] tw-leading-relaxed tw-text-cink placeholder:tw-text-cink-faint focus:tw-border-caccent-ink focus:tw-outline-none"
             />
           </label>
 
@@ -244,7 +244,7 @@ export function ComposeView({ onClose, onDone, initialTripId }) {
                 <div key={`${file.name}-${index}`} className="tw-relative tw-h-20 tw-w-20 tw-shrink-0 tw-overflow-hidden tw-rounded-xl tw-border tw-border-cline">
                   <img src={previews[index]} alt={`첨부 사진 ${index + 1}`} className="tw-h-full tw-w-full tw-object-cover" />
                   {index === 0 ? (
-                    <span className="tw-absolute tw-bottom-1 tw-left-1 tw-rounded tw-bg-caccent tw-px-1.5 tw-py-0.5 tw-text-[10px] tw-font-semibold tw-text-white">
+                    <span className="tw-absolute tw-bottom-1 tw-left-1 tw-rounded tw-bg-caccent tw-px-1.5 tw-py-0.5 tw-text-[10px] tw-font-semibold tw-text-cink">
                       대표
                     </span>
                   ) : (
@@ -267,7 +267,7 @@ export function ComposeView({ onClose, onDone, initialTripId }) {
                 </div>
               ))}
               {photos.length < MAX_PHOTOS && (
-                <label className="tw-flex tw-h-20 tw-w-20 tw-shrink-0 tw-cursor-pointer tw-flex-col tw-items-center tw-justify-center tw-gap-1 tw-rounded-xl tw-border tw-border-dashed tw-border-cline tw-text-cink-faint hover:tw-border-caccent/50 hover:tw-text-caccent">
+                <label className="tw-flex tw-h-20 tw-w-20 tw-shrink-0 tw-cursor-pointer tw-flex-col tw-items-center tw-justify-center tw-gap-1 tw-rounded-xl tw-border tw-border-dashed tw-border-cline tw-text-cink-faint hover:tw-border-caccent/50 hover:tw-text-caccent-ink">
                   <span className="tw-text-[20px] tw-leading-none">+</span>
                   <span className="tw-text-[11px]">사진 추가</span>
                   <input type="file" accept="image/*" multiple onChange={handlePhotoSelect} className="tw-hidden" />
@@ -293,7 +293,7 @@ export function ComposeView({ onClose, onDone, initialTripId }) {
             <button
               type="submit"
               disabled={busy}
-              className="tw-rounded-full tw-bg-caccent tw-px-5 tw-py-2.5 tw-text-[13px] tw-font-semibold tw-text-white disabled:tw-opacity-50"
+              className="tw-rounded-full tw-border tw-border-caccent-edge tw-bg-caccent tw-px-5 tw-py-2.5 tw-text-[13px] tw-font-semibold tw-text-cink disabled:tw-opacity-50 tw-shadow-cpaper hover:tw-shadow-cpaper-raised"
             >
               {uploadingPhotos ? '사진 올리는 중…' : busy ? '공유 중…' : '공유하기'}
             </button>

@@ -7,6 +7,7 @@
 import express from 'express'
 import { geocodePlace, searchLodging } from '../kakaoLocal.js'
 import { isPhotoRef, resolveGooglePhotoUri } from '../googlePlaces.js'
+import { isCatalogCity } from '../cityRegion.js'
 import { getCityThumbnails } from '../tourApi.js'
 import { getCityTrends } from '../naverTrend.js'
 import { fetchCurrentWeather, fetchForecast } from '../weather.js'
@@ -39,7 +40,7 @@ router.get('/api/city-thumbnails', async (req, res) => {
   const cities = String(req.query.cities || '')
     .split(',')
     .map((city) => city.trim())
-    .filter(Boolean)
+    .filter(isCatalogCity)
   if (cities.length === 0) return res.status(400).json({ message: 'cities 파라미터가 필요해요.' })
 
   try {
@@ -56,7 +57,7 @@ router.get('/api/city-trends', async (req, res) => {
   const cities = String(req.query.cities || '')
     .split(',')
     .map((city) => city.trim())
-    .filter(Boolean)
+    .filter(isCatalogCity)
   if (cities.length === 0) return res.status(400).json({ message: 'cities 파라미터가 필요해요.' })
 
   try {

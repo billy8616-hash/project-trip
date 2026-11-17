@@ -101,7 +101,7 @@ export function AddPlaceRow({ pool = [], excludeNames, onAdd, onGeocode }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="tw-mb-3 tw-flex tw-w-full tw-items-center tw-justify-center tw-gap-1.5 tw-rounded-cxl tw-border tw-border-dashed tw-border-cline tw-py-3 tw-text-[13px] tw-font-semibold tw-text-cink-muted tw-transition-colors hover:tw-border-caccent/50 hover:tw-text-caccent"
+        className="tw-mb-3 tw-flex tw-w-full tw-items-center tw-justify-center tw-gap-1.5 tw-rounded-cxl tw-border tw-border-dashed tw-border-cline tw-py-3 tw-text-[13px] tw-font-semibold tw-text-cink-muted tw-transition-colors hover:tw-border-caccent/50 hover:tw-text-caccent-ink"
       >
         <Icon name="plus" size={15} /> 장소 추가
       </button>
@@ -123,12 +123,12 @@ export function AddPlaceRow({ pool = [], excludeNames, onAdd, onGeocode }) {
             if (event.key === 'Escape') close()
           }}
           placeholder="가고 싶은 곳 이름을 입력하세요"
-          className="tw-min-w-0 tw-flex-1 tw-rounded-lg tw-border tw-border-cline tw-bg-cbg tw-px-3 tw-py-2 tw-text-[14px] tw-text-cink tw-outline-none focus:tw-border-caccent"
+          className="tw-min-w-0 tw-flex-1 tw-rounded-lg tw-border tw-border-cline tw-bg-cbg tw-px-3 tw-py-2 tw-text-[14px] tw-text-cink tw-outline-none focus:tw-border-caccent-ink"
         />
         <button
           type="submit"
           disabled={status === 'searching'}
-          className="tw-shrink-0 tw-rounded-lg tw-bg-caccent tw-px-3 tw-py-2 tw-text-[13px] tw-font-semibold tw-text-white disabled:tw-opacity-50"
+          className="tw-shrink-0 tw-rounded-lg tw-border tw-border-caccent-edge tw-bg-caccent tw-px-3 tw-py-2 tw-text-[13px] tw-font-semibold tw-text-cink disabled:tw-opacity-50 tw-shadow-cpaper hover:tw-shadow-cpaper-raised"
         >
           {status === 'searching' ? '찾는 중…' : '추가'}
         </button>

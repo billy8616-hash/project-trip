@@ -299,27 +299,48 @@
   gap: 8px;
   margin-top: 10px;
 }
+/* 입력창과 "추가" 버튼: 홈 검색줄과 같은 알약 + 종이 그림자(입력 = 얇은 갈색 윤곽, 버튼 = 주요 버튼 외형). */
 .diary-must-input input {
   flex: 1;
   min-width: 0;
-  padding: 0 12px;
+  padding: 0 16px;
   min-height: 42px;
-  border: 1.5px solid var(--ink-line);
-  border-radius: 10px;
+  border: 1px solid rgba(107, 88, 66, 0.42);
+  border-radius: 999px;
   background: var(--paper-strong);
   color: var(--ink);
   font-size: 14px;
+  box-shadow: var(--shadow-paper);
 }
 .diary-must-input button {
-  padding: 0 16px;
+  padding: 0 20px;
   min-height: 42px;
-  border: 1.5px solid var(--amber-dark);
-  border-radius: 10px;
-  background: var(--amber);
-  color: #4a2f14;
+  border: 1.5px solid #bd6d22;
+  border-radius: 999px;
+  background: #f1b26f;
+  color: #3a2410;
+  box-shadow: var(--shadow-paper);
   font-family: GriunJeong, sans-serif;
   font-weight: 700;
   cursor: pointer;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    background-color 0.15s ease;
+}
+.diary-must-input button:hover {
+  background: #f4b97a;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-paper-raised);
+}
+.diary-must-input button:active {
+  background: #eea95f;
+  transform: translateY(1px);
+  box-shadow: var(--shadow-paper);
+}
+.diary-must-input button:focus-visible {
+  outline: 2px solid #3a2410;
+  outline-offset: 3px;
 }
 .diary-must-tags {
   list-style: none;
@@ -354,14 +375,16 @@
 
 /* Reference-style scrapbook home */
 .app {
-  background:
-    linear-gradient(rgba(255, 251, 243, 0.7), rgba(255, 251, 243, 0.7)),
-    #f2e4ce;
+  /* 따뜻한 크림. 양옆 소품 이미지에 박힌 종이색(#fcf4e8)이 아래 .edge-bg 의 filter 를 거치면
+     이 색이 되므로(캔버스로 실측), 둘이 경계 없이 이어진다. 소품 색감을 바꾸면 이 값도 같이. */
+  background: #f9eddf;
 }
 
 .edge-bg {
   top: 0;
   opacity: 1;
+  /* 소품 이미지를 더 따뜻하게(채도↑, 노랑→주황쪽으로 살짝 회전). 이미지 파일은 그대로. */
+  filter: saturate(1.5) hue-rotate(-10deg) brightness(0.98);
   /* 가운데 흰 판(.app-stage: 폭 1140px, 화면 중앙 고정)의 바깥 여백을 소품으로 꽉 채운다.
      한쪽 여백 = (100vw - 1140px) / 2 = 50vw - 570px.  -535px 로 잡아 35px 은 흰 판
      밑으로 겹쳐, 소품이 흰 박스에 확실히 닿게 한다. 이미지는 안쪽 크림 여백을 잘라내
@@ -469,9 +492,8 @@
   padding: 21px clamp(18px, 28vw, 390px) 0;
 }
 
-/* 손으로 뜬 종이 한 장 — 실제 종이는 테두리 선이 아니라 '찢긴 가장자리 + 섬유 질감'으로 읽힌다.
-   본문(.diary-page)은 테두리·배경을 비우고, 뒤에 깔리는 ::before 한 겹이 종이 자체를 그린다.
-   질감·찢긴 결을 ::before 로 분리해야 displacement 필터가 본문 글자를 일그러뜨리지 않는다. */
+/* 종이 한 장 — 본문(.diary-page)은 테두리·배경을 비우고, 뒤에 깔리는 ::before 한 겹이
+   종이(옅은 결 + 테두리 + 그림자)를 그린다. 질감을 ::before 로 분리해야 본문 글자가 영향받지 않는다. */
 .diary-page {
   width: min(100%, 810px);
   max-width: 810px;
@@ -487,25 +509,18 @@
 .diary-page::before {
   content: "";
   position: absolute;
-  inset: -3px;
+  inset: 0;
   z-index: -1;
-  /* 얼룩(라디얼) + 굵은 섬유 결 + 미세 그레인을 따뜻한 종이색 위에 겹친다. */
+  /* 아주 옅은 섬유 결 + 미세 그레인을 종이색 위에 겹친다. 바탕색은 양옆 수채화 소품
+     이미지(left_bg/right_bg)의 종이 바탕(#fcf4e8)보다 살짝 밝게 — 같은 톤이되 구역이 읽히게.
+     결을 짙게 깔면 갈색이 얹혀 회색빛으로 탁해져서 양옆과 따로 놀았다. */
   background:
-    radial-gradient(ellipse 55% 40% at 12% 14%, rgba(146, 114, 72, 0.07), transparent 70%),
-    radial-gradient(ellipse 60% 45% at 88% 84%, rgba(146, 114, 72, 0.06), transparent 70%),
-    radial-gradient(ellipse 45% 35% at 74% 8%, rgba(146, 114, 72, 0.05), transparent 70%),
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='fiber'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.34' numOctaves='3' stitchTiles='stitch' result='t'/%3E%3CfeColorMatrix in='t' type='matrix' values='0 0 0 0 0.46 0 0 0 0 0.37 0 0 0 0 0.24 0 0 0 0.26 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23fiber)'/%3E%3C/svg%3E"),
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='grain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch' result='t'/%3E%3CfeColorMatrix in='t' type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23grain)' opacity='0.11'/%3E%3C/svg%3E"),
-    #f8f3e9;
-  /* 찢긴 가장자리: 난류로 흐트러뜨린 사각형을 마스크로 써서 네 변을 거칠게 깎아 낸다. */
-  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='840' height='1000' preserveAspectRatio='none'%3E%3Cfilter id='deckle' x='-8%25' y='-8%25' width='116%25' height='116%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.013 0.021' numOctaves='5' seed='11' result='t'/%3E%3CfeDisplacementMap in='SourceGraphic' in2='t' scale='26' xChannelSelector='R' yChannelSelector='G'/%3E%3C/filter%3E%3Crect x='16' y='16' width='808' height='968' fill='%23fff' filter='url(%23deckle)'/%3E%3C/svg%3E");
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='840' height='1000' preserveAspectRatio='none'%3E%3Cfilter id='deckle' x='-8%25' y='-8%25' width='116%25' height='116%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.013 0.021' numOctaves='5' seed='11' result='t'/%3E%3CfeDisplacementMap in='SourceGraphic' in2='t' scale='26' xChannelSelector='R' yChannelSelector='G'/%3E%3C/filter%3E%3Crect x='16' y='16' width='808' height='968' fill='%23fff' filter='url(%23deckle)'/%3E%3C/svg%3E");
-  -webkit-mask-size: 100% 100%;
-  mask-size: 100% 100%;
-  -webkit-mask-repeat: no-repeat;
-  mask-repeat: no-repeat;
-  /* box-shadow 는 사각형을 따라가므로, 찢긴 실루엣을 따르는 drop-shadow 로. */
-  filter: drop-shadow(2px 5px 9px rgba(71, 53, 36, 0.18));
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='fiber'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.34' numOctaves='3' stitchTiles='stitch' result='t'/%3E%3CfeColorMatrix in='t' type='matrix' values='0 0 0 0 0.46 0 0 0 0 0.37 0 0 0 0 0.24 0 0 0 0.07 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23fiber)'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='grain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch' result='t'/%3E%3CfeColorMatrix in='t' type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23grain)' opacity='0.05'/%3E%3C/svg%3E"),
+    #fff6ea;
+  /* 테두리·그림자 없이 배경보다 살짝 밝은 구역으로만 읽히게 한다(상자 느낌을 뺀 버전).
+     소품과 글자를 가르는 역할은 이 밝기 차이가 맡는다. */
+  border-radius: 18px;
   pointer-events: none;
 }
 
@@ -581,12 +596,15 @@
   margin: 0 auto 9px;
 }
 
+/* 입력창: 옆 버튼과 짝이 되게 알약 + 얇은 갈색 윤곽 + 같은 종이 그림자. */
 .diary-field {
   min-width: 0;
   min-height: 52px;
-  border-color: rgba(33, 24, 18, 0.82);
-  border-radius: 8px;
+  padding: 0 22px;
+  border: 1px solid rgba(107, 88, 66, 0.42);
+  border-radius: 999px;
   background: #fffefa;
+  box-shadow: var(--shadow-paper);
 }
 
 .diary-field span {
@@ -624,16 +642,49 @@
   margin: 8px 0 0;
 }
 
-.diary-start {
+/* 주요 버튼("여행 시작하기", "이 코스로 시작하기"): 부드러운 알약 + 한 단계 진한 주황 윤곽 +
+   종이 그림자(--shadow-paper). 검정 윤곽·딱딱한 오프셋 그림자·주황 번짐은 쓰지 않는다.
+   윤곽을 #bd6d22 로 둔 건 바탕(#f9eddf)이 따뜻해져 채움색(#f1b26f)만으로는 경계 대비가
+   1.6:1 밖에 안 되어서(비텍스트 3:1 목표). 크기·여백은 각 버튼 쪽에서 따로 정한다. */
+.diary-start,
+.diary-today-go,
+.date-next-button {
   min-height: 52px;
-  border-color: rgba(33, 24, 18, 0.82);
-  border-radius: 8px;
-  background: #efb579;
-  box-shadow: 2px 3px 0 rgba(82, 54, 34, 0.18);
-  color: #211812;
+  border: 1.5px solid #bd6d22;
+  border-radius: 999px;
+  background: #f1b26f;
+  box-shadow: var(--shadow-paper);
+  color: #3a2410;
   font-family: GriunJeong, Pretendard, sans-serif;
   font-size: 20px;
   font-weight: 400;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    background-color 0.15s ease;
+}
+.diary-start {
+  padding: 0 28px;
+}
+.diary-start:hover,
+.diary-today-go:hover,
+.date-next-button:hover:not(:disabled) {
+  background: #f4b97a;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-paper-raised);
+}
+.diary-start:active,
+.diary-today-go:active,
+.date-next-button:active:not(:disabled) {
+  background: #eea95f;
+  transform: translateY(1px);
+  box-shadow: var(--shadow-paper);
+}
+.diary-start:focus-visible,
+.diary-today-go:focus-visible,
+.date-next-button:focus-visible {
+  outline: 2px solid #3a2410;
+  outline-offset: 3px;
 }
 
 .diary-cards {
@@ -734,7 +785,8 @@
   border-top-color: rgba(33, 24, 18, 0.84);
 }
 
-/* "이 코스로 시작하기" — 상단 "여행 시작하기" 버튼과 동일한 스타일. */
+/* "이 코스로 시작하기" — 상단 "여행 시작하기" 버튼과 같은 외형(위 .diary-start 와 묶음).
+   여기서는 배치만 정한다. */
 .diary-today-go {
   display: flex;
   align-items: center;
@@ -742,17 +794,7 @@
   gap: 8px;
   width: fit-content;
   margin: 16px auto 4px;
-  padding: 0 24px;
-  min-height: 52px;
-  border: 1.5px solid var(--amber-dark);
-  border-radius: 8px;
-  background: #efb579;
-  box-shadow: 2px 3px 0 rgba(82, 54, 34, 0.18);
-  color: #211812;
-  font-family: GriunJeong, Pretendard, sans-serif;
-  font-size: 20px;
-  font-weight: 400;
-  transition: transform 0.14s ease, box-shadow 0.14s ease;
+  padding: 0 28px;
 }
 .diary-today-go span {
   display: inline-block;
@@ -760,10 +802,6 @@
 }
 .diary-today-go:hover span {
   transform: translateX(4px);
-}
-.diary-today-go:active {
-  transform: translateY(2px);
-  box-shadow: 0 2px 0 var(--amber-dark);
 }
 
 .diary-step {
@@ -950,7 +988,7 @@
   align-items: center;
   gap: 7px;
   padding: 9px 18px;
-  border: 1.5px solid var(--ink-line);
+  border: 1px solid rgba(107, 88, 66, 0.4);
   border-radius: 999px;
   background: var(--paper-strong);
   color: var(--ink);
@@ -958,7 +996,7 @@
   font-weight: 700;
   font-size: 17px;
   cursor: pointer;
-  box-shadow: 2px 3px 0 rgba(90, 72, 52, 0.16);
+  box-shadow: var(--shadow-paper);
   transform: rotate(var(--tilt));
   transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
 }
@@ -976,7 +1014,7 @@
 }
 .dest-region-list li button:hover {
   transform: rotate(0) translateY(-3px);
-  box-shadow: 3px 6px 0 rgba(90, 72, 52, 0.22);
+  box-shadow: var(--shadow-paper-raised);
   background: rgba(240, 202, 122, 0.22);
 }
 .dest-region-list li button:focus-visible {

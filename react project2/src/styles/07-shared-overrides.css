@@ -53,6 +53,15 @@
   background: var(--paper-strong);
   box-shadow: 5px 5px 0 var(--hard);
 }
+/* 테마·예산 카드는 종이 그림자 규칙으로: 흔들린 모서리·두꺼운 검정 윤곽·딱딱한 오프셋 그림자를 걷는다. */
+.theme-card {
+  border: 1px solid rgba(107, 88, 66, 0.3);
+  border-radius: 18px;
+  box-shadow: var(--shadow-paper);
+}
+.theme-card:not(.selected):hover {
+  box-shadow: var(--shadow-paper-raised);
+}
 
 /* 코스 화면 안내 배너는 접힌 메모지처럼. */
 .course-notice {
@@ -147,8 +156,10 @@ input[type="password"],
 input[type="date"],
 select,
 textarea {
-  border: 2px solid var(--ink-line);
-  border-radius: 11px 9px 12px 8px;
+  /* 입력창 공통 외형: 얇은 갈색 윤곽 + 균일한 모서리. 두꺼운 윤곽·흔들린 모서리를 걷었다.
+     (회원가입 화면에서 이 규칙과 .signup-form 규칙이 갈려 필드마다 모양이 달랐다.) */
+  border: 1px solid rgba(107, 88, 66, 0.42);
+  border-radius: 12px;
   background: var(--paper-strong);
   color: var(--ink);
 }
@@ -161,7 +172,9 @@ input[type="date"]:focus,
 select:focus,
 textarea:focus {
   outline: 0;
-  box-shadow: 3px 3px 0 var(--amber-dark);
+  /* 포커스: 딱딱한 오프셋 그림자 대신 주황 윤곽 + 옅은 링 */
+  border-color: var(--amber-dark);
+  box-shadow: 0 0 0 3px rgba(231, 154, 85, 0.28);
 }
 
 /* 키보드 포커스는 어디서든 보이게. */
