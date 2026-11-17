@@ -330,6 +330,24 @@ http://localhost:5173 으로 접속한다. 포트는 5173으로 고정돼 있다
 두 곳(각 Provider 콘솔 + Supabase Authentication → Providers)을 한 번 설정해야 한다.
 단계별 설명은 [`.env.example`](.env.example) 하단에 있다.
 
+### 배포 (Vercel)
+
+화면과 Express API를 Vercel 프로젝트 하나에 함께 올린다. 설정은 저장소 맨 위의
+[`vercel.json`](../vercel.json)과 [`api/index.mjs`](../api/index.mjs)에 있다.
+
+- **Root Directory는 비워 둔다.** Vercel은 함수 이름을 경로로 짓는데 이 폴더 이름의 공백
+  (`react project2/api/...`)을 거부한다. 그래서 함수 진입점은 저장소 맨 위에 두고,
+  설치·빌드만 `react project2` 안에서 하도록 `vercel.json`에 지정했다.
+- **환경변수**는 `.env` 내용을 Vercel의 Environment Variables 입력칸에 통째로 붙여넣는다.
+  `CLIENT_ORIGIN`은 배포 주소로 바꾸고, `VITE_API_BASE_URL`은 비운다(같은 오리진).
+- 함수 리전은 Supabase와 같은 서울(`icn1`)이다. DB 왕복이 태평양을 건너지 않게 하기 위해서다.
+- 배포 주소를 카카오 디벨로퍼스 사이트 도메인과 Supabase Redirect URLs에 등록해야
+  지도와 로그인이 동작한다.
+
+**배포 환경의 한계** — ODsay 서버 키는 등록한 IP에서만 동작하는데 Vercel 함수는 IP가
+고정되지 않아 대중교통 경로가 실패한다. 커뮤니티 사진은 Vercel 요청 한도(4.5MB) 때문에
+큰 원본 사진 업로드가 실패할 수 있다.
+
 ## 프로젝트 구조
 
 ```
