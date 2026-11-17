@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "postinstall": "node ./node_modules/prisma/build/index.js generate",
     "server": "node server/server.js",
     "start": "node server/server.js",
     "prisma": "node ./node_modules/prisma/build/index.js",
