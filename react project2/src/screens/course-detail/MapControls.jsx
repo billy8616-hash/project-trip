@@ -40,42 +40,45 @@ const TRANSPORT_OPTIONS = [
   { key: '대중교통', icon: 'bus' },
   { key: '도보', icon: 'walk' },
 ]
+const TOGGLE_WRAP =
+  'tw-absolute tw-bottom-4 tw-left-4 tw-z-20 tw-flex tw-overflow-hidden tw-rounded-full tw-border tw-border-cline tw-bg-surface tw-shadow-ccard'
+
 // 지도 위에서 교통수단을 바꾸는 토글. 바꾸면 경로를 다시 받아 그린다.
-// locked: 테마가 교통편을 정해 둔 경우(발길따라 = 도보). 켜진 값만 보여 주고 버튼은 모두 막는다.
+// locked: 테마가 교통편을 정해 둔 경우(발길따라 = 도보). 버튼 대신 "도보 고정" 표시만 보여 준다 —
+// 흐린 버튼을 늘어놓으면 왜 못 누르는지 알 수 없고, 마우스를 올려야 뜨는 설명은 모바일에선 안 보인다.
 export function TransportToggle({ value, onChange, locked = false }) {
   if (!onChange) return null
+  if (locked) {
+    const icon = TRANSPORT_OPTIONS.find((opt) => opt.key === value)?.icon || 'walk'
+    return (
+      <div className={TOGGLE_WRAP}>
+        <span className="tw-flex tw-items-center tw-gap-1.5 tw-bg-caccent tw-px-3 tw-py-2 tw-text-[13px] tw-font-semibold tw-text-cink">
+          <Icon name={icon} size={14} />
+          {/* 모바일에서도 글자를 숨기지 않는다 — 아이콘만 있던 버튼 3개보다 폭이 좁아 FloatingActions 와 겹치지 않는다. */}
+          {value} 고정
+        </span>
+      </div>
+    )
+  }
   return (
-    <div
-      role="group"
-      aria-label={locked ? '이동수단 (발길따라는 도보로 고정)' : '이동수단'}
-      title={locked ? '발길따라는 걸어서 잇는 코스라 도보로 고정돼요' : undefined}
-      className="tw-absolute tw-bottom-4 tw-left-4 tw-z-20 tw-flex tw-overflow-hidden tw-rounded-full tw-border tw-border-cline tw-bg-surface tw-shadow-ccard"
-    >
-      {TRANSPORT_OPTIONS.map((opt) => {
-        // 고정 중엔 켜져 있는 도보 버튼도 막는다 — 누르면 사용자가 원래 고른 교통편이 도보로 덮여 버린다.
-        const disabled = locked
-        return (
-          <button
-            key={opt.key}
-            type="button"
-            aria-label={opt.key}
-            aria-pressed={value === opt.key}
-            disabled={disabled}
-            onClick={() => onChange(opt.key)}
-            className={`tw-flex tw-items-center tw-gap-1.5 tw-px-3 tw-py-2 max-[480px]:tw-px-2.5 tw-text-[13px] tw-font-semibold tw-transition-colors ${
-              value === opt.key
-                ? 'tw-bg-caccent tw-text-cink'
-                : disabled
-                  ? 'tw-cursor-not-allowed tw-text-cink-muted tw-opacity-40'
-                  : 'tw-text-cink-muted hover:tw-bg-surface-2 hover:tw-text-cink'
-            }`}
-          >
-            <Icon name={opt.icon} size={14} />
-            {/* 아주 좁은 지도 영역(모바일)에선 아이콘만 — FloatingActions 와 한 줄에서 안 겹치도록 */}
-            <span className="max-[480px]:tw-hidden">{opt.key}</span>
-          </button>
-        )
-      })}
+    <div role="group" aria-label="이동수단" className={TOGGLE_WRAP}>
+      {TRANSPORT_OPTIONS.map((opt) => (
+        <button
+          key={opt.key}
+          type="button"
+          aria-label={opt.key}
+          aria-pressed={value === opt.key}
+          onClick={() => onChange(opt.key)}
+          // 바깥 상자가 overflow-hidden 이라 전역 포커스 윤곽(바깥쪽 2px)이 잘린다 → 안쪽으로 그린다.
+          className={`tw-flex tw-items-center tw-gap-1.5 tw-px-3 tw-py-2 max-[480px]:tw-px-2.5 tw-text-[13px] tw-font-semibold tw-transition-colors focus-visible:tw-outline-offset-[-3px] ${
+            value === opt.key ? 'tw-bg-caccent tw-text-cink' : 'tw-text-cink-muted hover:tw-bg-surface-2 hover:tw-text-cink'
+          }`}
+        >
+          <Icon name={opt.icon} size={14} />
+          {/* 아주 좁은 지도 영역(모바일)에선 아이콘만 — FloatingActions 와 한 줄에서 안 겹치도록 */}
+          <span className="max-[480px]:tw-hidden">{opt.key}</span>
+        </button>
+      ))}
     </div>
   )
 }
