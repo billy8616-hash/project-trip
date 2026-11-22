@@ -11,7 +11,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import FootprintMapWidget from '../components/FootprintMapWidget.jsx'
-import { journeyThemes, SLOT_LABELS } from '../data/travelOptions.js'
+import { effectiveTransport, journeyThemes, SLOT_LABELS } from '../data/travelOptions.js'
 import { deleteTrip, listTrips, renameTrip } from '../lib/tripsApi.js'
 import { deriveVisitedCities } from '../lib/footprint.js'
 import { formatClock, parseClock, scheduleDay } from '../lib/schedule.js'
@@ -27,7 +27,8 @@ function themeLabel(id) {
 // payload.days([[{name, assignedSlot}]]) 를 저장 당시 조건으로 다시 시간까지 매겨 하루 목록으로.
 function scheduleFromPayload(payload) {
   const dayStartMin = parseClock(payload?.meta?.dayStartTime || '09:30')
-  const transport = payload?.meta?.transport || '대중교통'
+  // 교통편 고정 규칙이 생기기 전에 저장한 발길따라 코스도 도보 기준으로 다시 계산한다.
+  const transport = effectiveTransport(payload?.meta?.journeyTheme, payload?.meta?.transport || '대중교통')
   return (payload?.days || []).map((dayPlaces) => {
     const merged = (dayPlaces || []).map((place, index) => ({
       ...place,
@@ -172,7 +173,7 @@ export default function MyTripsScreen({ user, onRequireLogin, onReplan, onShareT
                       {meta.journeyTheme ? ` · ${themeLabel(meta.journeyTheme)}` : ''}
                       {` · ${durationText}`}
                       {meta.budget ? ` · ${meta.budget}` : ''}
-                      {meta.transport ? ` · ${meta.transport}` : ''}
+                      {meta.transport ? ` · ${effectiveTransport(meta.journeyTheme, meta.transport)}` : ''}
                     </span>
                     <span className="mytrips-date">
                       {meta.tripStartDate ? `${formatShortDate(meta.tripStartDate)} 출발 · ` : ''}

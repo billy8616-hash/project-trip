@@ -41,29 +41,41 @@ const TRANSPORT_OPTIONS = [
   { key: '도보', icon: 'walk' },
 ]
 // 지도 위에서 교통수단을 바꾸는 토글. 바꾸면 경로를 다시 받아 그린다.
-export function TransportToggle({ value, onChange }) {
+// locked: 테마가 교통편을 정해 둔 경우(발길따라 = 도보). 켜진 값만 보여 주고 버튼은 모두 막는다.
+export function TransportToggle({ value, onChange, locked = false }) {
   if (!onChange) return null
   return (
     <div
       role="group"
-      aria-label="이동수단"
+      aria-label={locked ? '이동수단 (발길따라는 도보로 고정)' : '이동수단'}
+      title={locked ? '발길따라는 걸어서 잇는 코스라 도보로 고정돼요' : undefined}
       className="tw-absolute tw-bottom-4 tw-left-4 tw-z-20 tw-flex tw-overflow-hidden tw-rounded-full tw-border tw-border-cline tw-bg-surface tw-shadow-ccard"
     >
-      {TRANSPORT_OPTIONS.map((opt) => (
-        <button
-          key={opt.key}
-          type="button"
-          aria-pressed={value === opt.key}
-          onClick={() => onChange(opt.key)}
-          className={`tw-flex tw-items-center tw-gap-1.5 tw-px-3 tw-py-2 max-[480px]:tw-px-2.5 tw-text-[13px] tw-font-semibold tw-transition-colors ${
-            value === opt.key ? 'tw-bg-caccent tw-text-cink' : 'tw-text-cink-muted hover:tw-bg-surface-2 hover:tw-text-cink'
-          }`}
-        >
-          <Icon name={opt.icon} size={14} />
-          {/* 아주 좁은 지도 영역(모바일)에선 아이콘만 — FloatingActions 와 한 줄에서 안 겹치도록 */}
-          <span className="max-[480px]:tw-hidden">{opt.key}</span>
-        </button>
-      ))}
+      {TRANSPORT_OPTIONS.map((opt) => {
+        // 고정 중엔 켜져 있는 도보 버튼도 막는다 — 누르면 사용자가 원래 고른 교통편이 도보로 덮여 버린다.
+        const disabled = locked
+        return (
+          <button
+            key={opt.key}
+            type="button"
+            aria-label={opt.key}
+            aria-pressed={value === opt.key}
+            disabled={disabled}
+            onClick={() => onChange(opt.key)}
+            className={`tw-flex tw-items-center tw-gap-1.5 tw-px-3 tw-py-2 max-[480px]:tw-px-2.5 tw-text-[13px] tw-font-semibold tw-transition-colors ${
+              value === opt.key
+                ? 'tw-bg-caccent tw-text-cink'
+                : disabled
+                  ? 'tw-cursor-not-allowed tw-text-cink-muted tw-opacity-40'
+                  : 'tw-text-cink-muted hover:tw-bg-surface-2 hover:tw-text-cink'
+            }`}
+          >
+            <Icon name={opt.icon} size={14} />
+            {/* 아주 좁은 지도 영역(모바일)에선 아이콘만 — FloatingActions 와 한 줄에서 안 겹치도록 */}
+            <span className="max-[480px]:tw-hidden">{opt.key}</span>
+          </button>
+        )
+      })}
     </div>
   )
 }

@@ -14,6 +14,7 @@
 
 import { useCallback, useMemo, useState } from 'react'
 import { todayISO } from '../lib/datetime.js'
+import { effectiveTransport } from '../data/travelOptions.js'
 
 const MAX_MUST_VISIT = 8
 
@@ -89,7 +90,10 @@ export function useTripPlan(initial) {
     setDuration,
     budget,
     setBudget,
-    transport,
+    // 테마가 교통편을 정해 두면(발길따라 = 도보) 그 값으로 코스를 짠다.
+    // 사용자가 고른 값은 pickedTransport 로 따로 남겨 둬서, 다른 테마로 바꾸면 그 값으로 돌아간다.
+    transport: effectiveTransport(journeyTheme, transport),
+    pickedTransport: transport,
     setTransport,
     style,
     setStyle,
