@@ -125,7 +125,6 @@ export function buildCourse(base, themeId, budgetTier, mustVisit = [], anchors =
   const totalDays = Math.max(1, Math.floor(dayCount) || 1)
   const keywords = mustVisit.map((word) => word.trim()).filter(Boolean)
   const used = new Set()
-  const usesTransit = transport === '대중교통' || transport === '도보'
   // '발길따라' 테마이거나 교통편을 도보로 골랐으면, 실제로 걸어갈 수 있는 거리인지
   // (isWithinWalkLimit) 확인해 가며 장소를 잇는다 — 안 그러면 섬·외곽처럼 걸어서는
   // 갈 수 없는 곳이 같은 날 옆자리로 붙어서 "도보 40분"처럼 말도 안 되는 이동시간이 나온다.
@@ -382,7 +381,8 @@ export function buildCourse(base, themeId, budgetTier, mustVisit = [], anchors =
   // 사용자는 앱이 장소를 빠뜨린 것으로 오해한다.
 
   const notices = []
-  if (usesTransit && !cityHasTransit) {
+  // 도보는 지하철과 무관하고, 발길따라는 도보 고정이라 "자차를 고려해보세요"가 모순이 된다.
+  if (transport === '대중교통' && !cityHasTransit) {
     notices.push('이 도시는 지하철이 없어 대중교통만으로 다니기엔 제한적이에요. 자차를 고려해보세요.')
   }
   if (droppedForClosure) {
