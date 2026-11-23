@@ -10,6 +10,7 @@
 // ─────────────────────────────────────────────────────────────
 
 import { Icon } from './icons.jsx'
+import { RAIL_GRID } from './railGrid.js'
 
 export function AnchorCard({ anchor, position }) {
   if (!anchor?.name) return null
@@ -24,7 +25,9 @@ export function AnchorCard({ anchor, position }) {
       : '마지막 일정을 마치고 출발지로 돌아와요'
 
   return (
-    <div className="tw-grid tw-grid-cols-[32px_minmax(0,1fr)] tw-gap-3">
+    <div className={RAIL_GRID}>
+      {/* 출발지에서 첫 장소까지의 이동은 아직 계산하지 않아, 출발·복귀 시각은 비워 둔다. */}
+      <span aria-hidden="true" />
       <div className="tw-flex tw-flex-col tw-items-center">
         <div className="tw-grid tw-h-7 tw-w-7 tw-place-items-center tw-rounded-full tw-border tw-border-cline tw-bg-surface-2 tw-text-cink-muted">
           <Icon name={icon} size={14} stroke={2.2} />

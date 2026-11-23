@@ -154,9 +154,9 @@ export function useCourseBuilder({
         bestTime: place.assignedSlot,
         // 사용자가 직접 적은 "꼭 가고 싶은 곳"인지 — 타임라인 카드에 배지로 표시된다.
         mustVisit: Boolean(place.mustVisit),
-        timeRange: Number.isFinite(place.arriveMin)
-          ? `${formatClock(place.arriveMin)} – ${formatClock(place.departMin)}`
-          : '',
+        // 타임라인 세로 선 옆에 찍는 도착·떠나는 시각 ("10:00" / "~11:30").
+        arrive: Number.isFinite(place.arriveMin) ? formatClock(place.arriveMin) : '',
+        depart: Number.isFinite(place.departMin) ? formatClock(place.departMin) : '',
         image: resolveImageUrl(place.imageUrl),
         // 딥데이터(별점·리뷰수·한줄요약·홈페이지)는 지금은 맛집·카페(Google 소스)만 값이 있다.
         rating: place.rating ?? null,
