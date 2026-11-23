@@ -6,6 +6,7 @@
 // ─────────────────────────────────────────────────────────────
 
 import { Icon } from './icons.jsx'
+import { RAIL_GRID } from './railGrid.js'
 
 export function RouteBadge({ route }) {
   if (!route) return null
@@ -13,7 +14,8 @@ export function RouteBadge({ route }) {
   const icon = walk ? 'walk' : route.mode === 'car' ? 'car' : 'bus'
   const text = [route.line, route.duration, route.fare].filter(Boolean).join(' · ')
   return (
-    <div className="tw-grid tw-grid-cols-[32px_minmax(0,1fr)] tw-items-center tw-gap-3">
+    <div className={`${RAIL_GRID} tw-items-center`}>
+      <span aria-hidden="true" />
       <div className="tw-flex tw-justify-center">
         <span className={`tw-grid tw-h-7 tw-w-7 tw-place-items-center tw-rounded-full tw-border ${
           walk ? 'tw-border-cwalk/30 tw-bg-cwalk-soft tw-text-cwalk' : 'tw-border-croute/25 tw-bg-croute-soft tw-text-croute'

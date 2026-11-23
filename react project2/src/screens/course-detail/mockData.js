@@ -8,13 +8,13 @@
 export const MOCK_DAY = { no: 1, date: '9월 12일 (토)', region: '강릉' }
 
 export const MOCK_PLACES = [
-  { id: 'p1', order: 1, name: '오죽헌', kind: 'history', bestTime: '오전', timeRange: '09:00 – 11:30',
+  { id: 'p1', order: 1, name: '오죽헌', kind: 'history', bestTime: '오전', arrive: '09:00', depart: '11:30',
     desc: '신사임당과 율곡 이이의 생가.', tip: '아침 공기가 상쾌하고 덜 붐비는 시간대예요.', coord: { x: 150, y: 92 } },
-  { id: 'p2', order: 2, name: '초당 순두부 마을', kind: 'restaurant', bestTime: '점심', timeRange: '12:00 – 13:30',
+  { id: 'p2', order: 2, name: '초당 순두부 마을', kind: 'restaurant', bestTime: '점심', arrive: '12:00', depart: '13:30',
     desc: '고소한 초당 순두부 정식.', tip: '웨이팅이 길면 포장도 좋아요.', coord: { x: 214, y: 208 } },
-  { id: 'p3', order: 3, name: '허균·허난설헌 기념공원', kind: 'nature', bestTime: '오후', timeRange: '13:45 – 15:00',
+  { id: 'p3', order: 3, name: '허균·허난설헌 기념공원', kind: 'nature', bestTime: '오후', arrive: '13:45', depart: '15:00',
     desc: '울창한 소나무 숲길 산책.', tip: '입장은 무료예요.', coord: { x: 246, y: 298 } },
-  { id: 'p4', order: 4, name: '경포 해변', kind: 'nature', bestTime: '저녁', timeRange: '15:45 – 17:30',
+  { id: 'p4', order: 4, name: '경포 해변', kind: 'nature', bestTime: '저녁', arrive: '15:45', depart: '17:30',
     desc: '동해 바다 풍경과 모래사장.', tip: '노을 절정은 18:40 무렵.', coord: { x: 300, y: 370 } },
 ]
 

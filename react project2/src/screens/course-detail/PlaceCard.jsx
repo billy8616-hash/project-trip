@@ -9,6 +9,7 @@
 import { useState } from 'react'
 import { Icon, StarIcon } from './icons.jsx'
 import { kindStyle } from './kindStyle.js'
+import { RAIL_GRID } from './railGrid.js'
 import { websiteMeta } from './websiteMeta.js'
 
 /* 썸네일 — 종류 색 자리표시 타일 위에 사진을 덮는다.
@@ -54,7 +55,26 @@ export function PlaceCard({ place, isFirst, isLast, isActive, onPick, onMoveUp, 
   }
 
   return (
-    <div id={`course-place-${place.id}`} className="tw-grid tw-grid-cols-[32px_minmax(0,1fr)] tw-gap-3">
+    <div id={`course-place-${place.id}`} className={RAIL_GRID}>
+      {/* 선 왼쪽 시각 열 — 세로 선만 훑어 내려도 그날 몇 시에 어디 있는지 읽히게 한다.
+          도착 시각을 번호 마커와 같은 높이에 맞추려고, 옆 칸의 "위로" 버튼 자리만큼 먼저 비워 둔다. */}
+      <div className="tw-text-right tw-tabular-nums">
+        {onMoveUp && !isFirst && <div aria-hidden="true" className="tw-mb-1.5 tw-mt-2 tw-h-6" />}
+        {place.arrive && (
+          <>
+            <p className="tw-text-[13px] tw-font-bold tw-leading-7 tw-text-cink">
+              {place.arrive}<span className="tw-sr-only"> 도착</span>
+            </p>
+            {place.depart && (
+              <p className="tw-text-[11px] tw-font-medium tw-leading-tight tw-text-cink-faint">
+                <span aria-hidden="true">~{place.depart}</span>
+                <span className="tw-sr-only">{place.depart}까지</span>
+              </p>
+            )}
+          </>
+        )}
+      </div>
+
       {/* 순번 마커 + 위/아래 이동 버튼 + 세로 연결선. 이 칼럼은 옆의 role="button" 카드와
           형제 요소라서, 카드 클릭(펼침/접힘)과 겹치지 않고 독립적으로 누를 수 있다.
           위로 버튼은 위 칸의 이동수단 배지 바로 밑에서 시작되는 자리라, mt(위쪽 여백)를 넉넉히
@@ -151,8 +171,6 @@ export function PlaceCard({ place, isFirst, isLast, isActive, onPick, onMoveUp, 
                 </span>
               </div>
             </div>
-
-            {place.timeRange && <p className="tw-mt-1 tw-text-xs tw-text-cink-faint tw-tabular-nums">{place.timeRange}</p>}
 
             {/* CSS grid-rows 트릭으로 높이를 0↔1fr 로 트랜지션 — 내용이 아래로 펼쳐지는 애니메이션 */}
             <div
