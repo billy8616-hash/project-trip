@@ -29,10 +29,21 @@ export const SLOT_LABELS = ['오전', '점심 맛집', '오후 카페', '저녁'
 
 // 여행지를 고른 뒤 슬라이드로 펼쳐지는 여행 테마 목록.
 // color는 테마 칩 강조색이자, FootprintTrail 배경이 고른 테마에 맞춰 물드는 색이다.
+// fixedTransport가 있는 테마는 사용자가 고른 교통편 대신 그 값으로 코스를 짠다.
 export const journeyThemes = [
-  { id: 'step', label: '발길따라', desc: '발길 닿는 대로, 느긋하게 걷는 하루', icon: 'leaf', color: '#c8702a' },
+  { id: 'step', label: '발길따라', desc: '발길 닿는 대로, 느긋하게 걷는 하루', icon: 'leaf', color: '#c8702a', fixedTransport: '도보' },
   { id: 'mood', label: '감성따라', desc: '분위기 좋은 골목과 카페 위주로', icon: 'heart', color: '#b8677a' },
   { id: 'sns', label: 'SNS따라', desc: '사진 잘 나오는 인기 스팟 중심으로', icon: 'pin', color: '#cf9a3e' },
   { id: 'view', label: '풍경따라', desc: '바다·산·노을, 풍경이 좋은 곳으로', icon: 'family', color: '#6f8f6a' },
   { id: 'food', label: '맛집따라', desc: '현지 맛집과 먹거리 위주로', icon: 'fork', color: '#b5502e' },
 ]
+
+// 테마가 교통편을 정해 두었으면 그 값, 아니면 null. 교통편 고정 규칙은 여기 한 곳에서만 읽는다.
+export function fixedTransportOf(themeId) {
+  return journeyThemes.find((item) => item.id === themeId)?.fixedTransport || null
+}
+
+// 실제로 코스에 쓰는 교통편: 테마가 정한 값이 있으면 그것, 없으면 사용자가 고른 값.
+export function effectiveTransport(themeId, picked) {
+  return fixedTransportOf(themeId) || picked
+}

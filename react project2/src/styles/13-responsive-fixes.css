@@ -17,6 +17,9 @@
 @media (max-width: 900px) {
   .nav-links {
     flex-wrap: wrap;
+    /* 줄바꿈되므로 가로 스크롤이 필요 없다. 03·07 의 overflow-x: auto 가 남아 있으면 활성 메뉴
+       장식이 10px 넘쳐서 메뉴 아래에 스크롤바가 항상 보인다. */
+    overflow: visible;
   }
 }
 

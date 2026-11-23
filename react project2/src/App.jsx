@@ -33,7 +33,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import SignupScreen from './SignupScreen.jsx'
-import { budgets, journeyThemes, SLOT_LABELS } from './data/travelOptions.js'
+import { budgets, fixedTransportOf, journeyThemes, SLOT_LABELS } from './data/travelOptions.js'
 import { allDestinations, destinationCatalog, destinationGroups } from './data/destinations.js'
 import { buildCourse } from './lib/course.js'
 import { formatClock, scheduleDay } from './lib/schedule.js'
@@ -169,6 +169,7 @@ function App() {
     budget,
     setBudget,
     transport,
+    pickedTransport,
     setTransport,
     style,
     mustVisit,
@@ -202,7 +203,8 @@ function App() {
         pickedDestination,
         journeyTheme,
         budget,
-        transport,
+        // 새로고침 복원용이라 테마가 덮어쓴 값이 아니라 사용자가 고른 값을 남긴다.
+        transport: pickedTransport,
         style,
         tripStartDate,
         tripEndDate,
@@ -225,7 +227,7 @@ function App() {
     pickedDestination,
     journeyTheme,
     budget,
-    transport,
+    pickedTransport,
     style,
     tripStartDate,
     tripEndDate,
@@ -1025,6 +1027,7 @@ function App() {
             moveLabel={transport}
             transport={transport}
             onChangeTransport={setTransport}
+            transportLocked={Boolean(fixedTransportOf(journeyTheme))}
             onZoomIn={() => zoomMap(-1)}
             onZoomOut={() => zoomMap(1)}
             onRecenter={recenterMap}

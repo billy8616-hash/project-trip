@@ -87,7 +87,8 @@
    따로 스크롤 상자를 두지 않는다). 지도는 CourseDetail 쪽에서 sticky 로 고정해
    목록이 길어져도 지도만 따라 커지지 않게 한다. */
 .app-stage.stage-course {
-  width: 100vw;
+  /* 100vw 는 세로 스크롤바 폭까지 포함해서, 코스 화면(항상 길다)에서 오른쪽 15px 가 잘렸다. */
+  width: 100%;
   max-width: none;
   min-height: 100vh;
   margin: 0;

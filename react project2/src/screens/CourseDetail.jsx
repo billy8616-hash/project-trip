@@ -44,6 +44,7 @@ export default function CourseDetail({
   moveLabel,
   transport,
   onChangeTransport,
+  transportLocked = false,
   actions,
   onZoomIn,
   onZoomOut,
@@ -90,7 +91,7 @@ export default function CourseDetail({
           {/* 데스크톱에서만 지도를 lg:tw-p-4 만큼 안쪽으로 들이므로(카드처럼 여백을 두려고),
               화면 벽에 붙는 오버레이(이동수단 토글·저장/공유 버튼)도 같은 컨테이너 안에 둬야
               그 여백을 함께 받는다 — 밖에 두면 absolute 위치가 바깥 벽 기준으로 계산돼 여백 밖으로 삐져나온다. */}
-          <TransportToggle value={transport} onChange={onChangeTransport} />
+          <TransportToggle value={transport} onChange={onChangeTransport} locked={transportLocked} />
           <FloatingActions actions={actions} />
         </div>
       </div>
