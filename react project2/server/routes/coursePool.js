@@ -21,7 +21,7 @@ import { isCatalogCity } from '../cityRegion.js'
 import { searchCafes, searchRestaurants } from '../kakaoLocal.js'
 import { enrichPlaces } from '../placeEnrich.js'
 import { fetchGoogleHoursMany, googlePhotoPath } from '../googlePlaces.js'
-import { findCachedByIds, findCityPool, markHoursFetched, toPoolPlace, updatePlaceImages, upsertPlaces } from '../placeCache.js'
+import { findCachedByIds, findCityPool, toPoolPlace, updatePlaceImages, updatePlaces, upsertPlaces } from '../placeCache.js'
 import { fetchPlaceDetailsMany, searchAttractions, searchCultureSpots } from '../tourApi.js'
 import { fetchTransitAccessMany } from '../transit.js'
 
@@ -133,6 +133,24 @@ function hoursFromRow(row) {
     editorialSummary: row.editorialSummary,
     websiteUrl: row.websiteUrl,
     photoRef: null, // 사진은 imageUrl 로 이미 저장돼 있어 다시 만들 필요가 없다.
+  }
+}
+
+// hoursFromRow 의 반대 방향: Google 응답을 PlaceCache 칼럼 모양으로. (사진 보강이 받은 정보를 버리지 않고 저장하는 데 쓴다.)
+function columnsFromGoogle(info) {
+  return {
+    openHoursText: info.openHoursText || null,
+    closedDayText: info.closedDayText || null,
+    opensAt: info.opensAt ?? null,
+    closesAt: info.closesAt ?? null,
+    alwaysOpen: info.alwaysOpen ?? false,
+    closedWeekdays: JSON.stringify(info.closedWeekdays || []),
+    feeText: info.feeText || '',
+    costTier: info.costTier || '',
+    rating: info.rating ?? null,
+    userRatingCount: info.userRatingCount ?? null,
+    editorialSummary: info.editorialSummary ?? null,
+    websiteUrl: info.websiteUrl ?? null,
   }
 }
 
@@ -320,19 +338,33 @@ async function backfillCityImages(cityKey, rows) {
   ])
 
   const tourImageById = new Map(tourPlaces.filter((place) => place.image).map((place) => [place.id, place.image]))
-  const updates = missing
-    .map((row) => ({
-      id: row.id,
-      imageUrl: tourImageById.get(row.id) || googlePhotoPath(googleByPlaceId.get(row.id)?.photoRef) || null,
-    }))
+  const tourUpdates = tourRows
+    .map((row) => ({ id: row.id, imageUrl: tourImageById.get(row.id) || null }))
     .filter((update) => update.imageUrl)
 
-  if (updates.length > 0) await updatePlaceImages(updates)
-  // Google 이 아무것도 못 찾은 장소만 "조회해 봤다"고 남겨 다음 재시도를 늦춘다.
-  // 찾았는데 사진만 없는 장소까지 남기면, 이 보강이 영업시간은 저장하지 않으므로
-  // 본 갱신이 그 장소의 영업시간을 30일간 다시 받지 않게 된다.
-  await markHoursFetched(kakaoRows.filter((row) => !googleByPlaceId.get(row.id)).map((row) => row.id))
-  console.log(`[course-pool images] ${cityKey}: ${updates.length}/${missing.length}곳 사진 보강 (Google 조회 ${kakaoRows.length}곳)`)
+  // 카카오(맛집·카페) 장소는 Google 이 실제로 답한 것만 저장한다.
+  //   찾음      사진뿐 아니라 이미 유료로 받은 영업시간·별점도 함께 저장하고 조회 시각을 남긴다.
+  //            (사진만 저장하고 나머지를 버리면 본 갱신이 같은 정보를 또 사 오고, 사진 없는 곳은 매번 다시 부르게 된다.)
+  //   못 찾음   조회 시각만 남겨 다음 재시도를 늦춘다.
+  //   호출 실패/키 없음  Map 에 없으므로 아무것도 기록하지 않는다 — 일시 장애를 "없는 가게"로 굳히지 않는다.
+  const now = new Date()
+  const kakaoUpdates = []
+  for (const row of kakaoRows) {
+    if (!googleByPlaceId.has(row.id)) continue
+    const info = googleByPlaceId.get(row.id)
+    const data = { hoursFetchedAt: now }
+    if (info) {
+      Object.assign(data, columnsFromGoogle(info))
+      const photo = googlePhotoPath(info.photoRef)
+      if (photo) data.imageUrl = photo
+    }
+    kakaoUpdates.push({ id: row.id, data })
+  }
+
+  if (tourUpdates.length > 0) await updatePlaceImages(tourUpdates)
+  await updatePlaces(kakaoUpdates)
+  const imageCount = tourUpdates.length + kakaoUpdates.filter((update) => update.data.imageUrl).length
+  console.log(`[course-pool images] ${cityKey}: ${imageCount}/${missing.length}곳 사진 보강 (Google 조회 ${kakaoRows.length}곳, 기록 ${kakaoUpdates.length}곳)`)
 }
 
 // 사진 보강은 도시마다 서버가 켜져 있는 동안 한 번만 한다. 끝까지 사진을 못 찾는 장소(Google 에 없는

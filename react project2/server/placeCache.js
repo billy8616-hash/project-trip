@@ -71,10 +71,10 @@ export async function updatePlaceImages(updates) {
   )
 }
 
-// 사진 보강이 Google 을 조회해 본 시각을 기록한다(찾았든 못 찾았든). updates: [{ id }]
-export async function markHoursFetched(ids) {
-  if (ids.length === 0) return
-  await prisma.placeCache.updateMany({ where: { id: { in: ids } }, data: { hoursFetchedAt: new Date() } })
+// 행마다 다른 값으로 한 번에 갱신한다. updates: [{ id, data }]
+export async function updatePlaces(updates) {
+  if (updates.length === 0) return
+  await prisma.$transaction(updates.map((update) => prisma.placeCache.update({ where: { id: update.id }, data: update.data })))
 }
 
 // closedWeekdays 는 "[1]" 같은 JSON 배열 문자열로 저장돼 있다. 깨졌거나 비어있으면 빈 배열.

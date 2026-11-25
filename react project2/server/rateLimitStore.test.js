@@ -10,6 +10,9 @@ describe('UpstashStore', () => {
   it('환경변수가 없으면 공유 저장소를 켜지 않는다', async () => {
     vi.stubEnv('UPSTASH_REDIS_REST_URL', '')
     vi.stubEnv('UPSTASH_REDIS_REST_TOKEN', '')
+    vi.stubEnv('KV_REST_API_URL', '') // 개발자 환경에 KV_* 가 있어도 깨지지 않게
+    vi.stubEnv('KV_REST_API_TOKEN', '')
+    vi.spyOn(console, 'log').mockImplementation(() => {})
     const { sharedRateLimitEnabled } = await import('./rateLimitStore.js')
     expect(sharedRateLimitEnabled).toBe(false)
   })

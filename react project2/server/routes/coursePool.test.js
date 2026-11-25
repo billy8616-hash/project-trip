@@ -14,7 +14,7 @@ const m = vi.hoisted(() => ({
   findCityPool: vi.fn(),
   upsertPlaces: vi.fn(),
   updatePlaceImages: vi.fn(),
-  markHoursFetched: vi.fn(),
+  updatePlaces: vi.fn(),
 }))
 
 vi.mock('../tourApi.js', () => ({
@@ -34,7 +34,7 @@ vi.mock('../placeCache.js', () => ({
   findCityPool: m.findCityPool,
   upsertPlaces: m.upsertPlaces,
   updatePlaceImages: m.updatePlaceImages,
-  markHoursFetched: m.markHoursFetched,
+  updatePlaces: m.updatePlaces,
   toPoolPlace: (row) => ({ name: row.name }),
 }))
 
@@ -117,7 +117,13 @@ describe('사진 보강: Google 호출 상한과 시도 기록', () => {
   const kakaoRow = (n, extra = {}) => ({
     id: `kakao-${n}`, source: 'kakao', imageUrl: null, hoursFetchedAt: null, name: `가게${n}`, address: '', lat: 37, lng: 127, ...extra,
   })
+  const found = (extra = {}) => ({
+    openHoursText: '매일 10:00~20:00', closedDayText: null, opensAt: 600, closesAt: 1200, alwaysOpen: false,
+    closedWeekdays: [], feeText: '보통', costTier: 'mid', rating: 4.5, userRatingCount: 120,
+    editorialSummary: null, websiteUrl: null, photoRef: null, ...extra,
+  })
 
+  // 백그라운드 보강이 끝날 때까지 기다린다(보강은 응답 뒤에 돈다).
   async function triggerBackfill(city, rows) {
     m.findCityPool.mockResolvedValue({ rows, stale: false })
     const app = express()
@@ -125,11 +131,12 @@ describe('사진 보강: Google 호출 상한과 시도 기록', () => {
     const server = app.listen(0)
     try {
       await fetch(`http://127.0.0.1:${server.address().port}/api/course-pool?city=${encodeURIComponent(city)}`)
-      await vi.waitFor(() => expect(m.markHoursFetched).toHaveBeenCalled(), { timeout: 2000 })
+      await vi.waitFor(() => expect(m.updatePlaces).toHaveBeenCalled(), { timeout: 2000 })
     } finally {
       server.close()
     }
   }
+  const savedById = () => Object.fromEntries(m.updatePlaces.mock.calls[0][0].map((u) => [u.id, u.data]))
 
   it('한 번에 최대 60곳만 Google 에 묻는다', async () => {
     m.fetchGoogleHoursMany.mockResolvedValue(new Map())
@@ -137,17 +144,58 @@ describe('사진 보강: Google 호출 상한과 시도 기록', () => {
     expect(m.fetchGoogleHoursMany.mock.calls[0][0]).toHaveLength(60)
   })
 
-  it('7일 안에 이미 물어본 장소는 건너뛰고, 못 찾은 장소만 시도 기록을 남긴다', async () => {
+  it('7일 안에 이미 물어본 장소는 건너뛴다', async () => {
     const recent = kakaoRow(1, { hoursFetchedAt: new Date(Date.now() - 2 * day) })
     const old = kakaoRow(2, { hoursFetchedAt: new Date(Date.now() - 10 * day) })
-    const fresh = kakaoRow(3)
-    m.fetchGoogleHoursMany.mockResolvedValue(new Map([['kakao-2', { photoRef: 'places/a/photos/b' }]]))
-
-    await triggerBackfill('제주', [recent, old, fresh])
-
+    m.fetchGoogleHoursMany.mockResolvedValue(new Map([['kakao-2', null]]))
+    await triggerBackfill('제주', [recent, old, kakaoRow(3)])
     expect(m.fetchGoogleHoursMany.mock.calls[0][0].map((r) => r.id).sort()).toEqual(['kakao-2', 'kakao-3'])
-    // kakao-2 는 Google 이 찾았으니(영업시간을 아직 저장하지 않았으므로) 기록하지 않고, 못 찾은 kakao-3 만 기록한다.
-    expect(m.markHoursFetched).toHaveBeenCalledWith(['kakao-3'])
-    expect(m.updatePlaceImages).toHaveBeenCalledWith([{ id: 'kakao-2', imageUrl: '/api/place-photo?ref=places/a/photos/b' }])
+  })
+
+  it('Google 이 정상 응답으로 못 찾은 장소(null)는 조회 시각만 남긴다', async () => {
+    m.fetchGoogleHoursMany.mockResolvedValue(new Map([['kakao-1', null]]))
+    await triggerBackfill('대구', [kakaoRow(1)])
+    const data = savedById()['kakao-1']
+    expect(Object.keys(data)).toEqual(['hoursFetchedAt'])
+  })
+
+  it('호출이 실패한 장소(Map 에 없음)는 아무것도 기록하지 않는다 — 일시 장애를 "없는 가게"로 굳히지 않는다', async () => {
+    m.fetchGoogleHoursMany.mockResolvedValue(new Map([['kakao-2', null]])) // kakao-1 은 실패해서 빠짐
+    await triggerBackfill('광주', [kakaoRow(1), kakaoRow(2)])
+    expect(Object.keys(savedById())).toEqual(['kakao-2'])
+  })
+
+  it('API 키가 없어 Map 이 비면 아무 장소도 기록하지 않는다', async () => {
+    m.fetchGoogleHoursMany.mockResolvedValue(new Map())
+    m.findCityPool.mockResolvedValue({ rows: [kakaoRow(1), kakaoRow(2)], stale: false })
+    const app = express()
+    app.use(router)
+    const server = app.listen(0)
+    try {
+      await fetch(`http://127.0.0.1:${server.address().port}/api/course-pool?city=${encodeURIComponent('대전')}`)
+      await vi.waitFor(() => expect(m.fetchGoogleHoursMany).toHaveBeenCalled(), { timeout: 2000 })
+      await new Promise((resolve) => setTimeout(resolve, 50))
+    } finally {
+      server.close()
+    }
+    expect(m.updatePlaces).toHaveBeenCalledWith([]) // 기록할 것이 없다
+  })
+
+  it('찾았으면 사진과 함께 이미 받은 영업시간·별점도 저장한다(사진이 없어도)', async () => {
+    m.fetchGoogleHoursMany.mockResolvedValue(
+      new Map([
+        ['kakao-1', found({ photoRef: 'places/a/photos/b' })],
+        ['kakao-2', found()], // 찾았지만 사진 없음
+      ]),
+    )
+    await triggerBackfill('울산', [kakaoRow(1), kakaoRow(2)])
+    const saved = savedById()
+    expect(saved['kakao-1'].imageUrl).toBe('/api/place-photo?ref=places/a/photos/b')
+    expect(saved['kakao-1'].openHoursText).toBe('매일 10:00~20:00')
+    expect(saved['kakao-1'].rating).toBe(4.5)
+    expect(saved['kakao-1'].hoursFetchedAt).toBeInstanceOf(Date)
+    expect(saved['kakao-2'].imageUrl).toBeUndefined()
+    expect(saved['kakao-2'].openHoursText).toBe('매일 10:00~20:00')
+    expect(saved['kakao-2'].hoursFetchedAt).toBeInstanceOf(Date) // 사진이 없어도 기록돼 7일 가드가 적용된다
   })
 })

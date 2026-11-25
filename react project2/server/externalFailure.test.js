@@ -76,3 +76,55 @@ describe('지하철역 접근성 조회', () => {
     expect(await fetchTransitAccess(place)).toEqual({ transitStation: '강남역', transitDistanceM: 300, transitScore: 'good' })
   })
 })
+
+describe('Google Places 조회', () => {
+  async function loadGoogle(fetchImpl, key = 'gk') {
+    vi.stubEnv('GOOGLE_PLACES_API_KEY', key)
+    vi.stubGlobal('fetch', fetchImpl)
+    return import('./googlePlaces.js')
+  }
+  const places = [{ id: 'kakao-1', name: '가게', address: '서울', lat: 37.5, lng: 127.0 }]
+  const okBody = (placesList) => jsonResponse({ places: placesList })
+
+  it('정상 응답으로 결과가 없으면 null — Map 에 null 로 들어간다', async () => {
+    const { fetchGoogleHoursMany } = await loadGoogle(async () => okBody([]))
+    const map = await fetchGoogleHoursMany(places)
+    expect(map.has('kakao-1')).toBe(true)
+    expect(map.get('kakao-1')).toBeNull()
+  })
+
+  it('호출이 실패하면(한도 초과·네트워크 오류) Map 에 아예 넣지 않는다', async () => {
+    const { fetchGoogleHoursMany } = await loadGoogle(async () => jsonResponse({ error: 'quota' }, false))
+    expect((await fetchGoogleHoursMany(places)).has('kakao-1')).toBe(false)
+
+    vi.resetModules()
+    const again = await loadGoogle(async () => {
+      throw new Error('timeout')
+    })
+    expect((await again.fetchGoogleHoursMany(places)).has('kakao-1')).toBe(false)
+  })
+
+  it('한 번은 실패하고 한 번은 정상 "결과 없음"이어도 없다고 단정하지 않는다', async () => {
+    let calls = 0
+    const { fetchGoogleHoursMany } = await loadGoogle(async () => (++calls === 1 ? jsonResponse({}, false) : okBody([])))
+    expect((await fetchGoogleHoursMany(places)).has('kakao-1')).toBe(false)
+  })
+
+  it('첫 검색이 실패해도 두 번째 검색이 찾으면 결과를 쓴다', async () => {
+    let calls = 0
+    const { fetchGoogleHoursMany } = await loadGoogle(async () =>
+      ++calls === 1 ? jsonResponse({}, false) : okBody([{ id: 'p', rating: 4.2, photos: [{ name: 'places/p/photos/x' }] }]),
+    )
+    const info = (await fetchGoogleHoursMany(places)).get('kakao-1')
+    expect(info.rating).toBe(4.2)
+    expect(info.photoRef).toBe('places/p/photos/x')
+  })
+
+  it('API 키가 없으면 빈 Map — 아무 장소도 "조회함"으로 보이지 않는다', async () => {
+    const fetchSpy = vi.fn()
+    const { fetchGoogleHoursMany } = await loadGoogle(fetchSpy, '')
+    const map = await fetchGoogleHoursMany(places)
+    expect(map.size).toBe(0)
+    expect(fetchSpy).not.toHaveBeenCalled()
+  })
+})
