@@ -30,7 +30,10 @@ async function ensureBucket() {
       fileSizeLimit: MAX_FILE_BYTES,
     })
     // 동시 요청이 먼저 만들어 버린 경우("already exists")는 실패로 보지 않는다.
-    if (error && !/already exists/i.test(error.message || '')) throw error
+    if (error && !/already exists/i.test(error.message || '')) {
+      console.error('[community-storage] 버킷 생성 실패', error)
+      throw new Error('사진 저장소를 준비하지 못했어요.')
+    }
   })()
   return bucketReady
 }

@@ -34,7 +34,7 @@ async function pipeline(commands) {
   return results.map((entry) => entry.result)
 }
 
-// express-rate-limit v8 의 Store 인터페이스. 고정 창(fixed window): 첫 요청 때 만료 시간을 걸고 INCR 로 센다.
+// express-rate-limit v8 의 Store 인터페이스. 고정 창(fixed window): INCR 로 세고, 창의 첫 요청에서만 만료 시간을 건다.
 export class UpstashStore {
   // prefix 로 한도마다 키를 나눈다 (예: 전체 200/분 과 course-pool 10/분 이 서로 섞이지 않게).
   constructor(prefix) {
@@ -54,9 +54,15 @@ export class UpstashStore {
 
   async increment(clientKey) {
     const key = this.key(clientKey)
-    // PEXPIRE ... NX: 아직 만료 시간이 없을 때(= 창의 첫 요청)만 건다. 그래야 창이 요청마다 밀리지 않는다.
-    const [totalHits, , ttl] = await pipeline([['INCR', key], ['PEXPIRE', key, this.windowMs, 'NX'], ['PTTL', key]])
-    const remaining = Number(ttl) > 0 ? Number(ttl) : this.windowMs
+    const [totalHits, ttl] = await pipeline([['INCR', key], ['PTTL', key]])
+    let remaining = Number(ttl)
+    // 창의 첫 요청(INCR 결과 1)이거나 만료가 없는 키(PTTL -1: 만료를 걸기 전에 끊긴 경우)면 지금 만료를 건다.
+    // 이미 만료가 걸린 키에는 다시 걸지 않아야 창이 요청마다 밀리지 않는다.
+    // (PEXPIRE ... NX 는 Redis 7+ 에서만 되므로 쓰지 않는다 — 어느 버전에서도 같은 동작.)
+    if (Number(totalHits) === 1 || !(remaining > 0)) {
+      await pipeline([['PEXPIRE', key, this.windowMs]])
+      remaining = this.windowMs
+    }
     return { totalHits: Number(totalHits), resetTime: new Date(Date.now() + remaining) }
   }
 

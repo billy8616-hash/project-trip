@@ -14,30 +14,62 @@ describe('UpstashStore', () => {
     expect(sharedRateLimitEnabled).toBe(false)
   })
 
-  it('INCR · PEXPIRE NX · PTTL 을 한 번에 보내고 totalHits/resetTime 을 돌려준다', async () => {
+  function mockFetch(responses) {
+    const calls = []
+    const fn = vi.fn(async (_url, init) => {
+      calls.push(JSON.parse(init.body))
+      return { ok: true, json: async () => responses.shift() }
+    })
+    vi.stubGlobal('fetch', fn)
+    return { fn, calls }
+  }
+
+  async function makeStore() {
     vi.stubEnv('UPSTASH_REDIS_REST_URL', 'https://example.upstash.io/')
     vi.stubEnv('UPSTASH_REDIS_REST_TOKEN', 'tok')
-    const fetchMock = vi.fn(async () => ({ ok: true, json: async () => [{ result: 3 }, { result: 0 }, { result: 42_000 }] }))
-    vi.stubGlobal('fetch', fetchMock)
-
-    const { UpstashStore, sharedRateLimitEnabled } = await import('./rateLimitStore.js')
-    expect(sharedRateLimitEnabled).toBe(true)
-
+    const { UpstashStore } = await import('./rateLimitStore.js')
     const store = new UpstashStore('api')
     store.init({ windowMs: 60_000 })
+    return store
+  }
+
+  it('창의 첫 요청이면 INCR · PTTL 뒤에 PEXPIRE 를 건다', async () => {
+    const { fn, calls } = mockFetch([[{ result: 1 }, { result: -1 }], [{ result: 1 }]])
+    const store = await makeStore()
     const before = Date.now()
     const { totalHits, resetTime } = await store.increment('1.2.3.4')
 
-    expect(totalHits).toBe(3)
+    expect(totalHits).toBe(1)
+    expect(resetTime.getTime() - before).toBeGreaterThanOrEqual(59_000)
+    expect(fn.mock.calls[0][0]).toBe('https://example.upstash.io/pipeline')
+    expect(fn.mock.calls[0][1].headers.Authorization).toBe('Bearer tok')
+    expect(calls[0]).toEqual([['INCR', 'rl:api:1.2.3.4'], ['PTTL', 'rl:api:1.2.3.4']])
+    expect(calls[1]).toEqual([['PEXPIRE', 'rl:api:1.2.3.4', 60000]])
+  })
+
+  it('창 도중의 요청은 만료를 다시 걸지 않고 남은 시간을 쓴다', async () => {
+    const { fn } = mockFetch([[{ result: 7 }, { result: 42_000 }]])
+    const store = await makeStore()
+    const before = Date.now()
+    const { totalHits, resetTime } = await store.increment('ip')
+
+    expect(totalHits).toBe(7)
     expect(resetTime.getTime() - before).toBeGreaterThanOrEqual(41_000)
-    const [url, init] = fetchMock.mock.calls[0]
-    expect(url).toBe('https://example.upstash.io/pipeline')
-    expect(init.headers.Authorization).toBe('Bearer tok')
-    expect(JSON.parse(init.body)).toEqual([
-      ['INCR', 'rl:api:1.2.3.4'],
-      ['PEXPIRE', 'rl:api:1.2.3.4', 60000, 'NX'],
-      ['PTTL', 'rl:api:1.2.3.4'],
-    ])
+    expect(resetTime.getTime() - before).toBeLessThan(43_000)
+    expect(fn).toHaveBeenCalledTimes(1)
+  })
+
+  it('만료 없이 남은 키(PTTL -1)는 다음 요청에서 만료를 걸어 복구한다', async () => {
+    const { calls } = mockFetch([[{ result: 5 }, { result: -1 }], [{ result: 1 }]])
+    const store = await makeStore()
+    await store.increment('ip')
+    expect(calls[1][0][0]).toBe('PEXPIRE')
+  })
+
+  it('파이프라인 안의 오류 항목도 예외로 올린다', async () => {
+    mockFetch([[{ error: 'ERR boom' }]])
+    const store = await makeStore()
+    await expect(store.increment('ip')).rejects.toThrow(/boom/)
   })
 
   it('Upstash 오류는 예외로 올려 보낸다(app.js 가 통과 처리)', async () => {

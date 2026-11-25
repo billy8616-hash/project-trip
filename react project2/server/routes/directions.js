@@ -80,7 +80,7 @@ router.get('/api/directions/car', async (req, res) => {
   try {
     routes = await Promise.all(chunkRoutePoints(points).map(fetchCarRoute))
   } catch (error) {
-    return res.status(502).json({ message: error.message })
+    return res.status(502).json({ message: publicMessage(error, '자동차 경로를 가져오지 못했어요.') })
   }
 
   const sections = routes.flatMap((route) => route.sections).map((section) => ({
