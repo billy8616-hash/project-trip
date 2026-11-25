@@ -21,7 +21,7 @@ import { isCatalogCity } from '../cityRegion.js'
 import { searchCafes, searchRestaurants } from '../kakaoLocal.js'
 import { enrichPlaces } from '../placeEnrich.js'
 import { fetchGoogleHoursMany, googlePhotoPath } from '../googlePlaces.js'
-import { findCachedByIds, findCityPool, toPoolPlace, updatePlaceImages, upsertPlaces } from '../placeCache.js'
+import { findCachedByIds, findCityPool, markHoursFetched, toPoolPlace, updatePlaceImages, upsertPlaces } from '../placeCache.js'
 import { fetchPlaceDetailsMany, searchAttractions, searchCultureSpots } from '../tourApi.js'
 import { fetchTransitAccessMany } from '../transit.js'
 
@@ -226,9 +226,17 @@ export async function buildCityPoolRows(cityKey) {
           enrichment.get(place.id) || cachedEnrichment.get(place.id) || { reason: '', caution: '', themes: [], budgetTiers: [] }
         const slots = Array.isArray(place.slots) && place.slots.length > 0 ? place.slots : [place.slot || '오전']
         const defaults = SLOT_DEFAULTS[slots[0]] || SLOT_DEFAULTS['오전']
-        const transit = transitByPlaceId.get(place.id) || { transitStation: null, transitDistanceM: null, transitScore: 'none' }
-        const detail = detailByPlaceId.get(place.id) || {}
         const cachedRow = cachedRows.get(place.id)
+        // 외부 조회가 실패하면(null) 지난번에 받아 둔 값을 그대로 쓴다. "정보 없음"으로 덮어쓰면
+        // 일시 장애 한 번에 영업시간·교통 정보가 지워진 채 7일간 굳는다. 캐시도 없으면 예전처럼 빈 값.
+        const transit =
+          transitByPlaceId.get(place.id) ||
+          (cachedRow
+            ? { transitStation: cachedRow.transitStation, transitDistanceM: cachedRow.transitDistanceM, transitScore: cachedRow.transitScore || 'none' }
+            : { transitStation: null, transitDistanceM: null, transitScore: 'none' })
+        const detail =
+          detailByPlaceId.get(place.id) ||
+          (place.source === 'tourapi' && cachedRow ? { ...hoursFromRow(cachedRow), parking: cachedRow.parking } : {})
         // 영업시간 출처: 카카오 장소는 Google Places, 관광지·문화시설은 TourAPI detailIntro2.
         // 이번에 Google 을 건너뛴 카카오 장소는 지난번에 받아 DB 에 넣어둔 값을 그대로 쓴다.
         const googleHours = googleHoursByPlaceId.get(place.id)
@@ -285,12 +293,22 @@ export async function buildCityPoolRows(cityKey) {
 // 사진 칼럼이 생기기 전에 캐시된 장소들을 위한 보강.
 // 풀 전체를 다시 만들면 Gemini·상세조회까지 또 돌아가니, 사진만 따로 채워 넣는다.
 // (관광지·문화시설은 도시 검색 2번으로 전부 커버되고, 맛집·카페만 장소 단위로 조회한다.)
+// 사진을 못 찾은 카카오 장소를 Google 에 다시 물어보기까지의 간격.
+const BACKFILL_RETRY_MS = 7 * 24 * 60 * 60 * 1000
+
 async function backfillCityImages(cityKey, rows) {
   const missing = rows.filter((row) => !row.imageUrl)
   if (missing.length === 0) return
 
   const tourRows = missing.filter((row) => row.source === 'tourapi')
-  const kakaoRows = missing.filter((row) => row.source === 'kakao')
+  // 사진이 없는 카카오 장소 중 Google 을 "최근에 이미 조회해 본" 곳은 건너뛴다. 끝까지 사진을 못 찾는 장소는
+  // imageUrl 이 영원히 비어 있어서, 이 기록이 없으면 서버가 새로 뜰 때마다(서버리스는 수시로) 같은 유료 호출을 반복한다.
+  // 한 번에 부르는 수에도 상한을 둔다 — 본 갱신(GOOGLE_LIMIT_PER_RUN)과 같은 이유다.
+  const kakaoRows = missing
+    .filter((row) => row.source === 'kakao')
+    .filter((row) => !row.hoursFetchedAt || Date.now() - new Date(row.hoursFetchedAt).getTime() > BACKFILL_RETRY_MS)
+    .sort((a, b) => (a.hoursFetchedAt ? new Date(a.hoursFetchedAt).getTime() : 0) - (b.hoursFetchedAt ? new Date(b.hoursFetchedAt).getTime() : 0))
+    .slice(0, GOOGLE_LIMIT_PER_RUN)
 
   const [tourPlaces, googleByPlaceId] = await Promise.all([
     tourRows.length === 0
@@ -310,7 +328,11 @@ async function backfillCityImages(cityKey, rows) {
     .filter((update) => update.imageUrl)
 
   if (updates.length > 0) await updatePlaceImages(updates)
-  console.log(`[course-pool images] ${cityKey}: ${updates.length}/${missing.length}곳 사진 보강`)
+  // Google 이 아무것도 못 찾은 장소만 "조회해 봤다"고 남겨 다음 재시도를 늦춘다.
+  // 찾았는데 사진만 없는 장소까지 남기면, 이 보강이 영업시간은 저장하지 않으므로
+  // 본 갱신이 그 장소의 영업시간을 30일간 다시 받지 않게 된다.
+  await markHoursFetched(kakaoRows.filter((row) => !googleByPlaceId.get(row.id)).map((row) => row.id))
+  console.log(`[course-pool images] ${cityKey}: ${updates.length}/${missing.length}곳 사진 보강 (Google 조회 ${kakaoRows.length}곳)`)
 }
 
 // 사진 보강은 도시마다 서버가 켜져 있는 동안 한 번만 한다. 끝까지 사진을 못 찾는 장소(Google 에 없는

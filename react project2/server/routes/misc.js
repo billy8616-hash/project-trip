@@ -11,7 +11,7 @@ import { isPhotoRef, resolveGooglePhotoUri } from '../googlePlaces.js'
 import { isCatalogCity } from '../cityRegion.js'
 import { getCityThumbnails } from '../tourApi.js'
 import { getCityTrends } from '../naverTrend.js'
-import { fetchCurrentWeather, fetchForecast } from '../weather.js'
+import { fetchCurrentWeather, fetchForecast, parseCoordinate, validateForecastRange } from '../weather.js'
 
 export const router = express.Router()
 
@@ -107,9 +107,9 @@ router.get('/api/geocode', async (req, res) => {
 
 // 코스 화면 상단에 보여줄 현재 날씨 하나 (OpenWeatherMap).
 router.get('/api/weather', async (req, res) => {
-  const lat = Number(req.query.lat)
-  const lng = Number(req.query.lng)
-  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+  const lat = parseCoordinate(req.query.lat, 90)
+  const lng = parseCoordinate(req.query.lng, 180)
+  if (lat === null || lng === null) {
     return res.status(400).json({ message: 'lat, lng 파라미터가 필요해요.' })
   }
 
@@ -121,20 +121,17 @@ router.get('/api/weather', async (req, res) => {
   }
 })
 
-const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/
-
 // 날짜 선택 화면에서 여행 기간 전체의 날씨 예보를 미리 보여주기 위한 엔드포인트.
 router.get('/api/weather/forecast', async (req, res) => {
-  const lat = Number(req.query.lat)
-  const lng = Number(req.query.lng)
+  const lat = parseCoordinate(req.query.lat, 90)
+  const lng = parseCoordinate(req.query.lng, 180)
   const start = String(req.query.start || '')
   const end = String(req.query.end || '')
-  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+  if (lat === null || lng === null) {
     return res.status(400).json({ message: 'lat, lng 파라미터가 필요해요.' })
   }
-  if (!DATE_PATTERN.test(start) || !DATE_PATTERN.test(end) || start > end) {
-    return res.status(400).json({ message: 'start, end 날짜(YYYY-MM-DD)가 필요해요.' })
-  }
+  const rangeError = validateForecastRange(start, end)
+  if (rangeError) return res.status(400).json({ message: rangeError })
 
   try {
     const days = await fetchForecast(lat, lng, start, end)

@@ -14,6 +14,32 @@ describe('UpstashStore', () => {
     expect(sharedRateLimitEnabled).toBe(false)
   })
 
+  it('Vercel 연동 이름(KV_REST_API_URL/TOKEN)도 인식한다', async () => {
+    vi.stubEnv('UPSTASH_REDIS_REST_URL', '')
+    vi.stubEnv('UPSTASH_REDIS_REST_TOKEN', '')
+    vi.stubEnv('KV_REST_API_URL', 'https://kv.example.upstash.io')
+    vi.stubEnv('KV_REST_API_TOKEN', 'kvtok')
+    vi.spyOn(console, 'log').mockImplementation(() => {})
+    const fn = vi.fn(async () => ({ ok: true, json: async () => [{ result: 1 }, { result: 1000 }] }))
+    vi.stubGlobal('fetch', fn)
+    const { UpstashStore, sharedRateLimitEnabled } = await import('./rateLimitStore.js')
+    expect(sharedRateLimitEnabled).toBe(true)
+    await new UpstashStore('api').increment('ip')
+    expect(fn.mock.calls[0][0]).toBe('https://kv.example.upstash.io/pipeline')
+    expect(fn.mock.calls[0][1].headers.Authorization).toBe('Bearer kvtok')
+  })
+
+  it('URL 과 TOKEN 중 하나만 있으면 켜지 않고 경고한다', async () => {
+    vi.stubEnv('UPSTASH_REDIS_REST_URL', 'https://example.upstash.io')
+    vi.stubEnv('UPSTASH_REDIS_REST_TOKEN', '')
+    vi.stubEnv('KV_REST_API_URL', '')
+    vi.stubEnv('KV_REST_API_TOKEN', '')
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const { sharedRateLimitEnabled } = await import('./rateLimitStore.js')
+    expect(sharedRateLimitEnabled).toBe(false)
+    expect(warn).toHaveBeenCalled()
+  })
+
   function mockFetch(responses) {
     const calls = []
     const fn = vi.fn(async (_url, init) => {

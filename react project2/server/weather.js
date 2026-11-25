@@ -26,6 +26,35 @@ const EMOJI_BY_MAIN = {
   Haze: '🌫️',
 }
 
+// ── 입력 검증 ────────────────────────────────────────────────
+// 인증 없이 열려 있는 엔드포인트라, 형식만 맞는 값(예: 0001-01-01~9999-12-31)이 들어와도
+// 서버가 수백만 번 반복하거나 OpenWeather 를 헛되이 부르지 않도록 여기서 막는다.
+
+// 여행은 최대 30일(저장 상한과 동일)이므로 예보 구간은 양 끝 포함 31일까지만 받는다.
+export const MAX_FORECAST_DAYS = 31
+
+// 쿼리값 -> 좌표 숫자 | null. 빈 문자열(Number('') === 0)과 지구 밖 값을 걸러낸다.
+export function parseCoordinate(raw, limit) {
+  if (typeof raw !== 'string' || raw.trim() === '') return null
+  const value = Number(raw)
+  return Number.isFinite(value) && Math.abs(value) <= limit ? value : null
+}
+
+// "2026-02-31" 같이 모양만 맞고 달력에 없는 날짜는 JS 가 3월 3일로 보정해 버리므로, 되돌려 비교한다.
+function isRealDate(text) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) return false
+  const date = new Date(`${text}T00:00:00Z`)
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === text
+}
+
+// 문제가 있으면 사용자에게 보여 줄 문구, 없으면 null.
+export function validateForecastRange(start, end) {
+  if (!isRealDate(start) || !isRealDate(end) || start > end) return 'start, end 날짜(YYYY-MM-DD)가 필요해요.'
+  const days = Math.round((Date.parse(`${end}T00:00:00Z`) - Date.parse(`${start}T00:00:00Z`)) / 86_400_000) + 1
+  if (days > MAX_FORECAST_DAYS) return `예보는 최대 ${MAX_FORECAST_DAYS}일까지만 조회할 수 있어요.`
+  return null
+}
+
 export async function fetchCurrentWeather(lat, lng) {
   if (!openWeatherApiKey) throw new Error('OPENWEATHER_API_KEY가 설정되지 않았어요.')
 

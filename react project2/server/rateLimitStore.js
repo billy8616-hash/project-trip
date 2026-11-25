@@ -15,10 +15,17 @@
 
 import { timeoutSignal } from './concurrency.js'
 
-const REST_URL = (process.env.UPSTASH_REDIS_REST_URL || '').replace(/\/+$/, '')
-const REST_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN || ''
+// Upstash 를 직접 만들면 UPSTASH_REDIS_REST_*, Vercel 의 Upstash/KV 연동은 KV_REST_API_* 이름으로
+// 환경변수를 넣어 주는 경우가 있어 둘 다 읽는다. (둘 다 있으면 UPSTASH_ 쪽을 우선한다.)
+const REST_URL = (process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL || '').replace(/\/+$/, '')
+const REST_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN || ''
 
 export const sharedRateLimitEnabled = Boolean(REST_URL && REST_TOKEN)
+
+// 한쪽만 설정된 경우는 경고 없이 메모리 저장소로 돌아가기 쉬워서, 어느 쪽으로 도는지 시작할 때 한 줄 남긴다.
+if (sharedRateLimitEnabled) console.log('[rate-limit] 공유 저장소(Upstash)를 사용합니다.')
+else if (REST_URL || REST_TOKEN) console.warn('[rate-limit] Upstash URL 과 TOKEN 중 하나만 설정돼 메모리 저장소를 사용합니다.')
+else console.log('[rate-limit] 메모리 저장소를 사용합니다 (서버리스에서는 인스턴스마다 따로 셉니다).')
 
 async function pipeline(commands) {
   const response = await fetch(`${REST_URL}/pipeline`, {

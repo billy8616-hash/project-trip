@@ -58,4 +58,28 @@ describe('errorHandler', () => {
     errorHandler(error, {}, res, next)
     expect(next).toHaveBeenCalledWith(error)
   })
+
+  it('라이브러리가 4xx 로 표시한 오류는 4xx 로 응답하고 서버 오류 로그를 남기지 않는다', () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    spy.mockClear()
+    const res = fakeRes()
+    // decodeURIComponent 실패(깨진 URL 인코딩) — express 가 status 400 을 붙여 올린다.
+    errorHandler(Object.assign(new URIError('Failed to decode param \'%E0%A4%A\''), { status: 400 }), {}, res, vi.fn())
+    expect(res.status).toHaveBeenCalledWith(400)
+    expect(JSON.stringify(res.json.mock.calls[0][0])).not.toContain('decode')
+    expect(spy).not.toHaveBeenCalled()
+  })
+
+  it('statusCode 만 가진 4xx 오류도 4xx 로 응답한다', () => {
+    const res = fakeRes()
+    errorHandler(Object.assign(new Error('incorrect header check'), { statusCode: 400 }), {}, res, vi.fn())
+    expect(res.status).toHaveBeenCalledWith(400)
+  })
+
+  it('5xx 표시나 status 없는 오류는 500', () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    const res = fakeRes()
+    errorHandler(Object.assign(new Error('x'), { status: 503 }), {}, res, vi.fn())
+    expect(res.status).toHaveBeenCalledWith(500)
+  })
 })

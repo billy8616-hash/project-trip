@@ -31,6 +31,12 @@ export function errorHandler(error, _req, res, next) {
   if (error?.type === 'entity.too.large') {
     return res.status(413).json({ message: '보내는 내용이 너무 커요.' })
   }
+  // 잘못된 요청(예: 깨진 URL 인코딩 %E0%A4%A, 압축 본문 오류)을 라이브러리가 4xx 로 표시해 올리는 경우.
+  // 5xx 로 바꿔 내보내면 클라이언트 실수가 서버 장애로 집계돼 모니터링이 오염된다. 문구는 일반 문구만 쓴다.
+  const status = Number(error?.status ?? error?.statusCode)
+  if (Number.isInteger(status) && status >= 400 && status < 500) {
+    return res.status(status).json({ message: status === 404 ? '요청한 내용을 찾지 못했어요.' : '요청이 올바르지 않아요.' })
+  }
   console.error('[unhandled]', error)
   return res.status(500).json({ message: '서버에 문제가 생겼어요. 잠시 후 다시 시도해 주세요.' })
 }
