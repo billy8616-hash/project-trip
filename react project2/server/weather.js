@@ -9,6 +9,8 @@
 // 그보다 먼 날짜는 "정보 없음"으로 처리하고 날씨를 반영하지 않는다.
 // ─────────────────────────────────────────────────────────────
 
+import { timeoutSignal } from './concurrency.js'
+
 const openWeatherApiKey = process.env.OPENWEATHER_API_KEY
 
 // OpenWeatherMap 의 weather.main 값을 화면에 쓸 이모지로 단순 매핑.
@@ -35,7 +37,7 @@ export async function fetchCurrentWeather(lat, lng) {
     lang: 'kr',
   })
 
-  const response = await fetch(`https://api.openweathermap.org/data/2.5/weather?${params}`)
+  const response = await fetch(`https://api.openweathermap.org/data/2.5/weather?${params}`, { signal: timeoutSignal(5000) })
   const data = await response.json().catch(() => null)
   if (!response.ok || !data?.weather?.[0]) {
     throw new Error(data?.message || '날씨 정보를 가져오지 못했어요.')
@@ -74,7 +76,7 @@ export async function fetchForecast(lat, lng, startDateStr, endDateStr) {
     lang: 'kr',
   })
 
-  const response = await fetch(`https://api.openweathermap.org/data/2.5/forecast?${params}`)
+  const response = await fetch(`https://api.openweathermap.org/data/2.5/forecast?${params}`, { signal: timeoutSignal(5000) })
   const data = await response.json().catch(() => null)
   if (!response.ok || !data?.list) {
     throw new Error(data?.message || '날씨 예보를 가져오지 못했어요.')

@@ -8,6 +8,8 @@
 // 없어도 되는 API 다 — 실패하면 배지만 안 나온다.
 // ─────────────────────────────────────────────────────────────
 
+import { timeoutSignal } from './concurrency.js'
+
 const NAVER_CLIENT_ID = process.env.NAVER_CLIENT_ID
 const NAVER_CLIENT_SECRET = process.env.NAVER_CLIENT_SECRET
 const BASE_URL = 'https://openapi.naver.com/v1/datalab/search'
@@ -45,6 +47,7 @@ async function fetchTrendBatch(cityNames) {
       timeUnit: 'date',
       keywordGroups: cityNames.map((name) => ({ groupName: name, keywords: [`${name} 여행`] })),
     }),
+    signal: timeoutSignal(8000),
   })
 
   const data = await response.json().catch(() => null)

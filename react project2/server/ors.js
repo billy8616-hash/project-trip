@@ -9,6 +9,8 @@
 // 하루 2,000회 · 분당 40회 무료 한도가 있어 Tmap 때와 같은 방식의 메모리 캐시를 둔다.
 // ─────────────────────────────────────────────────────────────
 
+import { timeoutSignal } from './concurrency.js'
+
 const orsApiKey = process.env.ORS_API_KEY
 
 // 하루 무료 호출 한도가 있어서, 같은 구간을 다시 그릴 때(새로고침, 교통편 토글 왕복 등) 재호출하지 않는다.
@@ -55,6 +57,7 @@ export async function searchWalkPath(from, to) {
         Accept: 'application/geo+json; charset=utf-8',
       },
       body: JSON.stringify({ coordinates: [[from.lng, from.lat], [to.lng, to.lat]] }),
+      signal: timeoutSignal(8000),
     })
   } catch {
     throw new Error('OpenRouteService 보행자 경로 서버에 연결하지 못했어요.')

@@ -5,6 +5,7 @@
 // ─────────────────────────────────────────────────────────────
 
 import express from 'express'
+import { publicMessage, publicStatus } from '../httpError.js'
 import { requireAuth } from '../authMiddleware.js'
 import { parseCoursePayload } from '../coursePayload.js'
 import {
@@ -22,7 +23,7 @@ router.get('/api/trips', requireAuth, async (req, res) => {
     const trips = await listSavedCourses(req.userId)
     return res.json({ trips })
   } catch (error) {
-    return res.status(500).json({ message: error.message || '저장한 여행을 불러오지 못했어요.' })
+    return res.status(500).json({ message: publicMessage(error, '저장한 여행을 불러오지 못했어요.') })
   }
 })
 
@@ -44,7 +45,7 @@ router.post('/api/trips', requireAuth, async (req, res) => {
     const trip = await createSavedCourse(req.userId, { title: title.trim(), city: city.trim(), dayCount, payload: coursePayload })
     return res.status(201).json({ trip })
   } catch (error) {
-    return res.status(error.status || 500).json({ message: error.message || '여행을 저장하지 못했어요.' })
+    return res.status(publicStatus(error)).json({ message: publicMessage(error, '여행을 저장하지 못했어요.') })
   }
 })
 
@@ -59,7 +60,7 @@ router.patch('/api/trips/:id', requireAuth, async (req, res) => {
     if (!ok) return res.status(404).json({ message: '해당 여행을 찾지 못했어요.' })
     return res.json({ ok: true })
   } catch (error) {
-    return res.status(500).json({ message: error.message || '이름을 바꾸지 못했어요.' })
+    return res.status(500).json({ message: publicMessage(error, '이름을 바꾸지 못했어요.') })
   }
 })
 
@@ -70,6 +71,6 @@ router.delete('/api/trips/:id', requireAuth, async (req, res) => {
     if (!ok) return res.status(404).json({ message: '해당 여행을 찾지 못했어요.' })
     return res.json({ ok: true })
   } catch (error) {
-    return res.status(500).json({ message: error.message || '여행을 삭제하지 못했어요.' })
+    return res.status(500).json({ message: publicMessage(error, '여행을 삭제하지 못했어요.') })
   }
 })

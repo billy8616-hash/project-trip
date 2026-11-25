@@ -343,6 +343,9 @@ http://localhost:5173 으로 접속한다. 포트는 5173으로 고정돼 있다
 - 함수 리전은 Supabase와 같은 서울(`icn1`)이다. DB 왕복이 태평양을 건너지 않게 하기 위해서다.
 - 배포 주소를 카카오 디벨로퍼스 사이트 도메인과 Supabase Redirect URLs에 등록해야
   지도와 로그인이 동작한다.
+- **rate limit 공유 저장소(권장)**: 서버리스는 요청이 여러 인스턴스로 흩어져 메모리 카운터로는 IP 당 상한이
+  거의 안 걸린다. Vercel Marketplace에서 Upstash Redis를 연결해 `UPSTASH_REDIS_REST_URL`·`UPSTASH_REDIS_REST_TOKEN`을
+  넣으면 카운터를 공유한다(`server/rateLimitStore.js`). 없으면 메모리로 동작하고, 저장소 오류 때는 제한 없이 통과시킨다.
 
 **배포 환경의 한계** — ODsay 서버 키는 등록한 IP에서만 동작하는데 Vercel 함수는 IP가
 고정되지 않아 대중교통 경로가 실패한다. 커뮤니티 사진은 Vercel 요청 한도(4.5MB) 때문에

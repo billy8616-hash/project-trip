@@ -5,6 +5,7 @@
 // ─────────────────────────────────────────────────────────────
 
 import express from 'express'
+import { publicMessage } from '../httpError.js'
 import { geocodePlace, searchLodging } from '../kakaoLocal.js'
 import { isPhotoRef, resolveGooglePhotoUri } from '../googlePlaces.js'
 import { isCatalogCity } from '../cityRegion.js'
@@ -31,7 +32,7 @@ router.get('/api/place-photo', async (req, res) => {
     res.set('Cache-Control', 'public, max-age=1800')
     return res.redirect(302, photoUri)
   } catch (error) {
-    return res.status(502).json({ message: error.message || '사진을 가져오지 못했어요.' })
+    return res.status(502).json({ message: publicMessage(error, '사진을 가져오지 못했어요.') })
   }
 })
 
@@ -47,7 +48,7 @@ router.get('/api/city-thumbnails', async (req, res) => {
     const thumbnails = await getCityThumbnails(cities)
     return res.json({ thumbnails })
   } catch (error) {
-    return res.status(502).json({ message: error.message || '여행지 사진을 가져오지 못했어요.' })
+    return res.status(502).json({ message: publicMessage(error, '여행지 사진을 가져오지 못했어요.') })
   }
 })
 
@@ -65,7 +66,7 @@ router.get('/api/city-trends', async (req, res) => {
     return res.json({ trends })
   } catch (error) {
     console.error('[city-trends]', error)
-    return res.status(502).json({ message: error.message || '여행지 트렌드를 가져오지 못했어요.' })
+    return res.status(502).json({ message: publicMessage(error, '여행지 트렌드를 가져오지 못했어요.') })
   }
 })
 
@@ -100,7 +101,7 @@ router.get('/api/geocode', async (req, res) => {
     const place = await geocodePlace(query)
     return res.json(place)
   } catch (error) {
-    return res.status(502).json({ message: error.message || '위치를 찾지 못했어요.' })
+    return res.status(502).json({ message: publicMessage(error, '위치를 찾지 못했어요.') })
   }
 })
 
@@ -116,7 +117,7 @@ router.get('/api/weather', async (req, res) => {
     const weather = await fetchCurrentWeather(lat, lng)
     return res.json(weather)
   } catch (error) {
-    return res.status(502).json({ message: error.message || '날씨 정보를 가져오지 못했어요.' })
+    return res.status(502).json({ message: publicMessage(error, '날씨 정보를 가져오지 못했어요.') })
   }
 })
 
@@ -139,6 +140,6 @@ router.get('/api/weather/forecast', async (req, res) => {
     const days = await fetchForecast(lat, lng, start, end)
     return res.json({ days })
   } catch (error) {
-    return res.status(502).json({ message: error.message || '날씨 예보를 가져오지 못했어요.' })
+    return res.status(502).json({ message: publicMessage(error, '날씨 예보를 가져오지 못했어요.') })
   }
 })

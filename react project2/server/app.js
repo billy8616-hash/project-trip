@@ -32,6 +32,8 @@ import 'dotenv/config'
 import cors from 'cors'
 import express from 'express'
 import { rateLimit } from 'express-rate-limit'
+import { errorHandler } from './httpError.js'
+import { UpstashStore, sharedRateLimitEnabled } from './rateLimitStore.js'
 import { router as profileRoutes } from './routes/profile.js'
 import { router as tripsRoutes } from './routes/trips.js'
 import { router as communityRoutes } from './routes/community.js'
@@ -63,11 +65,22 @@ app.use(cors({
 
 // 외부 API(Gemini·카카오·TourAPI 등) 무료 한도를 남이 소진하지 못하게 IP 당 상한을 둔다.
 // 코스 한 건을 보면 사진·길찾기 호출이 수십 개 한꺼번에 나가므로 일반 한도는 넉넉하게 잡고,
-// 도시 풀 생성(Gemini)만 도시당 한 번이면 충분해 따로 낮게 둔다. 저장소는 메모리라 서버 하나 기준이다.
+// 도시 풀 생성(Gemini)만 도시당 한 번이면 충분해 따로 낮게 둔다.
+// 카운터 저장소: 기본은 프로세스 메모리(서버 하나 기준). Vercel 처럼 요청이 여러 인스턴스로 흩어지는 환경에서는
+// 메모리 카운터가 인스턴스마다 따로라 상한이 거의 안 걸리므로, UPSTASH_REDIS_REST_URL/TOKEN 이 있으면
+// Upstash 로 공유한다(server/rateLimitStore.js). 저장소 오류 때는 서비스가 같이 죽지 않게 제한 없이 통과시킨다.
 const tooMany = { message: '요청이 너무 많아요. 잠시 후 다시 시도해 주세요.' }
-const limiter = (limit) => rateLimit({ windowMs: 60_000, limit, standardHeaders: 'draft-8', legacyHeaders: false, message: tooMany })
-app.use('/api', limiter(200))
-app.use('/api/course-pool', limiter(10))
+const limiter = (limit, name) =>
+  rateLimit({
+    windowMs: 60_000,
+    limit,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    message: tooMany,
+    ...(sharedRateLimitEnabled ? { store: new UpstashStore(name), passOnStoreError: true } : {}),
+  })
+app.use('/api', limiter(200, 'api'))
+app.use('/api/course-pool', limiter(10, 'course-pool'))
 
 app.use(profileRoutes)
 app.use(tripsRoutes)
@@ -75,6 +88,9 @@ app.use(communityRoutes)
 app.use(directionsRoutes)
 app.use(coursePoolRoutes)
 app.use(miscRoutes)
+
+// 라우트에서 잡히지 않은 오류를 HTML 대신 JSON 으로 돌려준다 (반드시 라우트 뒤에).
+app.use(errorHandler)
 
 // prewarm 스크립트가 캐시를 미리 채울 때 직접 부른다 — 라우트를 안 거치고 함수만 재사용.
 export { buildCityPoolRows } from './routes/coursePool.js'

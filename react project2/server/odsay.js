@@ -11,6 +11,8 @@
 // 경로를 못 찾는 구간(시골 등)은 null 로 돌려주고, 화면 쪽이 그 구간만 직선으로 그린다.
 // ─────────────────────────────────────────────────────────────
 
+import { timeoutSignal } from './concurrency.js'
+
 const odsayApiKey = process.env.ODSAY_API_KEY
 
 // ODsay subPath.trafficType: 1=지하철, 2=버스, 3=도보.
@@ -95,7 +97,7 @@ export async function searchTransitPath(from, to) {
     EY: String(to.lat),
   })
 
-  const response = await fetch(`https://api.odsay.com/v1/api/searchPubTransPathT?${params}`)
+  const response = await fetch(`https://api.odsay.com/v1/api/searchPubTransPathT?${params}`, { signal: timeoutSignal(8000) })
   const data = await response.json().catch(() => null)
 
   // ODsay 는 "출발지와 도착지가 너무 가까움", "주변에 정류장 없음" 등도 error 로 준다. 전부 경로 없음으로 본다.

@@ -15,6 +15,7 @@
 // ─────────────────────────────────────────────────────────────
 
 import express from 'express'
+import { publicMessage } from '../httpError.js'
 import { keepAlive } from '../background.js'
 import { isCatalogCity } from '../cityRegion.js'
 import { searchCafes, searchRestaurants } from '../kakaoLocal.js'
@@ -180,7 +181,8 @@ export async function buildCityPoolRows(cityKey) {
 
   const rawPlaces = dedupeById([...attractions, ...cultureSpots, ...restaurants, ...cafes])
   if (rawPlaces.length === 0) {
-    throw new Error(`${cityKey}에서 장소를 찾지 못했어요.`)
+    // status 를 붙여 두면 publicMessage 가 이 문구를 그대로 사용자에게 보여 준다.
+    throw Object.assign(new Error(`${cityKey}에서 장소를 찾지 못했어요.`), { status: 404 })
   }
 
   // DB 캐시를 한 번만 읽어 Gemini 보강과 Google 영업시간 재사용 판단에 함께 쓴다.
@@ -374,6 +376,6 @@ router.get('/api/course-pool', async (req, res) => {
     return res.json(cityPoolResponse(cityKey, rows))
   } catch (error) {
     console.error('[course-pool]', error)
-    return res.status(502).json({ message: error.message || '여행지 정보를 가져오지 못했어요.' })
+    return res.status(502).json({ message: publicMessage(error, '여행지 정보를 가져오지 못했어요.') })
   }
 })
