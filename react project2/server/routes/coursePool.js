@@ -15,6 +15,7 @@
 // ─────────────────────────────────────────────────────────────
 
 import express from 'express'
+import { keepAlive } from '../background.js'
 import { isCatalogCity } from '../cityRegion.js'
 import { searchCafes, searchRestaurants } from '../kakaoLocal.js'
 import { enrichPlaces } from '../placeEnrich.js'
@@ -317,10 +318,12 @@ const backfilledCities = new Set()
 function backfillCityImagesInBackground(cityKey, rows) {
   if (backfilledCities.has(cityKey)) return
   backfilledCities.add(cityKey)
-  backfillCityImages(cityKey, rows).catch((error) => {
-    backfilledCities.delete(cityKey)
-    console.warn(`[course-pool images] ${cityKey}: ${error.message}`)
-  })
+  keepAlive(
+    backfillCityImages(cityKey, rows).catch((error) => {
+      backfilledCities.delete(cityKey)
+      console.warn(`[course-pool images] ${cityKey}: ${error.message}`)
+    }),
+  )
 }
 
 // 같은 도시의 풀을 동시에 두 번 만들지 않는다. 첫 조회(캐시 없음)는 30초 넘게 걸려서, 그사이 새로고침하거나
@@ -335,7 +338,10 @@ function buildCityPoolOnce(cityKey) {
 
 function refreshCityPoolInBackground(cityKey) {
   if (buildingCities.has(cityKey)) return
-  buildCityPoolOnce(cityKey).catch((error) => console.warn(`[course-pool refresh] ${cityKey}: ${error.message}`))
+  // 서버리스에서는 응답이 나가면 함수가 멈추므로 keepAlive 로 끝날 때까지 살려 둔다(server/background.js).
+  keepAlive(
+    buildCityPoolOnce(cityKey).catch((error) => console.warn(`[course-pool refresh] ${cityKey}: ${error.message}`)),
+  )
 }
 
 function cityPoolResponse(cityKey, rows) {
