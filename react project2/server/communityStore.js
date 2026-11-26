@@ -84,23 +84,24 @@ function buildWhere({ city, theme, q, days, budget, transport, photos }) {
   return and.length ? { AND: and } : undefined
 }
 
-export async function listPosts({
-  city = '', theme = '', q = '', days = 0, budget = '', transport = '', photos = false,
-  sort = 'recent', viewerId = null, limit = 60,
-} = {}) {
-  const where = buildWhere({ city, theme, q, days, budget, transport, photos })
-  const [posts, total] = await Promise.all([
-    prisma.coursePost.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-      take: Math.min(300, Math.max(1, limit)),
-    }),
-    prisma.coursePost.count({ where }),
-  ])
-  if (posts.length === 0) return { posts: [], total }
+// 인기순·별점순은 "전체 글 중 상위"여야 한다. 최근 N개를 가져온 뒤 그 안에서만 정렬하면 오래된 인기 글이
+// 영영 안 나온다. 좋아요·후기는 다른 테이블이라 DB 정렬을 못 쓰므로, 조건에 맞는 글의 가벼운 칼럼(id·별점·시각)만
+// 훑어 순위를 매기고 상위 글만 본문까지 읽는다. 글이 이보다 많아지면 가장 최근 글 이 개수까지만 후보로 본다.
+const RANK_SCAN_LIMIT = 5000
+const DEFAULT_LIMIT = 60
+const MAX_LIMIT = 300
 
-  const ids = posts.map((post) => post.id)
-  const [likeGroups, reviewGroups, myLikes] = await Promise.all([
+// 작성자 본인 별점도 한 표로 센 평균 (소수 첫째 자리). 목록·상세·순위가 같은 값을 쓰도록 한 곳에 둔다.
+function averageRating(ownRating, reviewSum, reviewCount) {
+  return Math.round(((ownRating + reviewSum) / (1 + reviewCount)) * 10) / 10
+}
+
+// 동점이면 최근 글이 앞. 순위 계산(후보 고르기)과 최종 정렬이 같은 기준을 쓴다.
+const byLikes = (a, b) => b.likeCount - a.likeCount || b.createdAt.localeCompare(a.createdAt)
+const byRating = (a, b) => b.avgRating - a.avgRating || b.reviewCount - a.reviewCount || b.createdAt.localeCompare(a.createdAt)
+
+async function countsFor(ids) {
+  const [likeGroups, reviewGroups] = await Promise.all([
     prisma.courseLike.groupBy({ by: ['postId'], where: { postId: { in: ids } }, _count: { _all: true } }),
     prisma.courseReview.groupBy({
       by: ['postId'],
@@ -108,13 +109,66 @@ export async function listPosts({
       _count: { _all: true },
       _sum: { rating: true },
     }),
+  ])
+  return {
+    likeCountBy: new Map(likeGroups.map((g) => [g.postId, g._count._all])),
+    reviewBy: new Map(reviewGroups.map((g) => [g.postId, { count: g._count._all, sum: g._sum.rating || 0 }])),
+  }
+}
+
+// 조건에 맞는 글 전체에서 정렬 기준 상위 take 개의 id 를 순서대로.
+async function rankedIds(where, sort, take) {
+  const light = await prisma.coursePost.findMany({
+    where,
+    select: { id: true, rating: true, createdAt: true },
+    orderBy: { createdAt: 'desc' },
+    take: RANK_SCAN_LIMIT,
+  })
+  if (light.length === 0) return []
+  const { likeCountBy, reviewBy } = await countsFor(light.map((post) => post.id))
+  const scored = light.map((post) => {
+    const review = reviewBy.get(post.id) || { count: 0, sum: 0 }
+    return {
+      id: post.id,
+      createdAt: iso(post.createdAt),
+      likeCount: likeCountBy.get(post.id) || 0,
+      reviewCount: review.count,
+      avgRating: averageRating(post.rating, review.sum, review.count),
+    }
+  })
+  scored.sort(sort === 'likes' ? byLikes : byRating)
+  return scored.slice(0, take).map((entry) => entry.id)
+}
+
+export async function listPosts({
+  city = '', theme = '', q = '', days = 0, budget = '', transport = '', photos = false,
+  sort = 'recent', viewerId = null, limit = DEFAULT_LIMIT,
+} = {}) {
+  const where = buildWhere({ city, theme, q, days, budget, transport, photos })
+  // limit=abc 는 NaN, limit= 는 0 이다. NaN 은 Prisma 가 take: NaN 으로 500 을 내고 0 은 1건만 돌려주므로 기본값을 쓴다.
+  const take = limit >= 1 ? Math.min(MAX_LIMIT, Math.floor(limit)) : DEFAULT_LIMIT
+  const ranked = sort === 'likes' || sort === 'rating'
+
+  const [posts, total] = await Promise.all([
+    ranked
+      ? rankedIds(where, sort, take).then(async (ids) => {
+          if (ids.length === 0) return []
+          const rows = await prisma.coursePost.findMany({ where: { id: { in: ids } } })
+          const order = new Map(ids.map((id, index) => [id, index]))
+          return rows.sort((a, b) => order.get(a.id) - order.get(b.id))
+        })
+      : prisma.coursePost.findMany({ where, orderBy: { createdAt: 'desc' }, take }),
+    prisma.coursePost.count({ where }),
+  ])
+  if (posts.length === 0) return { posts: [], total }
+
+  const ids = posts.map((post) => post.id)
+  const [{ likeCountBy, reviewBy }, myLikes] = await Promise.all([
+    countsFor(ids),
     viewerId
       ? prisma.courseLike.findMany({ where: { postId: { in: ids }, userId: viewerId }, select: { postId: true } })
       : Promise.resolve([]),
   ])
-
-  const likeCountBy = new Map(likeGroups.map((g) => [g.postId, g._count._all]))
-  const reviewBy = new Map(reviewGroups.map((g) => [g.postId, { count: g._count._all, sum: g._sum.rating || 0 }]))
   const likedSet = new Set(myLikes.map((row) => row.postId))
 
   const rows = posts.map((post) => summarize(post, {
@@ -123,13 +177,12 @@ export async function listPosts({
     liked: likedSet.has(post.id),
   }))
 
-  if (sort === 'likes') rows.sort((a, b) => b.likeCount - a.likeCount || b.createdAt.localeCompare(a.createdAt))
-  else if (sort === 'rating') rows.sort((a, b) => b.avgRating - a.avgRating || b.reviewCount - a.reviewCount)
+  if (sort === 'likes') rows.sort(byLikes)
+  else if (sort === 'rating') rows.sort(byRating)
   return { posts: rows, total }
 }
 
 function summarize(post, { likeCount, review, liked }) {
-  const count = 1 + review.count // 작성자 본인 별점 포함
   return {
     id: post.id,
     userId: post.userId,
@@ -140,7 +193,7 @@ function summarize(post, { likeCount, review, liked }) {
     dayCount: post.dayCount,
     summary: post.summary,
     rating: post.rating,
-    avgRating: Math.round(((post.rating + review.sum) / count) * 10) / 10,
+    avgRating: averageRating(post.rating, review.sum, review.count),
     reviewCount: review.count,
     likeCount,
     liked,
