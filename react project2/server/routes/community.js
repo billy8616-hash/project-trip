@@ -5,6 +5,7 @@
 // ─────────────────────────────────────────────────────────────
 
 import express from 'express'
+import { publicMessage, publicStatus } from '../httpError.js'
 import multer from 'multer'
 import { optionalAuth, requireAuth } from '../authMiddleware.js'
 import {
@@ -49,7 +50,7 @@ router.get('/api/community', optionalAuth, async (req, res) => {
     })
     return res.json({ posts, total })
   } catch (error) {
-    return res.status(500).json({ message: error.message || '커뮤니티 글을 불러오지 못했어요.' })
+    return res.status(500).json({ message: publicMessage(error, '커뮤니티 글을 불러오지 못했어요.') })
   }
 })
 
@@ -60,7 +61,7 @@ router.get('/api/community/:id', optionalAuth, async (req, res) => {
     if (!post) return res.status(404).json({ message: '글을 찾지 못했어요.' })
     return res.json({ post })
   } catch (error) {
-    return res.status(500).json({ message: error.message || '글을 불러오지 못했어요.' })
+    return res.status(500).json({ message: publicMessage(error, '글을 불러오지 못했어요.') })
   }
 })
 
@@ -88,7 +89,7 @@ router.post('/api/community/upload', requireAuth, parsePhotos, async (req, res) 
     const urls = await uploadCommunityPhotos(req.files, req.userId)
     return res.status(201).json({ urls })
   } catch (error) {
-    return res.status(error.status || 500).json({ message: error.message || '사진을 올리지 못했어요.' })
+    return res.status(publicStatus(error)).json({ message: publicMessage(error, '사진을 올리지 못했어요.') })
   }
 })
 
@@ -111,7 +112,7 @@ router.post('/api/community', requireAuth, async (req, res) => {
     })
     return res.status(201).json({ post })
   } catch (error) {
-    return res.status(error.status || 500).json({ message: error.message || '공유하지 못했어요.' })
+    return res.status(publicStatus(error)).json({ message: publicMessage(error, '공유하지 못했어요.') })
   }
 })
 
@@ -122,7 +123,7 @@ router.delete('/api/community/:id', requireAuth, async (req, res) => {
     if (!ok) return res.status(404).json({ message: '글을 찾지 못했어요.' })
     return res.json({ ok: true })
   } catch (error) {
-    return res.status(500).json({ message: error.message || '글을 삭제하지 못했어요.' })
+    return res.status(500).json({ message: publicMessage(error, '글을 삭제하지 못했어요.') })
   }
 })
 
@@ -137,7 +138,7 @@ router.post('/api/community/:id/reviews', requireAuth, async (req, res) => {
     if (!review) return res.status(404).json({ message: '글을 찾지 못했어요.' })
     return res.status(201).json({ review })
   } catch (error) {
-    return res.status(error.status || 500).json({ message: error.message || '후기를 남기지 못했어요.' })
+    return res.status(publicStatus(error)).json({ message: publicMessage(error, '후기를 남기지 못했어요.') })
   }
 })
 
@@ -148,7 +149,7 @@ router.delete('/api/community/:id/reviews', requireAuth, async (req, res) => {
     if (!ok) return res.status(404).json({ message: '후기를 찾지 못했어요.' })
     return res.json({ ok: true })
   } catch (error) {
-    return res.status(500).json({ message: error.message || '후기를 지우지 못했어요.' })
+    return res.status(500).json({ message: publicMessage(error, '후기를 지우지 못했어요.') })
   }
 })
 
@@ -159,6 +160,6 @@ router.post('/api/community/:id/like', requireAuth, async (req, res) => {
     if (!result) return res.status(404).json({ message: '글을 찾지 못했어요.' })
     return res.json(result)
   } catch (error) {
-    return res.status(error.status || 500).json({ message: error.message || '추천하지 못했어요.' })
+    return res.status(publicStatus(error)).json({ message: publicMessage(error, '추천하지 못했어요.') })
   }
 })

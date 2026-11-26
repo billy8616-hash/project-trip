@@ -6,6 +6,8 @@
 // ─────────────────────────────────────────────────────────────
 
 import express from 'express'
+import { publicMessage } from '../httpError.js'
+import { mapLimit, timeoutSignal } from '../concurrency.js'
 import { searchTransitPath } from '../odsay.js'
 import { searchWalkPath } from '../ors.js'
 
@@ -17,6 +19,10 @@ const COORD_PATTERN = /^-?\d+(\.\d+)?,-?\d+(\.\d+)?$/
 const WAYPOINTS_PATTERN = /^-?\d+(\.\d+)?,-?\d+(\.\d+)?(\|-?\d+(\.\d+)?,-?\d+(\.\d+)?){0,27}$/
 
 export const router = express.Router()
+
+// 구간마다 외부 API 를 한 번씩 부르므로 한꺼번에 던지지 않고 동시에 이 개수까지만 보낸다.
+// (ORS 는 분당 40회 한도라 경유지가 많은 하루를 28구간 동시에 던지면 한 요청만으로도 넘는다.)
+const SEGMENT_CONCURRENCY = 4
 
 // 카카오모빌리티 길찾기는 경유지를 5개까지만 받는다(초과하면 "waypoints must be between 0 and 5").
 // 그래서 정류장이 7개를 넘으면 앞 묶음의 끝점을 다음 묶음의 시작점으로 겹쳐 7개씩 나눠 요청한다.
@@ -38,6 +44,7 @@ async function fetchCarRoute(points) {
   try {
     response = await fetch(`https://apis-navi.kakaomobility.com/v1/directions?${params}`, {
       headers: { Authorization: `KakaoAK ${kakaoRestApiKey}` },
+      signal: timeoutSignal(8000),
     })
   } catch {
     throw new Error('카카오 길찾기 서버에 연결하지 못했어요.')
@@ -73,7 +80,7 @@ router.get('/api/directions/car', async (req, res) => {
   try {
     routes = await Promise.all(chunkRoutePoints(points).map(fetchCarRoute))
   } catch (error) {
-    return res.status(502).json({ message: error.message })
+    return res.status(502).json({ message: publicMessage(error, '자동차 경로를 가져오지 못했어요.') })
   }
 
   const sections = routes.flatMap((route) => route.sections).map((section) => ({
@@ -117,14 +124,14 @@ router.get('/api/directions/transit', async (req, res) => {
   const points = [origin, ...(waypoints ? waypoints.split('|') : []), destination].map(toPoint)
 
   try {
-    const sections = await Promise.all(
-      points.slice(0, -1).map((from, index) => searchTransitPath(from, points[index + 1]).catch(() => null)),
+    const sections = await mapLimit(points.slice(0, -1), SEGMENT_CONCURRENCY, (from, index) =>
+      searchTransitPath(from, points[index + 1]).catch(() => null),
     )
     const totalMinutes = sections.reduce((sum, section) => sum + (section?.totalMinutes || 0), 0)
     return res.json({ sections, totalMinutes })
   } catch (error) {
     console.error('[directions/transit]', error)
-    return res.status(502).json({ message: error.message || '대중교통 경로를 가져오지 못했어요.' })
+    return res.status(502).json({ message: publicMessage(error, '대중교통 경로를 가져오지 못했어요.') })
   }
 })
 
@@ -153,13 +160,13 @@ router.get('/api/directions/walk', async (req, res) => {
   const points = [origin, ...(waypoints ? waypoints.split('|') : []), destination].map(toPoint)
 
   try {
-    const sections = await Promise.all(
-      points.slice(0, -1).map((from, index) => searchWalkPath(from, points[index + 1]).catch(() => null)),
+    const sections = await mapLimit(points.slice(0, -1), SEGMENT_CONCURRENCY, (from, index) =>
+      searchWalkPath(from, points[index + 1]).catch(() => null),
     )
     const totalMinutes = sections.reduce((sum, section) => sum + (section?.totalMinutes || 0), 0)
     return res.json({ sections, totalMinutes })
   } catch (error) {
     console.error('[directions/walk]', error)
-    return res.status(502).json({ message: error.message || '도보 경로를 가져오지 못했어요.' })
+    return res.status(502).json({ message: publicMessage(error, '도보 경로를 가져오지 못했어요.') })
   }
 })

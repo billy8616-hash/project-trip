@@ -5,12 +5,13 @@
 // ─────────────────────────────────────────────────────────────
 
 import express from 'express'
+import { publicMessage } from '../httpError.js'
 import { geocodePlace, searchLodging } from '../kakaoLocal.js'
 import { isPhotoRef, resolveGooglePhotoUri } from '../googlePlaces.js'
 import { isCatalogCity } from '../cityRegion.js'
 import { getCityThumbnails } from '../tourApi.js'
 import { getCityTrends } from '../naverTrend.js'
-import { fetchCurrentWeather, fetchForecast } from '../weather.js'
+import { fetchCurrentWeather, fetchForecast, parseCoordinate, validateForecastRange } from '../weather.js'
 
 export const router = express.Router()
 
@@ -31,7 +32,7 @@ router.get('/api/place-photo', async (req, res) => {
     res.set('Cache-Control', 'public, max-age=1800')
     return res.redirect(302, photoUri)
   } catch (error) {
-    return res.status(502).json({ message: error.message || '사진을 가져오지 못했어요.' })
+    return res.status(502).json({ message: publicMessage(error, '사진을 가져오지 못했어요.') })
   }
 })
 
@@ -47,7 +48,7 @@ router.get('/api/city-thumbnails', async (req, res) => {
     const thumbnails = await getCityThumbnails(cities)
     return res.json({ thumbnails })
   } catch (error) {
-    return res.status(502).json({ message: error.message || '여행지 사진을 가져오지 못했어요.' })
+    return res.status(502).json({ message: publicMessage(error, '여행지 사진을 가져오지 못했어요.') })
   }
 })
 
@@ -65,7 +66,7 @@ router.get('/api/city-trends', async (req, res) => {
     return res.json({ trends })
   } catch (error) {
     console.error('[city-trends]', error)
-    return res.status(502).json({ message: error.message || '여행지 트렌드를 가져오지 못했어요.' })
+    return res.status(502).json({ message: publicMessage(error, '여행지 트렌드를 가져오지 못했어요.') })
   }
 })
 
@@ -100,15 +101,15 @@ router.get('/api/geocode', async (req, res) => {
     const place = await geocodePlace(query)
     return res.json(place)
   } catch (error) {
-    return res.status(502).json({ message: error.message || '위치를 찾지 못했어요.' })
+    return res.status(502).json({ message: publicMessage(error, '위치를 찾지 못했어요.') })
   }
 })
 
 // 코스 화면 상단에 보여줄 현재 날씨 하나 (OpenWeatherMap).
 router.get('/api/weather', async (req, res) => {
-  const lat = Number(req.query.lat)
-  const lng = Number(req.query.lng)
-  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+  const lat = parseCoordinate(req.query.lat, 90)
+  const lng = parseCoordinate(req.query.lng, 180)
+  if (lat === null || lng === null) {
     return res.status(400).json({ message: 'lat, lng 파라미터가 필요해요.' })
   }
 
@@ -116,29 +117,26 @@ router.get('/api/weather', async (req, res) => {
     const weather = await fetchCurrentWeather(lat, lng)
     return res.json(weather)
   } catch (error) {
-    return res.status(502).json({ message: error.message || '날씨 정보를 가져오지 못했어요.' })
+    return res.status(502).json({ message: publicMessage(error, '날씨 정보를 가져오지 못했어요.') })
   }
 })
 
-const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/
-
 // 날짜 선택 화면에서 여행 기간 전체의 날씨 예보를 미리 보여주기 위한 엔드포인트.
 router.get('/api/weather/forecast', async (req, res) => {
-  const lat = Number(req.query.lat)
-  const lng = Number(req.query.lng)
+  const lat = parseCoordinate(req.query.lat, 90)
+  const lng = parseCoordinate(req.query.lng, 180)
   const start = String(req.query.start || '')
   const end = String(req.query.end || '')
-  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+  if (lat === null || lng === null) {
     return res.status(400).json({ message: 'lat, lng 파라미터가 필요해요.' })
   }
-  if (!DATE_PATTERN.test(start) || !DATE_PATTERN.test(end) || start > end) {
-    return res.status(400).json({ message: 'start, end 날짜(YYYY-MM-DD)가 필요해요.' })
-  }
+  const rangeError = validateForecastRange(start, end)
+  if (rangeError) return res.status(400).json({ message: rangeError })
 
   try {
     const days = await fetchForecast(lat, lng, start, end)
     return res.json({ days })
   } catch (error) {
-    return res.status(502).json({ message: error.message || '날씨 예보를 가져오지 못했어요.' })
+    return res.status(502).json({ message: publicMessage(error, '날씨 예보를 가져오지 못했어요.') })
   }
 })

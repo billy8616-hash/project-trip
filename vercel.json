@@ -5,6 +5,9 @@
   "buildCommand": "cd \"react project2\" && npm run build",
   "outputDirectory": "react project2/dist",
   "regions": ["icn1"],
+  "functions": {
+    "api/index.mjs": { "maxDuration": 60 }
+  },
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api" },
     { "source": "/(.*)", "destination": "/index.html" }

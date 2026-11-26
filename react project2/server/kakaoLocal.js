@@ -91,7 +91,7 @@ function isInCity(doc, cityName) {
 export async function geocodePlace(query) {
   if (!kakaoRestApiKey) throw new Error('KAKAO_REST_API_KEY가 설정되지 않았어요.')
   const trimmed = String(query || '').trim()
-  if (!trimmed) throw new Error('검색어가 필요해요.')
+  if (!trimmed) throw Object.assign(new Error('검색어가 필요해요.'), { status: 400 })
 
   const headers = { Authorization: `KakaoAK ${kakaoRestApiKey}` }
 
@@ -120,7 +120,7 @@ export async function geocodePlace(query) {
     }
   }
 
-  throw new Error('입력하신 위치를 찾지 못했어요.')
+  throw Object.assign(new Error('입력하신 위치를 찾지 못했어요.'), { status: 404 })
 }
 
 // 숙소 이름 자동완성 (카카오 로컬 키워드 검색). category_group_code AD5 = 숙박.

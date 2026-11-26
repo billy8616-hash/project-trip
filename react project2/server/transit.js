@@ -36,7 +36,8 @@ async function nearestStation({ lat, lng }) {
     signal: timeoutSignal(4000),
   })
   const data = await response.json().catch(() => null)
-  if (!response.ok || !data) return null
+  // 호출 실패는 "반경 내 역 없음"과 다르므로 던진다(fetchTransitAccess 가 구분해서 알린다).
+  if (!response.ok || !data) throw new Error('카카오 지하철역 조회에 실패했어요.')
 
   const doc = data.documents?.[0]
   if (!doc) return null
@@ -54,8 +55,15 @@ export function transitScoreFromDistance(distanceM) {
 
 const NO_TRANSIT = { transitStation: null, transitDistanceM: null, transitScore: 'none' }
 
+// -> 접근성 | null. null 은 조회에 실패해 모른다는 뜻이라 "역 없음(none)"과 구분한다 —
+// 실패를 none 으로 저장하면 이미 알던 값까지 덮어쓰고 7일간 굳는다.
 export async function fetchTransitAccess(place) {
-  const station = await nearestStation(place).catch(() => null)
+  let station
+  try {
+    station = await nearestStation(place)
+  } catch {
+    return null
+  }
   if (!station || !Number.isFinite(station.distanceM)) return NO_TRANSIT
   return {
     transitStation: station.name,

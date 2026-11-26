@@ -71,6 +71,12 @@ export async function updatePlaceImages(updates) {
   )
 }
 
+// 행마다 다른 값으로 한 번에 갱신한다. updates: [{ id, data }]
+export async function updatePlaces(updates) {
+  if (updates.length === 0) return
+  await prisma.$transaction(updates.map((update) => prisma.placeCache.update({ where: { id: update.id }, data: update.data })))
+}
+
 // closedWeekdays 는 "[1]" 같은 JSON 배열 문자열로 저장돼 있다. 깨졌거나 비어있으면 빈 배열.
 function parseWeekdays(value) {
   try {

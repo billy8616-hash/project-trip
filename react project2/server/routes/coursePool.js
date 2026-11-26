@@ -15,11 +15,13 @@
 // ─────────────────────────────────────────────────────────────
 
 import express from 'express'
+import { publicMessage } from '../httpError.js'
+import { keepAlive } from '../background.js'
 import { isCatalogCity } from '../cityRegion.js'
 import { searchCafes, searchRestaurants } from '../kakaoLocal.js'
 import { enrichPlaces } from '../placeEnrich.js'
 import { fetchGoogleHoursMany, googlePhotoPath } from '../googlePlaces.js'
-import { findCachedByIds, findCityPool, toPoolPlace, updatePlaceImages, upsertPlaces } from '../placeCache.js'
+import { findCachedByIds, findCityPool, toPoolPlace, updatePlaceImages, updatePlaces, upsertPlaces } from '../placeCache.js'
 import { fetchPlaceDetailsMany, searchAttractions, searchCultureSpots } from '../tourApi.js'
 import { fetchTransitAccessMany } from '../transit.js'
 
@@ -134,6 +136,24 @@ function hoursFromRow(row) {
   }
 }
 
+// hoursFromRow 의 반대 방향: Google 응답을 PlaceCache 칼럼 모양으로. (사진 보강이 받은 정보를 버리지 않고 저장하는 데 쓴다.)
+function columnsFromGoogle(info) {
+  return {
+    openHoursText: info.openHoursText || null,
+    closedDayText: info.closedDayText || null,
+    opensAt: info.opensAt ?? null,
+    closesAt: info.closesAt ?? null,
+    alwaysOpen: info.alwaysOpen ?? false,
+    closedWeekdays: JSON.stringify(info.closedWeekdays || []),
+    feeText: info.feeText || '',
+    costTier: info.costTier || '',
+    rating: info.rating ?? null,
+    userRatingCount: info.userRatingCount ?? null,
+    editorialSummary: info.editorialSummary ?? null,
+    websiteUrl: info.websiteUrl ?? null,
+  }
+}
+
 // 한 번 돌 때 Gemini 로 보낼 장소 수 상한. 풀은 수백 곳이 될 수 있지만 코스에 실제로 쓰이는 건
 // 하루 4곳 x 여행일수뿐이라 전부 보강할 이유가 없고, 무료 티어에서는 호출 수가 곧 비용이다.
 // 상한에 걸려 밀린 장소는 다음 갱신 때 자연히 차례가 온다 — 이미 보강된 곳은 후보에서 빠지므로
@@ -179,7 +199,8 @@ export async function buildCityPoolRows(cityKey) {
 
   const rawPlaces = dedupeById([...attractions, ...cultureSpots, ...restaurants, ...cafes])
   if (rawPlaces.length === 0) {
-    throw new Error(`${cityKey}에서 장소를 찾지 못했어요.`)
+    // status 를 붙여 두면 publicMessage 가 이 문구를 그대로 사용자에게 보여 준다.
+    throw Object.assign(new Error(`${cityKey}에서 장소를 찾지 못했어요.`), { status: 404 })
   }
 
   // DB 캐시를 한 번만 읽어 Gemini 보강과 Google 영업시간 재사용 판단에 함께 쓴다.
@@ -223,9 +244,17 @@ export async function buildCityPoolRows(cityKey) {
           enrichment.get(place.id) || cachedEnrichment.get(place.id) || { reason: '', caution: '', themes: [], budgetTiers: [] }
         const slots = Array.isArray(place.slots) && place.slots.length > 0 ? place.slots : [place.slot || '오전']
         const defaults = SLOT_DEFAULTS[slots[0]] || SLOT_DEFAULTS['오전']
-        const transit = transitByPlaceId.get(place.id) || { transitStation: null, transitDistanceM: null, transitScore: 'none' }
-        const detail = detailByPlaceId.get(place.id) || {}
         const cachedRow = cachedRows.get(place.id)
+        // 외부 조회가 실패하면(null) 지난번에 받아 둔 값을 그대로 쓴다. "정보 없음"으로 덮어쓰면
+        // 일시 장애 한 번에 영업시간·교통 정보가 지워진 채 7일간 굳는다. 캐시도 없으면 예전처럼 빈 값.
+        const transit =
+          transitByPlaceId.get(place.id) ||
+          (cachedRow
+            ? { transitStation: cachedRow.transitStation, transitDistanceM: cachedRow.transitDistanceM, transitScore: cachedRow.transitScore || 'none' }
+            : { transitStation: null, transitDistanceM: null, transitScore: 'none' })
+        const detail =
+          detailByPlaceId.get(place.id) ||
+          (place.source === 'tourapi' && cachedRow ? { ...hoursFromRow(cachedRow), parking: cachedRow.parking } : {})
         // 영업시간 출처: 카카오 장소는 Google Places, 관광지·문화시설은 TourAPI detailIntro2.
         // 이번에 Google 을 건너뛴 카카오 장소는 지난번에 받아 DB 에 넣어둔 값을 그대로 쓴다.
         const googleHours = googleHoursByPlaceId.get(place.id)
@@ -282,12 +311,22 @@ export async function buildCityPoolRows(cityKey) {
 // 사진 칼럼이 생기기 전에 캐시된 장소들을 위한 보강.
 // 풀 전체를 다시 만들면 Gemini·상세조회까지 또 돌아가니, 사진만 따로 채워 넣는다.
 // (관광지·문화시설은 도시 검색 2번으로 전부 커버되고, 맛집·카페만 장소 단위로 조회한다.)
+// 사진을 못 찾은 카카오 장소를 Google 에 다시 물어보기까지의 간격.
+const BACKFILL_RETRY_MS = 7 * 24 * 60 * 60 * 1000
+
 async function backfillCityImages(cityKey, rows) {
   const missing = rows.filter((row) => !row.imageUrl)
   if (missing.length === 0) return
 
   const tourRows = missing.filter((row) => row.source === 'tourapi')
-  const kakaoRows = missing.filter((row) => row.source === 'kakao')
+  // 사진이 없는 카카오 장소 중 Google 을 "최근에 이미 조회해 본" 곳은 건너뛴다. 끝까지 사진을 못 찾는 장소는
+  // imageUrl 이 영원히 비어 있어서, 이 기록이 없으면 서버가 새로 뜰 때마다(서버리스는 수시로) 같은 유료 호출을 반복한다.
+  // 한 번에 부르는 수에도 상한을 둔다 — 본 갱신(GOOGLE_LIMIT_PER_RUN)과 같은 이유다.
+  const kakaoRows = missing
+    .filter((row) => row.source === 'kakao')
+    .filter((row) => !row.hoursFetchedAt || Date.now() - new Date(row.hoursFetchedAt).getTime() > BACKFILL_RETRY_MS)
+    .sort((a, b) => (a.hoursFetchedAt ? new Date(a.hoursFetchedAt).getTime() : 0) - (b.hoursFetchedAt ? new Date(b.hoursFetchedAt).getTime() : 0))
+    .slice(0, GOOGLE_LIMIT_PER_RUN)
 
   const [tourPlaces, googleByPlaceId] = await Promise.all([
     tourRows.length === 0
@@ -299,15 +338,33 @@ async function backfillCityImages(cityKey, rows) {
   ])
 
   const tourImageById = new Map(tourPlaces.filter((place) => place.image).map((place) => [place.id, place.image]))
-  const updates = missing
-    .map((row) => ({
-      id: row.id,
-      imageUrl: tourImageById.get(row.id) || googlePhotoPath(googleByPlaceId.get(row.id)?.photoRef) || null,
-    }))
+  const tourUpdates = tourRows
+    .map((row) => ({ id: row.id, imageUrl: tourImageById.get(row.id) || null }))
     .filter((update) => update.imageUrl)
 
-  if (updates.length > 0) await updatePlaceImages(updates)
-  console.log(`[course-pool images] ${cityKey}: ${updates.length}/${missing.length}곳 사진 보강`)
+  // 카카오(맛집·카페) 장소는 Google 이 실제로 답한 것만 저장한다.
+  //   찾음      사진뿐 아니라 이미 유료로 받은 영업시간·별점도 함께 저장하고 조회 시각을 남긴다.
+  //            (사진만 저장하고 나머지를 버리면 본 갱신이 같은 정보를 또 사 오고, 사진 없는 곳은 매번 다시 부르게 된다.)
+  //   못 찾음   조회 시각만 남겨 다음 재시도를 늦춘다.
+  //   호출 실패/키 없음  Map 에 없으므로 아무것도 기록하지 않는다 — 일시 장애를 "없는 가게"로 굳히지 않는다.
+  const now = new Date()
+  const kakaoUpdates = []
+  for (const row of kakaoRows) {
+    if (!googleByPlaceId.has(row.id)) continue
+    const info = googleByPlaceId.get(row.id)
+    const data = { hoursFetchedAt: now }
+    if (info) {
+      Object.assign(data, columnsFromGoogle(info))
+      const photo = googlePhotoPath(info.photoRef)
+      if (photo) data.imageUrl = photo
+    }
+    kakaoUpdates.push({ id: row.id, data })
+  }
+
+  if (tourUpdates.length > 0) await updatePlaceImages(tourUpdates)
+  await updatePlaces(kakaoUpdates)
+  const imageCount = tourUpdates.length + kakaoUpdates.filter((update) => update.data.imageUrl).length
+  console.log(`[course-pool images] ${cityKey}: ${imageCount}/${missing.length}곳 사진 보강 (Google 조회 ${kakaoRows.length}곳, 기록 ${kakaoUpdates.length}곳)`)
 }
 
 // 사진 보강은 도시마다 서버가 켜져 있는 동안 한 번만 한다. 끝까지 사진을 못 찾는 장소(Google 에 없는
@@ -317,10 +374,12 @@ const backfilledCities = new Set()
 function backfillCityImagesInBackground(cityKey, rows) {
   if (backfilledCities.has(cityKey)) return
   backfilledCities.add(cityKey)
-  backfillCityImages(cityKey, rows).catch((error) => {
-    backfilledCities.delete(cityKey)
-    console.warn(`[course-pool images] ${cityKey}: ${error.message}`)
-  })
+  keepAlive(
+    backfillCityImages(cityKey, rows).catch((error) => {
+      backfilledCities.delete(cityKey)
+      console.warn(`[course-pool images] ${cityKey}: ${error.message}`)
+    }),
+  )
 }
 
 // 같은 도시의 풀을 동시에 두 번 만들지 않는다. 첫 조회(캐시 없음)는 30초 넘게 걸려서, 그사이 새로고침하거나
@@ -335,7 +394,10 @@ function buildCityPoolOnce(cityKey) {
 
 function refreshCityPoolInBackground(cityKey) {
   if (buildingCities.has(cityKey)) return
-  buildCityPoolOnce(cityKey).catch((error) => console.warn(`[course-pool refresh] ${cityKey}: ${error.message}`))
+  // 서버리스에서는 응답이 나가면 함수가 멈추므로 keepAlive 로 끝날 때까지 살려 둔다(server/background.js).
+  keepAlive(
+    buildCityPoolOnce(cityKey).catch((error) => console.warn(`[course-pool refresh] ${cityKey}: ${error.message}`)),
+  )
 }
 
 function cityPoolResponse(cityKey, rows) {
@@ -368,6 +430,6 @@ router.get('/api/course-pool', async (req, res) => {
     return res.json(cityPoolResponse(cityKey, rows))
   } catch (error) {
     console.error('[course-pool]', error)
-    return res.status(502).json({ message: error.message || '여행지 정보를 가져오지 못했어요.' })
+    return res.status(502).json({ message: publicMessage(error, '여행지 정보를 가져오지 못했어요.') })
   }
 })

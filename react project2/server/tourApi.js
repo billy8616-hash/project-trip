@@ -177,22 +177,24 @@ async function fetchDetailIntro(contentId, contentTypeId) {
 
   const response = await fetch(`${BASE_URL}/detailIntro2?${params}`, { signal: timeoutSignal(4000) })
   const data = await response.json().catch(() => null)
-  if (!response.ok || data?.response?.header?.resultCode !== '0000') return null
+  // 호출 실패(HTTP 오류·한도 소진 등)는 "정보 없음"과 달라서 던진다 — 호출한 쪽이 기존 캐시 값을 지키려면 구분해야 한다.
+  if (!response.ok || data?.response?.header?.resultCode !== '0000') throw new Error('TourAPI 상세 조회에 실패했어요.')
 
   const items = data.response.body.items?.item
-  if (!items) return null
+  if (!items) return null // 정상 응답인데 상세 정보가 없는 장소
   return Array.isArray(items) ? items[0] : items
 }
 
 // place: { id: "tour-<contentid>", contentTypeId }. TourAPI 장소만 상세 정보를 조회할 수 있다.
 // 한 번의 detailIntro2 호출에서 주차 + 영업시간 + 휴무일을 함께 뽑는다.
-// -> { parking, openHoursText, closedDayText, opensAt, closesAt, alwaysOpen, closedWeekdays } | null
+// -> { parking, openHoursText, closedDayText, opensAt, closesAt, alwaysOpen, closedWeekdays } | null (대상이 아님)
+// 조회 자체가 실패하면 던진다.
 export async function fetchPlaceDetail(place) {
   const contentId = String(place?.id || '').startsWith('tour-') ? place.id.slice(5) : null
   if (!contentId || !place?.contentTypeId) return null
 
-  const item = await fetchDetailIntro(contentId, place.contentTypeId).catch(() => null)
-  if (!item) return null
+  // 조회 실패는 그대로 던진다(fetchPlaceDetailsMany 가 null 로 받는다). 정상인데 정보가 없으면 빈 상세로 본다.
+  const item = (await fetchDetailIntro(contentId, place.contentTypeId)) ?? {}
 
   const parkingField = PARKING_FIELD[place.contentTypeId]
   const openHoursText = cleanInfoText(item[USETIME_FIELD[place.contentTypeId]]) || null
@@ -215,6 +217,7 @@ export async function fetchPlaceDetail(place) {
 }
 
 // 여러 장소의 상세 정보를 조회한다. 동시 8개까지만 (data.go.kr 이 느려서 한 번에 수십 개 던지면 오히려 지연).
+// 조회에 실패한 장소의 값은 null — "상세 정보가 없는 장소"(빈 상세 객체)와 구분해야 기존 캐시를 지킬 수 있다.
 export async function fetchPlaceDetailsMany(places) {
   const entries = await mapLimit(places, 8, async (place) => [
     place.id,

@@ -124,7 +124,11 @@ export function parseGoogleHours(regularOpeningHours) {
   return { openHoursText, closedDayText, opensAt, closesAt, alwaysOpen, closedWeekdays }
 }
 
-// textQuery 한 번을 던져 첫 결과를 받는다. 실패/무응답이면 null.
+// searchTextOnce 의 "호출 자체가 실패" 표시. 구글이 정상 응답으로 "결과 없음"을 준 null 과 구분해야
+// 일시 장애·한도 초과를 "그런 가게가 없다"로 기록하지 않는다.
+const SEARCH_FAILED = Symbol('google-search-failed')
+
+// textQuery 한 번을 던져 첫 결과를 받는다. 정상 응답에 결과가 없으면 null, 호출이 실패하면 SEARCH_FAILED.
 async function searchTextOnce(textQuery, locationBias) {
   const body = { textQuery, languageCode: 'ko', regionCode: 'KR', maxResultCount: 1 }
   if (locationBias) body.locationBias = locationBias
@@ -144,11 +148,11 @@ async function searchTextOnce(textQuery, locationBias) {
       signal: timeoutSignal(4000),
     })
   } catch {
-    return null
+    return SEARCH_FAILED
   }
 
   const data = await response.json().catch(() => null)
-  if (!response.ok || !data) return null
+  if (!response.ok || !data) return SEARCH_FAILED
   return data.places?.[0] || null
 }
 
@@ -170,10 +174,15 @@ export async function fetchGoogleHours(place) {
   // 이름+주소로 먼저 찾는다(같은 이름이 여러 곳일 때 주소가 구분해 준다).
   // 구글이 도로명 대신 옛 지번 주소로 색인해 둔 곳은 이 조합이 0건으로 나오므로,
   // 좌표 반경(locationBias)만 믿고 이름만으로 한 번 더 찾아본다.
-  const found =
-    (nameAddressQuery && nameAddressQuery !== nameQuery ? await searchTextOnce(nameAddressQuery, locationBias) : null) ||
-    (await searchTextOnce(nameQuery, locationBias))
-  if (!found) return null
+  const first =
+    nameAddressQuery && nameAddressQuery !== nameQuery ? await searchTextOnce(nameAddressQuery, locationBias) : null
+  const second = first && first !== SEARCH_FAILED ? null : await searchTextOnce(nameQuery, locationBias)
+  const found = (first && first !== SEARCH_FAILED ? first : null) || (second && second !== SEARCH_FAILED ? second : null)
+  if (!found) {
+    // 한 번이라도 호출이 실패했다면 "없다"고 단정할 수 없다 — 호출한 쪽이 실패로 다루도록 던진다.
+    if (first === SEARCH_FAILED || second === SEARCH_FAILED) throw new Error('Google Places 조회에 실패했어요.')
+    return null
+  }
 
   const priceLevel = found.priceLevel || null
   const costFields = {
@@ -208,12 +217,20 @@ export async function fetchGoogleHours(place) {
 }
 
 // 여러 장소의 영업시간·가격대·대표 사진을 한 번에 조회한다. -> Map<placeId, info | null>
+//   info  구글이 찾아 준 정보
+//   null  구글이 정상 응답으로 "그런 곳 없음/정보 없음"이라고 답한 장소
+//   (키 없음)  호출이 실패한 장소는 Map 에 아예 넣지 않는다 — null 과 구분해야 일시 장애가
+//              "없는 가게"로 기록되지 않는다. 조회처는 get() 의 falsy 로 읽으면 둘을 같게 보고,
+//              구분이 필요한 곳만 has() 를 쓴다.
 // 키가 없으면 빈 Map (불필요한 요청을 아예 안 보낸다).
 export async function fetchGoogleHoursMany(places) {
   if (!apiKey || places.length === 0) return new Map()
-  const entries = await mapLimit(places, 8, async (place) => [
-    place.id,
-    await fetchGoogleHours(place).catch(() => null),
-  ])
-  return new Map(entries)
+  const entries = await mapLimit(places, 8, async (place) => {
+    try {
+      return [place.id, await fetchGoogleHours(place)]
+    } catch {
+      return null
+    }
+  })
+  return new Map(entries.filter(Boolean))
 }
