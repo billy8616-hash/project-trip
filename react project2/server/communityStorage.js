@@ -9,6 +9,7 @@
 // 버킷을 만들어 둘 필요가 없게 하려는 것이다.
 // ─────────────────────────────────────────────────────────────
 
+import { assertUserId } from './accountStore.js'
 import { getSupabaseAdmin } from './supabaseAdmin.js'
 
 const BUCKET = 'community-photos'
@@ -68,3 +69,29 @@ export async function uploadCommunityPhotos(files, userId) {
 }
 
 export const communityPhotoLimits = { maxFiles: MAX_FILES, maxFileBytes: MAX_FILE_BYTES }
+
+// 이 사용자가 올린 사진을 전부 지운다 (회원 탈퇴). 사진은 `<userId>/` 폴더 아래에 저장돼 있다.
+// 한 번에 100개씩 지우고 폴더가 빌 때까지 반복한다. 지운 개수를 돌려준다.
+// 버킷이 아직 없으면(사진을 한 번도 안 올린 서비스 초기) 지울 게 없는 것이다.
+export async function deleteUserPhotos(userId) {
+  assertUserId(userId)
+  const bucket = getSupabaseAdmin().storage.from(BUCKET)
+  const PAGE = 100
+  let removed = 0
+
+  // 폴더 하나에 수천 장이 쌓일 수는 없지만(사용자당 글 30개 × 사진 5장), 무한 반복은 막는다.
+  for (let round = 0; round < 50; round += 1) {
+    const { data, error } = await bucket.list(userId, { limit: PAGE })
+    if (error) {
+      if (/not.?found/i.test(error.message || '')) return removed
+      throw error
+    }
+    if (!data || data.length === 0) return removed
+
+    const { error: removeError } = await bucket.remove(data.map((file) => `${userId}/${file.name}`))
+    if (removeError) throw removeError
+    removed += data.length
+    if (data.length < PAGE) return removed
+  }
+  return removed
+}
