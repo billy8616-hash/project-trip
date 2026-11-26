@@ -47,6 +47,19 @@ describe('deleteUserPhotos', () => {
     expect(state.files).toHaveLength(0)
   })
 
+  it('정확히 100개(페이지 경계)여도 남김없이 지운다', async () => {
+    addFiles('me', 100)
+    expect(await deleteUserPhotos('me')).toBe(100)
+    expect(state.files).toHaveLength(0)
+  })
+
+  it('userId 가 비어 있으면 Storage 를 건드리지 않고 던진다', async () => {
+    addFiles('me', 2)
+    await expect(deleteUserPhotos(undefined)).rejects.toThrow('사용자 id')
+    await expect(deleteUserPhotos('')).rejects.toThrow('사용자 id')
+    expect(state.files).toHaveLength(2)
+  })
+
   it('올린 사진이 없으면 0', async () => {
     expect(await deleteUserPhotos('me')).toBe(0)
   })

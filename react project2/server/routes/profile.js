@@ -45,6 +45,9 @@ router.delete('/api/profile', requireAuth, async (req, res) => {
   try {
     await deleteUserRecords(req.userId)
     await deleteUserPhotos(req.userId)
+    // 사진을 지우는 사이에도 로그인 토큰은 살아 있어서, 다른 탭에서 글·저장을 만들면 DB 기록이 되살아난다.
+    // 계정을 지우기 직전에 한 번 더 지워 그 틈을 줄인다 (이미 지워졌으면 아무 일도 하지 않는다).
+    await deleteUserRecords(req.userId)
     await deleteAuthUser(req.userId)
     return res.json({ ok: true })
   } catch (error) {

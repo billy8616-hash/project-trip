@@ -9,6 +9,7 @@
 // 버킷을 만들어 둘 필요가 없게 하려는 것이다.
 // ─────────────────────────────────────────────────────────────
 
+import { assertUserId } from './accountStore.js'
 import { getSupabaseAdmin } from './supabaseAdmin.js'
 
 const BUCKET = 'community-photos'
@@ -73,6 +74,7 @@ export const communityPhotoLimits = { maxFiles: MAX_FILES, maxFileBytes: MAX_FIL
 // 한 번에 100개씩 지우고 폴더가 빌 때까지 반복한다. 지운 개수를 돌려준다.
 // 버킷이 아직 없으면(사진을 한 번도 안 올린 서비스 초기) 지울 게 없는 것이다.
 export async function deleteUserPhotos(userId) {
+  assertUserId(userId)
   const bucket = getSupabaseAdmin().storage.from(BUCKET)
   const PAGE = 100
   let removed = 0

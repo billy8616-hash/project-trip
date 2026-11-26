@@ -18,9 +18,19 @@
 import { prisma } from './db.js'
 import { getSupabaseAdmin } from './supabaseAdmin.js'
 
+// Prisma 는 `where: { userId: undefined }` 를 "조건 없음"으로 읽어서 deleteMany 가 테이블 전체를 지운다.
+// 지금은 인증 미들웨어가 항상 id 를 채워 주지만, 나중에 다른 곳에서 부르다 id 가 비면 전 사용자 데이터가 사라지므로
+// 삭제 함수마다 맨 앞에서 막는다.
+export function assertUserId(userId) {
+  if (typeof userId !== 'string' || userId.trim() === '') {
+    throw new Error('삭제할 사용자 id 가 올바르지 않아요.')
+  }
+}
+
 // DB 에 있는 이 사용자의 모든 기록을 한 트랜잭션으로 지운다 (중간에 실패하면 아무것도 지워지지 않는다).
 // Profile 은 id 가 곧 사용자 id 다. 이 서비스는 FK/cascade 가 없어서 연결된 테이블을 직접 지운다.
 export async function deleteUserRecords(userId) {
+  assertUserId(userId)
   const myPosts = await prisma.coursePost.findMany({ where: { userId }, select: { id: true } })
   const postIds = myPosts.map((post) => post.id)
 
@@ -43,6 +53,10 @@ export async function deleteUserRecords(userId) {
 
 // Supabase Auth 의 로그인 계정을 지운다. 이미 없으면(이전 시도에서 지워진 경우) 성공으로 본다.
 export async function deleteAuthUser(userId) {
+  assertUserId(userId)
   const { error } = await getSupabaseAdmin().auth.admin.deleteUser(userId)
-  if (error && !/not.?found/i.test(`${error.message || ''} ${error.code || ''}`)) throw error
+  // "이미 없음"만 성공으로 본다. 문구에 not found 가 들어간 다른 오류(잘못된 주소의 404 등)까지 성공으로 넘기지 않도록
+  // 오류 코드나 상태로 좁힌다.
+  const alreadyGone = error && (error.code === 'user_not_found' || error.status === 404)
+  if (error && !alreadyGone) throw error
 }

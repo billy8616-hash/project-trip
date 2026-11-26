@@ -65,7 +65,8 @@ describe('DELETE /api/profile (회원 탈퇴)', () => {
   it('DB 기록 → 사진 → 로그인 계정 순서로 지우고, 인증된 본인의 id 로만 지운다', async () => {
     const result = await remove({ confirm: true, userId: 'someone-else' })
     expect(result).toEqual({ status: 200, body: { ok: true } })
-    expect(m.calls).toEqual(['records', 'photos', 'auth'])
+    // 사진을 지우는 사이 되살아난 기록을 계정 삭제 직전에 한 번 더 지운다.
+    expect(m.calls).toEqual(['records', 'photos', 'records', 'auth'])
     expect(m.deleteUserRecords).toHaveBeenCalledWith('me') // 본문의 userId 는 무시된다
     expect(m.deleteUserPhotos).toHaveBeenCalledWith('me')
     expect(m.deleteAuthUser).toHaveBeenCalledWith('me')

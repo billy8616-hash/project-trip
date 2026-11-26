@@ -89,6 +89,21 @@ describe('deleteUserRecords', () => {
   })
 })
 
+describe('userId 방어 — 비어 있으면 전체 삭제가 되지 않도록 막는다', () => {
+  it.each([undefined, null, '', '   ', 123])('deleteUserRecords(%j) 는 아무것도 지우지 않고 던진다', async (bad) => {
+    const before = JSON.stringify(state.tables)
+    await expect(deleteUserRecords(bad)).rejects.toThrow('사용자 id')
+    expect(JSON.stringify(state.tables)).toBe(before)
+  })
+
+  it('deleteAuthUser 도 Supabase 를 부르지 않고 던진다', async () => {
+    const deleteUser = vi.fn()
+    state.supabase = { auth: { admin: { deleteUser } } }
+    await expect(deleteAuthUser(undefined)).rejects.toThrow('사용자 id')
+    expect(deleteUser).not.toHaveBeenCalled()
+  })
+})
+
 describe('deleteAuthUser', () => {
   it('Supabase 계정을 지운다', async () => {
     const deleteUser = vi.fn(async () => ({ error: null }))
@@ -99,6 +114,16 @@ describe('deleteAuthUser', () => {
 
   it('이미 없는 계정(이전 시도에서 지워짐)은 성공으로 본다', async () => {
     state.supabase = { auth: { admin: { deleteUser: async () => ({ error: { message: 'User not found', code: 'user_not_found' } }) } } }
+    await expect(deleteAuthUser('me')).resolves.toBeUndefined()
+  })
+
+  it('문구에 not found 가 있어도 사용자 없음이 아닌 오류(잘못된 주소의 404 문구 등)는 던진다', async () => {
+    state.supabase = { auth: { admin: { deleteUser: async () => ({ error: { message: 'requested path not found', status: 500 } }) } } }
+    await expect(deleteAuthUser('me')).rejects.toMatchObject({ message: 'requested path not found' })
+  })
+
+  it('상태 404 도 이미 없는 계정으로 본다', async () => {
+    state.supabase = { auth: { admin: { deleteUser: async () => ({ error: { message: 'gone', status: 404 } }) } } }
     await expect(deleteAuthUser('me')).resolves.toBeUndefined()
   })
 
