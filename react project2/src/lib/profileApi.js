@@ -24,3 +24,12 @@ export async function saveMyProfile(payload) {
   })
   return data.profile
 }
+
+// 회원 탈퇴 — 프로필·저장한 여행·내 글/후기/추천·올린 사진·계정을 모두 지운다. 되돌릴 수 없다.
+// 성공하면 로그인 세션도 더는 쓸 수 없으므로 호출한 쪽에서 signOut 으로 화면을 정리해야 한다.
+export async function deleteMyAccount() {
+  await authedRequest('/api/profile', {
+    method: 'DELETE',
+    body: JSON.stringify({ confirm: true }),
+  })
+}
