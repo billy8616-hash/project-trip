@@ -59,6 +59,7 @@ import DatesScreen from './screens/DatesScreen.jsx'
 import DestinationsScreen from './screens/DestinationsScreen.jsx'
 import OriginScreen from './screens/OriginScreen.jsx'
 import MustVisitScreen from './screens/MustVisitScreen.jsx'
+import AccountScreen from './screens/AccountScreen.jsx'
 import MyTripsScreen from './screens/MyTripsScreen.jsx'
 import FootprintMapScreen from './screens/FootprintMapScreen.jsx'
 import ThemeScreen from './screens/ThemeScreen.jsx'
@@ -694,7 +695,18 @@ function App() {
           <button className={screen === 'community' ? 'active' : ''} type="button" onClick={() => setScreen('community')}>커뮤니티</button>
         </div>
         <div className="top-actions">
-          {user && <span className="user-email">{user.email || user.name}</span>}
+          {user && (
+            <button
+              className="account-link"
+              type="button"
+              onClick={() => setScreen('account')}
+              aria-label={`내 계정 (${user.email || user.name})`}
+              aria-current={screen === 'account' ? 'page' : undefined}
+            >
+              <span className="account-link-name">{user.email || user.name}</span>
+              <span className="account-link-short" aria-hidden="true">내 계정</span>
+            </button>
+          )}
           {user ? (
             <button className="auth-button" type="button" onClick={signOut}>로그아웃</button>
           ) : (
@@ -908,6 +920,14 @@ function App() {
           onBack={() => setScreen('home')}
           initialTripId={shareTripId}
           onConsumedInitialTrip={() => setShareTripId(null)}
+        />
+      ) : screen === 'account' ? (
+        <AccountScreen
+          user={user}
+          leaving={leaving}
+          onBack={() => setScreen('home')}
+          onRequireLogin={() => setAuthOpen(true)}
+          onSignOut={signOut}
         />
       ) : screen === 'mytrips' ? (
         <MyTripsScreen
