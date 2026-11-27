@@ -59,6 +59,7 @@ import DatesScreen from './screens/DatesScreen.jsx'
 import DestinationsScreen from './screens/DestinationsScreen.jsx'
 import OriginScreen from './screens/OriginScreen.jsx'
 import MustVisitScreen from './screens/MustVisitScreen.jsx'
+import AccountScreen from './screens/AccountScreen.jsx'
 import MyTripsScreen from './screens/MyTripsScreen.jsx'
 import FootprintMapScreen from './screens/FootprintMapScreen.jsx'
 import ThemeScreen from './screens/ThemeScreen.jsx'
@@ -106,9 +107,21 @@ function App() {
   // 브라우저 뒤로/앞으로 버튼으로도 화면(screen)이 넘어가도록 History API 와 동기화한다.
   // popstate 로 들어온 화면 변경은 다시 pushState 하지 않도록 플래그로 걸러낸다.
   const skipHistoryPush = useRef(false)
+  // 회원 탈퇴 처리 중에는 화면을 떠나면 결과(성공·실패)를 볼 수 없어서 화면 이동을 잠근다.
+  const [accountBusy, setAccountBusy] = useState(false)
+  const accountBusyRef = useRef(false)
+  const handleAccountBusy = useCallback((busy) => {
+    accountBusyRef.current = busy
+    setAccountBusy(busy)
+  }, [])
   useEffect(() => {
     window.history.replaceState({ screen: restoredScreen }, '')
     const onPopState = (event) => {
+      if (accountBusyRef.current) {
+        // 뒤로 가기를 눌러도 그 자리에 남도록, 방금 빠져나온 항목을 다시 쌓는다.
+        window.history.pushState({ screen: 'account' }, '')
+        return
+      }
       skipHistoryPush.current = true
       setLeaving(false)
       setScreen(event.state?.screen || 'home')
@@ -681,7 +694,7 @@ function App() {
 
       <div className={screen === 'course' && course ? 'app-stage stage-course' : 'app-stage'}>
       {FOOTPRINT_TRAIL_SCREENS.has(screen) && <FootprintTrail themeId={journeyTheme} />}
-      <nav className="topbar">
+      <nav className="topbar" inert={accountBusy}>
         <button className="brand" type="button" onClick={() => slideTo('home')} aria-label="홈으로 이동">
           <img src={balgilLogoMark} alt="" aria-hidden="true" className="brand-logo" />
           <span>발길따라</span>
@@ -694,7 +707,18 @@ function App() {
           <button className={screen === 'community' ? 'active' : ''} type="button" onClick={() => setScreen('community')}>커뮤니티</button>
         </div>
         <div className="top-actions">
-          {user && <span className="user-email">{user.email || user.name}</span>}
+          {user && (
+            <button
+              className="account-link"
+              type="button"
+              onClick={() => setScreen('account')}
+              aria-label={`내 계정 (${user.email || user.name})`}
+              aria-current={screen === 'account' ? 'page' : undefined}
+            >
+              <span className="account-link-name">{user.email || user.name}</span>
+              <span className="account-link-short" aria-hidden="true">내 계정</span>
+            </button>
+          )}
           {user ? (
             <button className="auth-button" type="button" onClick={signOut}>로그아웃</button>
           ) : (
@@ -908,6 +932,16 @@ function App() {
           onBack={() => setScreen('home')}
           initialTripId={shareTripId}
           onConsumedInitialTrip={() => setShareTripId(null)}
+        />
+      ) : screen === 'account' ? (
+        <AccountScreen
+          user={user}
+          leaving={leaving}
+          onBack={() => setScreen('home')}
+          onRequireLogin={() => setAuthOpen(true)}
+          onSignOut={signOut}
+          onBusyChange={handleAccountBusy}
+          onDeleted={clearTripSession}
         />
       ) : screen === 'mytrips' ? (
         <MyTripsScreen
